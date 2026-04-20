@@ -1,7 +1,7 @@
 # Multi-Language Deployment Example
 
 > Status: prototype only. This file demonstrates a proposed markdown format and
-> is not executable by the current `redeploy` CLI.
+> is not executable by the current `redeploy` markdown subset.
 
 This demonstrates markpact's ability to embed multiple configuration
 languages within a single markdown file.

@@ -1,8 +1,8 @@
 # c2004 RPi5 Deployment 1.0.22
 
 > Status: prototype only. This markdown file documents a proposed markpact-style
-> runtime. The current `redeploy` CLI in this repository does not execute
-> `migration.md` files.
+> runtime. It uses features outside the currently supported `redeploy`
+> markdown subset.
 
 Markpact deployment specification for deploying c2004 to Raspberry Pi 5.
 

@@ -7,25 +7,26 @@ current state of this repository.
 
 | Area from TODO | Status | Notes |
 | --- | --- | --- |
-| Markdown as single source of truth | missing | The current `redeploy` CLI loads specs through YAML only. `MigrationSpec.from_file()` uses `yaml.safe_load()` and `redeploy run` calls that path directly. |
-| `markpact:*` executable blocks | missing | There is no parser or runtime in this repo that reads `markpact:config`, `markpact:steps`, `markpact:run`, or `markpact:rollback` blocks. |
-| Schema and validation | partial | Pydantic validation exists for YAML-based specs and plans, but not for markdown/markpact blocks. |
+| Markdown as single source of truth | partial | The CLI can now load `.md` specs through `redeploy.spec_loader.load_migration_spec()`, but only for a constrained markpact subset that compiles into the existing YAML-shaped `MigrationSpec`. |
+| `markpact:*` executable blocks | partial | `markpact:config` and `markpact:steps` are now parsed and compiled. `markpact:run`, `markpact:rollback`, `markpact:python`, and similar blocks are still unsupported. |
+| Schema and validation | partial | Markdown blocks are parsed and validated against `MigrationSpec`, `InfraSpec`, `MigrationStep`, and `StepLibrary`, but only for the supported Phase 1 subset. |
 | Idempotency / execution state | missing | There is no `.deploy-state.json`, no `steps_done`, and no generic step skipping based on prior execution state. |
 | Conditional execution like `when`, `skip_if`, `check_cmd` | missing | These fields appear in markdown examples, but they are not part of the current `MigrationStep` model or executor logic. |
 | Per-step retry | missing | Retry is not part of `MigrationStep`; the executor only retries HTTP checks internally. |
 | Per-step timeout | implemented | `MigrationStep.timeout` exists and is used by the executor and SSH helpers. |
 | Persistent SSH session reuse | missing | `SshClient.run()` shells out to `ssh` for each command; there is no persistent connection/session pool. |
 | Rollback support | partial | `rollback_command` exists on YAML steps and the executor runs rollback commands for completed steps after a failure, but there is no `markpact:rollback` block support. |
-| Structured progress/log output | partial | The executor emits YAML progress events and writes audit records, but this is tied to YAML plan execution, not markpact markdown. |
-| AST-based markdown parsing instead of regex | missing | No markdown runtime exists in this repo today, so the suggested AST parser migration was not implemented here. |
+| Structured progress/log output | partial | Markdown specs are compiled into the existing planner/executor path, so supported markdown inherits the same progress events and audit records as YAML. |
+| AST-based markdown parsing instead of regex | implemented | The markpact subset is parsed with `markdown-it-py` in `redeploy/redeploy/markpact/parser.py`. |
 | Security hardening for markdown execution | missing | There is no sandboxed markdown execution layer in the current codebase. |
 
 ## Code Evidence
 
 | Evidence | Meaning |
 | --- | --- |
-| `redeploy/redeploy/models.py` `MigrationSpec.from_file()` | Specs are loaded as YAML with `yaml.safe_load()`. |
-| `redeploy/redeploy/cli.py` `run(...)` | The main CLI path goes straight through `MigrationSpec.from_file()`. |
+| `redeploy/redeploy/spec_loader.py` | CLI spec loading now routes YAML and markdown through a shared loader. |
+| `redeploy/redeploy/markpact/parser.py` | Markdown fences are parsed into `MarkpactBlock` objects with an AST-based parser. |
+| `redeploy/redeploy/markpact/compiler.py` | Supported markdown blocks are compiled and validated against the current runtime models. |
 | `redeploy/redeploy/models.py` `MigrationStep` | Has `timeout` and `rollback_command`, but no `retry`, `when`, `skip_if`, or `check_cmd`. |
 | `redeploy/redeploy/apply/executor.py` | Supports rollback and HTTP retry, but not a generic markdown runtime. |
 | `redeploy/redeploy/ssh.py` | Uses subprocess-based `ssh` per call, not a persistent SSH session. |
@@ -37,7 +38,7 @@ examples in `examples/yaml/`.
 
 | YAML scenario | Markdown equivalent | Status |
 | --- | --- | --- |
-| `01-vps-version-bump` | none | missing |
+| `01-vps-version-bump` | `examples/md/01-vps-version-bump` | partial: supported Phase 1 subset counterpart |
 | `02-k3s-to-docker` | none | missing |
 | `03-docker-to-podman-quadlet` | none | missing |
 | `04-rpi-kiosk` | none | missing |
@@ -58,11 +59,12 @@ examples in `examples/yaml/`.
 | `15-canary.yaml` | none | missing |
 | `16-auto-rollback.yaml` | none | missing |
 
-Current `examples/md/` content is better described as prototype or exploratory
-documentation:
+Current `examples/md/` content is mostly prototype or exploratory
+documentation, with one supported Phase 1 subset example:
 
 | Markdown example | Nature |
 | --- | --- |
+| `01-vps-version-bump` | Supported markdown subset example compiled into the current runtime |
 | `01-rpi5-deploy` | Custom prototype scenario, not a port of a YAML example |
 | `02-multi-language` | Feature demo for mixed block formats |
 | `03-all-actions` | Aspirational action catalog, not aligned with current `MigrationStep` model |
@@ -70,7 +72,8 @@ documentation:
 
 ## Recommendation
 
-Treat `examples/yaml/` as the supported, tested path and `examples/md/` as
-design/prototype material until a real markdown runtime is added to this repo.
+Treat `examples/yaml/` as the primary supported, tested path. Treat markdown as
+a limited supported subset plus broader prototype material until later phases
+add more block kinds and runtime features.
 
 See `docs/markpact-implementation-plan.md` for a minimal staged rollout plan.

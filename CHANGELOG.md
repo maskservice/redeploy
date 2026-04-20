@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-04-20
+
+### Docs
+- Update README.md
+- Update docs/markpact-audit.md
+- Update examples/README.md
+- Update examples/md/01-rpi5-deploy/migration.md
+- Update examples/md/01-vps-version-bump/README.md
+- Update examples/md/01-vps-version-bump/migration.md
+- Update examples/md/02-multi-language/migration.md
+- Update examples/md/03-all-actions/migration.md
+- Update examples/md/README.md
+
+### Other
+- Update redeploy/tests/test_examples.py
+
 ## [0.2.11] - 2026-04-20
 
 ### Docs

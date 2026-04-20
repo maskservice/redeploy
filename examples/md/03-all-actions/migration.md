@@ -1,8 +1,8 @@
 # Complete Action Types Example
 
 > Status: prototype only. This file intentionally shows aspirational fields and
-> actions for a future markdown runtime; it does not match the current
-> `redeploy` execution model one-to-one.
+> actions for a future markdown runtime; it goes beyond the current
+> `redeploy` markdown subset.
 
 This example demonstrates ALL action types available in markpact runtime,
 similar to what was available in YAML format.

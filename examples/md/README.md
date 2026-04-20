@@ -1,20 +1,22 @@
-# redeploy Examples — Markdown Prototypes
+# redeploy Examples — Markdown
 
-This directory contains prototype markdown files for a proposed markpact-style
-runtime.
+This directory contains two kinds of markdown material:
 
-These files are not supported by the current `redeploy run` implementation.
+- one supported Phase 1 markpact subset example
+- several broader prototypes for future runtime work
 
 ## Current Status
 
-- `redeploy run` loads YAML specs, not `migration.md`
-- repository tests validate `examples/yaml/`, not `examples/md/`
-- several markdown examples contain aspirational fields not present in the current runtime
+- `redeploy run` now supports a limited `migration.md` subset via `markpact:config` and `markpact:steps`
+- `examples/md/01-vps-version-bump` is an executable markdown example for that subset
+- repository tests still focus mainly on `examples/yaml/`
+- several markdown examples still contain aspirational fields not present in the current runtime
 
 See [../../docs/markpact-audit.md](../../docs/markpact-audit.md) for the detailed audit.
 
 ## Files
 
+- `01-vps-version-bump`: supported markdown subset example mirroring a YAML scenario
 - `01-rpi5-deploy`: prototype Raspberry Pi deployment spec
 - `02-multi-language`: mixed YAML, TOML, JSON, Python, and Bash format demo
 - `03-all-actions`: aspirational action catalog for a future markdown runtime
@@ -32,6 +34,7 @@ The markdown examples show ideas that do not map directly to the current codebas
 
 ## What To Use Instead
 
-If you want working examples for the current repository, use `examples/yaml/`.
+If you want working examples for the current repository, use `examples/yaml/`
+or the supported markdown subset example in `examples/md/01-vps-version-bump/`.
 
 If you want design material for a future markdown runtime, use `examples/md/`.

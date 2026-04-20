@@ -13,6 +13,7 @@ import yaml
 from redeploy.fleet import FleetConfig, Stage, DeviceExpectation
 from redeploy.models import MigrationSpec, DeployStrategy, StepAction
 from redeploy.plan.planner import Planner
+from redeploy.spec_loader import load_migration_spec
 from redeploy.steps import StepLibrary
 
 EXAMPLES_DIR = Path(__file__).resolve().parents[2] / "examples"
@@ -23,13 +24,16 @@ MIGRATION_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/*/migration.yaml"))
 MULTIENV_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/10-multienv/*.yaml"))
 FLEET_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/*/fleet.yaml"))
 REDEPLOY_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/*/redeploy.yaml"))
+SUPPORTED_MARKDOWN_MIGRATIONS = [
+    EXAMPLES_DIR / "md" / "01-vps-version-bump" / "migration.md"
+]
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 
 def _load_spec(path: Path) -> MigrationSpec:
-    return MigrationSpec.from_file(path)
+    return load_migration_spec(path)
 
 
 def _plan_from_spec(spec: MigrationSpec):
@@ -83,6 +87,22 @@ class TestMigrationYaml:
     def test_has_redeploy_yaml(self, yaml_path):
         rdeploy = yaml_path.parent / "redeploy.yaml"
         assert rdeploy.exists(), f"Missing redeploy.yaml in {yaml_path.parent.name}"
+
+
+@pytest.mark.parametrize("md_path", SUPPORTED_MARKDOWN_MIGRATIONS, ids=lambda p: p.parent.name)
+class TestSupportedMarkdownMigration:
+    def test_parses_without_error(self, md_path):
+        spec = _load_spec(md_path)
+        assert spec.name
+
+    def test_plan_generates_steps(self, md_path):
+        spec = _load_spec(md_path)
+        plan = _plan_from_spec(spec)
+        assert len(plan.steps) > 0, f"{md_path.parent.name}: plan has 0 steps"
+
+    def test_has_readme(self, md_path):
+        readme = md_path.parent / "README.md"
+        assert readme.exists(), f"Missing README.md in {md_path.parent.name}"
 
 
 # ── redeploy.yaml manifest tests ──────────────────────────────────────────────
