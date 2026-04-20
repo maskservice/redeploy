@@ -121,7 +121,9 @@ class Executor:
     def __init__(self, plan: MigrationPlan, dry_run: bool = False,
                  ssh_key: Optional[str] = None,
                  progress_yaml: bool = False,
-                 progress_stream: IO[str] = None):
+                 progress_stream: IO[str] = None,
+                 audit_log: bool = True,
+                 audit_path: Optional["Path"] = None):
         self.plan = plan
         self.dry_run = dry_run
         self.probe = RemoteProbe(plan.host)
@@ -131,15 +133,24 @@ class Executor:
         self._emitter: Optional[ProgressEmitter] = (
             ProgressEmitter(progress_stream) if progress_yaml else None
         )
+        self._audit_log = audit_log
+        self._audit_path = audit_path
+        self._t0: float = 0.0
+
+    @property
+    def completed_steps(self) -> list[MigrationStep]:
+        return list(self._completed)
 
     def run(self) -> bool:
         """Execute all steps. Returns True if all passed."""
+        self._t0 = time.monotonic()
         prefix = "[DRY RUN] " if self.dry_run else ""
         logger.info(f"{prefix}Applying plan: {len(self.plan.steps)} steps "
                     f"({self.plan.from_strategy.value} → {self.plan.to_strategy.value})")
         if self._emitter:
             self._emitter.start(self.plan)
 
+        ok = True
         for i, step in enumerate(self.plan.steps, 1):
             try:
                 if self._emitter:
@@ -157,12 +168,27 @@ class Executor:
                     self._emitter.failed(len(self._completed), len(self.plan.steps), str(e))
                 if not self.dry_run:
                     self._rollback()
-                return False
+                ok = False
+                break
 
-        logger.info(f"{'[DRY RUN] ' if self.dry_run else ''}All {len(self.plan.steps)} steps completed")
-        if self._emitter:
-            self._emitter.done(len(self.plan.steps))
-        return True
+        elapsed = time.monotonic() - self._t0
+        if ok:
+            logger.info(f"{'[DRY RUN] ' if self.dry_run else ''}All {len(self.plan.steps)} steps completed")
+            if self._emitter:
+                self._emitter.done(len(self.plan.steps))
+        self._write_audit(ok=ok, elapsed_s=elapsed)
+        return ok
+
+    def _write_audit(self, *, ok: bool, elapsed_s: float) -> None:
+        if not self._audit_log:
+            return
+        try:
+            from ..observe import DeployAuditLog
+            log = DeployAuditLog(path=self._audit_path)
+            log.record(self.plan, self._completed, ok=ok,
+                       elapsed_s=elapsed_s, dry_run=self.dry_run)
+        except Exception as exc:  # never crash the executor
+            logger.debug(f"audit_log write failed (non-fatal): {exc}")
 
     # ── step dispatcher ───────────────────────────────────────────────────────
 

@@ -55,6 +55,13 @@ from .patterns import (  # noqa: F401
     pattern_registry,
 )
 
+# ── Observability (first-class from 0.2.0) ────────────────────────────────────
+from .observe import (  # noqa: F401
+    AuditEntry,
+    DeployAuditLog,
+    DeployReport,
+)
+
 __all__ = [
     # version
     "__version__",
@@ -95,4 +102,8 @@ __all__ = [
     "get_pattern",
     "list_patterns",
     "pattern_registry",
+    # observability
+    "AuditEntry",
+    "DeployAuditLog",
+    "DeployReport",
 ]

@@ -38,6 +38,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pydantic.field_validator` added to imports in `models.py`
 - `TargetConfig` defaults no longer hardcode project-specific values (`"c2004"`, `"~/c2004"`)
 
+### Phase 5 — Observability (0.2.0)
+- `redeploy/observe.py` — new module:
+  - `AuditEntry` — immutable snapshot of one deployment (ts, host, app, strategies, ok, elapsed, steps)
+  - `DeployAuditLog` — persistent JSONL log at `~/.config/redeploy/audit.jsonl`
+    - `record(plan, completed, ok, elapsed_s, dry_run)` — build + persist entry
+    - `load(limit)`, `tail(n)`, `filter(host, app, ok, since)`, `clear()`
+    - Corrupt lines silently skipped; parent dirs auto-created
+  - `DeployReport` — human-readable / YAML post-deploy summary
+    - `text()` — boxed table with step icons (✓ ✗ ⤼), strategy, elapsed, error
+    - `yaml()` — machine-readable for CI pipelines
+    - `summary_line()` — single-line for CI log output
+- `Executor` — auto-writes audit entry after every `run()` (opt-out with `audit_log=False`)
+  - New params: `audit_log: bool = True`, `audit_path: Optional[Path] = None`
+  - New property: `completed_steps` — list of successfully executed steps
+  - Audit write never crashes executor (exception caught + logged at DEBUG)
+- `AuditEntry`, `DeployAuditLog`, `DeployReport` added to `__all__`
+- `test_observe.py` — 37 tests: AuditEntry accessors, JSONL round-trip, filter/tail, corrupt-line skip, DeployReport text/yaml/summary, Executor integration
+
 ### Phase 4 — Deploy patterns (0.2.0)
 - `redeploy/patterns.py` — new module with `DeployPattern` base class and three patterns:
   - `BlueGreenPattern` — zero-downtime via Traefik label swap (7 steps: clone_green, deploy_green, health_green, swap_labels, verify_main, retire_blue + optional sync_env)
