@@ -127,22 +127,16 @@ class Executor:
             raise StepError(step, "http_check requires url")
         last_err = ""
         for attempt in range(retries):
-            cmd = f"curl -skf --max-time 10 '{step.url}'"
             if step.expect:
-                cmd += f" | grep -qF '{step.expect}' && echo OK || echo FAIL"
-                r = self.probe.run(cmd, timeout=20)
-                if r.ok and "OK" in r.out:
-                    step.status = StepStatus.DONE
-                    step.result = f"OK (expect='{step.expect}' found)"
-                    return
-                last_err = f"expected '{step.expect}' not found" if r.ok else r.stderr[:100]
+                cmd = f"curl -skf --max-time 10 '{step.url}' | grep -F '{step.expect}'"
             else:
-                r = self.probe.run(cmd, timeout=20)
-                if r.ok:
-                    step.status = StepStatus.DONE
-                    step.result = r.out[:200]
-                    return
-                last_err = r.stderr[:100] or f"curl exit={r.exit_code}"
+                cmd = f"curl -skf --max-time 10 '{step.url}'"
+            r = self.probe.run(cmd, timeout=20)
+            if r.ok and (not step.expect or step.expect in r.out):
+                step.status = StepStatus.DONE
+                step.result = f"OK (expect='{step.expect}' found)" if step.expect else r.out[:200]
+                return
+            last_err = f"expected '{step.expect}' not found in: {r.out[:80]}" if r.ok else (r.stderr[:100] or f"curl exit={r.exit_code}")
             logger.debug(f"    retry {attempt + 1}/{retries}: {last_err}")
             time.sleep(delay)
         raise StepError(step, f"HTTP check failed after {retries} retries: {last_err}")
