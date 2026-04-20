@@ -36,7 +36,7 @@ class RPiDeployRuntime:
         print(f"[DRY] {' '.join(map(str, args))}")
 
     MARKPACT_RE = re.compile(
-        r"^```markpact:(?P<kind>\w+)(?:\s+(?P<meta>[^\n]+))?\\n(?P<body>.*?)^```[ \\t]*$",
+        r"^```(?P<lang>\w+)\s+markpact:(?P<kind>\w+)(?:\s+(?P<meta>[^\n]+))?\\n(?P<body>.*?)^```[ \\t]*$",
         re.DOTALL | re.MULTILINE
     )
 

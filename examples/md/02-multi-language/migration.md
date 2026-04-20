@@ -8,7 +8,7 @@ languages within a single markdown file.
 
 ## YAML Configuration
 
-```markpact:config yaml
+```yaml markpact:config
 name: "multi-language demo"
 version: "1.0.0"
 environment: production
@@ -16,7 +16,7 @@ environment: production
 
 ## TOML Configuration (Alternative)
 
-```markpact:config toml
+```toml markpact:config
 [deployment]
 name = "toml-example"
 strategy = "docker"
@@ -25,7 +25,7 @@ timeout = 300
 
 ## Steps in YAML
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: prepare
     action: shell
@@ -42,7 +42,7 @@ extra_steps:
 
 ## Steps in TOML
 
-```markpact:steps toml
+```toml markpact:steps
 [[extra_steps]]
 id = "deploy_toml"
 action = "shell"
@@ -53,7 +53,7 @@ risk = "low"
 
 ## Python Script Block
 
-```markpact:python
+```python markpact:python
 # Python code can be embedded for complex logic
 import os
 import sys
@@ -82,7 +82,7 @@ print("::set-var::deployment_time=2024-01-01T00:00:00Z")
 
 ## Bash Script Block
 
-```markpact:bash
+```bash markpact:bash
 #!/bin/bash
 # Pure bash block for shell operations
 
@@ -102,14 +102,14 @@ echo "=== Bash Block Complete ==="
 
 ## Shell Block (Alternative)
 
-```markpact:shell
+```bash markpact:shell
 echo "This is a shell block (same as bash)"
 # Can use any shell syntax supported by /bin/sh
 ```
 
 ## JSON Data (For structured data)
 
-```markpact:config json
+```json markpact:config
 {
   "deployment": {
     "name": "json-example",
@@ -124,7 +124,7 @@ echo "This is a shell block (same as bash)"
 
 ## Final Run Block
 
-```markpact:run
+```bash markpact:run
 #!/bin/bash
 echo "Multi-language deployment complete!"
 echo "Used: YAML, TOML, Python, Bash, JSON"

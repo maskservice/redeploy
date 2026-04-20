@@ -192,6 +192,13 @@ class TestRunSsh:
         exc.run()
         assert step.result == "result_value"
 
+    def test_uses_step_timeout(self):
+        step = _make_step("ssh_timeout", command="echo long", timeout=1234)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        exc.run()
+        assert exc.probe.run.call_args.kwargs["timeout"] == 1234
+
 
 # ── _run_scp ──────────────────────────────────────────────────────────────────
 

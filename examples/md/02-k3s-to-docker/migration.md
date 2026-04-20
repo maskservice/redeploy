@@ -3,7 +3,7 @@
 This is a Phase 1 markpact example that mirrors the supported YAML scenario for
 migrating a single-node VPS from k3s to Docker Compose plus Traefik.
 
-```markpact:config yaml
+```yaml markpact:config
 name: "k3s -> docker_full"
 description: "Stop k3s, flush iptables, start Docker Compose + Traefik on ports 80/443"
 
@@ -39,7 +39,7 @@ notes:
   - "Cloudflare Full (non-strict) SSL; Traefik serves self-signed cert from traefik/certs/"
 ```
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: flush_k3s_iptables
 ```

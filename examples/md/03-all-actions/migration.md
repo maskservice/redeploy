@@ -9,7 +9,7 @@ similar to what was available in YAML format.
 
 ## Configuration
 
-```markpact:config yaml
+```yaml markpact:config
 name: "all-actions-demo"
 version: "1.0.0"
 target:
@@ -22,7 +22,7 @@ plugins:
 
 Execute commands on remote hosts via SSH.
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: check_host
     action: ssh_cmd
@@ -47,7 +47,7 @@ extra_steps:
 
 Synchronize files with remote host.
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: deploy_code
     action: rsync
@@ -70,7 +70,7 @@ extra_steps:
 
 Copy single files via SCP.
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: copy_env
     action: scp
@@ -93,7 +93,7 @@ extra_steps:
 
 Docker Compose operations.
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: docker_build
     action: docker
@@ -125,7 +125,7 @@ extra_steps:
 
 HTTP health checks.
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: check_api
     action: http
@@ -150,7 +150,7 @@ extra_steps:
 
 Local shell commands.
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: local_prep
     action: shell
@@ -178,7 +178,7 @@ extra_steps:
 
 Custom plugin actions.
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: reload_browser
     action: plugin
@@ -204,7 +204,7 @@ extra_steps:
 
 Steps that won't re-run if already completed:
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: setup_db
     action: ssh_cmd
@@ -229,7 +229,7 @@ extra_steps:
 
 Rollback steps executed in reverse order on failure:
 
-```markpact:rollback yaml
+```yaml markpact:rollback
 steps:
   - id: stop_containers
     action: ssh_cmd
@@ -247,7 +247,7 @@ steps:
 
 Optional Python for complex logic:
 
-```markpact:python
+```python markpact:python
 import urllib.request
 import json
 
@@ -282,7 +282,7 @@ print("All services verified!")
 
 ## Final Verification
 
-```markpact:run
+```bash markpact:run
 #!/bin/bash
 # Final sanity checks
 echo "=== Deployment Verification ==="

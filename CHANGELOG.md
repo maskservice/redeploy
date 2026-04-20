@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-04-20
+
+### Docs
+- Update README.md
+- Update TODO/zaproponuj runtime do obslugi tego typu pliku.md
+- Update examples/md/01-rpi5-deploy/migration.md
+- Update examples/md/01-vps-version-bump/migration.md
+- Update examples/md/02-k3s-to-docker/migration.md
+- Update examples/md/02-multi-language/migration.md
+- Update examples/md/03-all-actions/migration.md
+- Update examples/md/03-docker-to-podman-quadlet/migration.md
+- Update examples/md/04-v3-state-reconciliation/migration.md
+
+### Other
+- Update "TODO/a jak by to mia\305\202ol by\304\207 obslugiwane przez rozne jez.md"
+- Update redeploy/apply/executor.py
+- Update redeploy/tests/test_cli.py
+- Update redeploy/tests/test_executor.py
+- Update redeploy/tests/test_spec_loader.py
+
 ## [0.2.13] - 2026-04-20
 
 ### Docs

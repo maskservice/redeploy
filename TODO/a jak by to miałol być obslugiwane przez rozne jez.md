@@ -333,7 +333,7 @@ Zapisuje plik do sandboxu pod ścieżką `path=...`.
 Jedna komenda uruchomieniowa wykonywana w sandboxie.
 
 ---
-```markpact:bootstrap python
+```python markpact:bootstrap
 #!/usr/bin/env python3
 """MARKPACT v0.1 – Executable Markdown Runtime"""
 import os, re, subprocess, sys
@@ -342,7 +342,7 @@ from pathlib import Path
 README = Path(sys.argv[1] if len(sys.argv) > 1 else "README.md")
 SANDBOX = Path(os.environ.get("MARKPACT_SANDBOX", "./sandbox"))
 SANDBOX.mkdir(parents=True, exist_ok=True)
-RE = re.compile(r"^```markpact:(?P<kind>\\w+)(?:\\s+(?P<meta>[^\\n]+))?\\n(?P<body>.*?)\\n^```[ \\t]*$", re.DOTALL | re.MULTILINE)
+RE = re.compile(r"^```(?P<lang>\\w+)\\s+markpact:(?P<kind>\\w+)(?:\\s+(?P<meta>[^\\n]+))?\\n(?P<body>.*?)\\n^```[ \\t]*$", re.DOTALL | re.MULTILINE)
 
 def run(cmd):
     print(f"[markpact] RUN: {cmd}")
@@ -666,7 +666,7 @@ Przekształć `migration.yaml` w `migration.md` z markpact blokami – runtime w
 # c2004 RPi5 Deploy 1.0.20
 Deployment do pi@192.168.188.108. `markpact migration.md --run`
 
-```markpact:bootstrap python
+```python markpact:bootstrap
 #!/usr/bin/env python3
 # [skrócony bootstrap z README markpact – parsuje bloki, rsync/ssh/docker]
 import subprocess, yaml, toml  # multi-format

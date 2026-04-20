@@ -37,7 +37,7 @@ def _migration_markdown_supported() -> str:
         """\
 # Markdown migration
 
-```markpact:config yaml
+```yaml markpact:config
 name: markdown migration
 description: migration loaded from markpact markdown
 source:
@@ -53,7 +53,7 @@ target:
   remote_dir: ~/myapp
 ```
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: sync_env
     src: .env
@@ -68,7 +68,7 @@ def _migration_markdown_with_unsupported_block() -> str:
         """\
 # Markdown migration
 
-```markpact:config yaml
+```yaml markpact:config
 name: markdown migration
 source:
   strategy: docker_full
@@ -83,7 +83,7 @@ target:
   remote_dir: ~/myapp
 ```
 
-```markpact:python
+```python markpact:python
 print("unsupported in phase 1")
 ```
 """

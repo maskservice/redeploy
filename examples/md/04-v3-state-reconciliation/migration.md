@@ -10,7 +10,7 @@ Unlike v2 (which only tracked execution history), v3 checks **current state** on
 
 ## Configuration
 
-```markpact:config yaml
+```yaml markpact:config
 name: "v3-state-reconciliation-demo"
 version: "3.0.0"
 target:
@@ -19,7 +19,7 @@ target:
 
 ## Steps with check_cmd (True Idempotency)
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   # This step will ONLY execute if docker is NOT installed
   - id: install_docker

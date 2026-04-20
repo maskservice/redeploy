@@ -29,7 +29,7 @@ def _migration_markdown() -> str:
         """\
 # Markdown migration
 
-```markpact:config yaml
+```yaml markpact:config
 name: loader markdown test
 source:
   strategy: docker_full
@@ -44,7 +44,7 @@ target:
   remote_dir: ~/myapp
 ```
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: wait_startup
     seconds: 5
@@ -79,7 +79,7 @@ def test_load_migration_spec_rejects_unsupported_markdown_block(tmp_path):
         textwrap.dedent("""\
             # Markdown migration
 
-            ```markpact:config yaml
+            ```yaml markpact:config
             name: broken markdown test
             source:
               strategy: docker_full
@@ -92,7 +92,7 @@ def test_load_migration_spec_rejects_unsupported_markdown_block(tmp_path):
               remote_dir: ~/myapp
             ```
 
-            ```markpact:python
+            ```python markpact:python
             print("unsupported")
             ```
         """),

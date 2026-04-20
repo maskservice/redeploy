@@ -3,7 +3,7 @@
 This is a Phase 1 markpact example that mirrors the supported YAML scenario for
 migrating a Docker Compose deployment to Podman Quadlet.
 
-```markpact:config yaml
+```yaml markpact:config
 name: "docker_full -> podman_quadlet"
 description: "Stop Docker stack, install Quadlet unit files, start via systemd"
 
@@ -32,7 +32,7 @@ notes:
   - "Use 'systemctl --user status c2004-backend' to check after deploy"
 ```
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: copy_quadlet_files
     action: ssh_cmd

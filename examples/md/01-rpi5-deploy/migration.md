@@ -11,7 +11,7 @@ imperative steps, and final verification.
 
 ## Configuration
 
-```markpact:config yaml
+```yaml markpact:config
 name: "c2004 rpi5 docker_full deploy"
 version: "1.0.22"
 target:
@@ -24,7 +24,7 @@ target:
 
 Optional: Uncomment to restart RPi5 before deployment for a clean state.
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: restart_rpi5
     action: ssh_cmd
@@ -40,7 +40,7 @@ This section demonstrates various action types supported by markpact runtime:
 
 ### 1. SSH Command (`ssh_cmd`)
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: install_docker
     action: ssh_cmd
@@ -77,7 +77,7 @@ extra_steps:
 
 ### 2. Rsync (`rsync`)
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: rsync_code
     action: rsync
@@ -105,7 +105,7 @@ extra_steps:
 
 ### 3. SCP (`scp`)
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: sync_env
     action: scp
@@ -118,7 +118,7 @@ extra_steps:
 
 ### 4. Docker Compose (`docker`)
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: docker_build
     action: docker
@@ -156,7 +156,7 @@ extra_steps:
 
 ### 5. HTTP Health Check (`http`)
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: http_health_check
     action: http
@@ -170,7 +170,7 @@ extra_steps:
 
 ### 6. Plugin (`plugin`)
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: browser_reload
     action: plugin
@@ -185,7 +185,7 @@ extra_steps:
 
 ### 7. Shell Command (`shell`)
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: version_check
     action: shell
@@ -200,7 +200,7 @@ extra_steps:
 
 You can also include Python code blocks for complex logic:
 
-```markpact:python
+```python markpact:python
 # Custom verification logic
 def verify_deployment():
     import urllib.request
@@ -222,7 +222,7 @@ verify_deployment()
 
 ## Final Verification
 
-```markpact:run
+```bash markpact:run
 #!/bin/bash
 # Final sanity checks
 echo "=== Deployment Verification ==="

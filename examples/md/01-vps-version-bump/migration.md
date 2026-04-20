@@ -3,7 +3,7 @@
 This is a Phase 1 markpact example that matches the supported markdown subset
 implemented by `redeploy`.
 
-```markpact:config yaml
+```yaml markpact:config
 name: "vps docker_full - version bump 1.0.19 -> 1.0.20"
 description: "Rebuild and redeploy Docker stack with bumped version; verify health + version."
 
@@ -33,7 +33,7 @@ notes:
   - "flush_k3s_iptables resolves Cloudflare 521 without reboot"
 ```
 
-```markpact:steps yaml
+```yaml markpact:steps
 extra_steps:
   - id: flush_k3s_iptables
 ```

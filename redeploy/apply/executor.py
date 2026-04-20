@@ -232,7 +232,8 @@ class Executor:
         cmd = step.command
         if not cmd:
             raise StepError(step, "No command specified")
-        r = self.probe.run(cmd, timeout=300)
+        timeout = step.timeout or 300
+        r = self.probe.run(cmd, timeout=timeout)
         step.result = r.out[:500]
         if not r.ok:
             raise StepError(step, f"exit={r.exit_code}: {r.stderr[:200]}")
