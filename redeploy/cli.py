@@ -2969,46 +2969,146 @@ def version_init(scan, force):
 
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Detect sources if --scan
-    sources = []
+    root = Path.cwd()
+    root_sources = []
+    packages = None
+
     if scan:
-        # Check common locations
-        if Path("VERSION").exists():
-            sources.append(SourceConfig(path=Path("VERSION"), format="plain"))
-        if Path("pyproject.toml").exists():
-            sources.append(SourceConfig(path=Path("pyproject.toml"), format="toml", key="project.version"))
-        if Path("package.json").exists():
-            sources.append(SourceConfig(path=Path("package.json"), format="json", key="version"))
+        root_sources = _detect_version_sources_in_dir(root, root)
+        packages = _scan_package_version_manifests(root)
 
-    if not sources:
-        # Default minimal manifest
-        sources = [SourceConfig(path=Path("VERSION"), format="plain")]
+    if packages:
+        current = _detect_source_version(root_sources, default="0.0.0") if root_sources else "0.0.0"
+        m = VersionManifest(
+            version=current,
+            scheme="semver",
+            policy="independent",
+            sources=root_sources,
+            git=GitConfig(),
+            packages=packages,
+        )
+    else:
+        sources = root_sources
+        if not sources:
+            sources = [SourceConfig(path=Path("VERSION"), format="plain")]
 
-    # Detect current version
-    current = "0.1.0"
-    for s in sources:
-        if s.path.exists():
-            try:
-                from .version.sources import get_adapter
-                current = get_adapter(s.format).read(s.path, s)
-                break
-            except Exception:
-                pass
-
-    m = VersionManifest(
-        version=current,
-        scheme="semver",
-        policy="synced",
-        sources=sources,
-        git=GitConfig(),
-    )
+        current = _detect_source_version(sources, default="0.1.0")
+        m = VersionManifest(
+            version=current,
+            scheme="semver",
+            policy="synced",
+            sources=sources,
+            git=GitConfig(),
+        )
 
     m.save(manifest_path)
     console.print(f"[green]✓ Created {manifest_path}[/green]")
     console.print(f"  Current version: {current}")
-    console.print(f"  Sources: {len(sources)}")
-    for s in sources:
-        console.print(f"    - {s.path} ({s.format})")
+    console.print(f"  Policy: {m.policy}")
+
+    if m.sources:
+        console.print(f"  Sources: {len(m.sources)}")
+        for source in m.sources:
+            console.print(f"    - {source.path} ({source.format})")
+
+    if m.is_monorepo():
+        console.print(f"  Packages: {len(m.packages or {})}")
+        for package_name in m.list_packages():
+            package = m.get_package(package_name)
+            console.print(f"    - {package_name}: {package.version} ({len(package.sources)} sources)")
+
+
+def _version_scan_specs():
+    return [
+        ("VERSION", "plain", None),
+        ("pyproject.toml", "toml", "project.version"),
+        ("package.json", "json", "version"),
+    ]
+
+
+def _is_scannable_version_path(path: Path) -> bool:
+    ignored = {".git", ".venv", ".redeploy", "node_modules", "__pycache__", "dist", "build"}
+    return not any(part in ignored for part in path.parts)
+
+
+def _detect_version_sources_in_dir(directory: Path, workspace_root: Path):
+    from .version.manifest import SourceConfig
+
+    sources = []
+    for filename, format_name, key in _version_scan_specs():
+        candidate = directory / filename
+        if not candidate.exists() or not candidate.is_file():
+            continue
+
+        relative_path = candidate.relative_to(workspace_root)
+        if not _is_scannable_version_path(relative_path):
+            continue
+
+        source_kwargs = {
+            "path": relative_path,
+            "format": format_name,
+        }
+        if key is not None:
+            source_kwargs["key"] = key
+        sources.append(SourceConfig(**source_kwargs))
+
+    return sources
+
+
+def _detect_source_version(sources, *, default: str):
+    from .version.sources import get_adapter
+
+    for source in sources:
+        try:
+            return get_adapter(source.format).read(source.path, source)
+        except Exception:
+            continue
+    return default
+
+
+def _derive_scanned_package_name(package_dir: Path, workspace_root: Path, used_names: set[str]) -> str:
+    relative_dir = package_dir.relative_to(workspace_root)
+    if len(relative_dir.parts) > 1 and relative_dir.parts[0] in {"packages", "apps", "services", "modules"}:
+        candidate = relative_dir.parts[-1]
+    else:
+        candidate = relative_dir.as_posix()
+
+    if candidate in used_names:
+        candidate = relative_dir.as_posix().replace("/", "-")
+
+    return candidate
+
+
+def _scan_package_version_manifests(workspace_root: Path):
+    from .version.manifest import PackageConfig
+
+    package_dirs = set()
+    for filename, _, _ in _version_scan_specs():
+        for candidate in workspace_root.rglob(filename):
+            if not candidate.is_file():
+                continue
+            relative_path = candidate.relative_to(workspace_root)
+            if not _is_scannable_version_path(relative_path):
+                continue
+            if candidate.parent == workspace_root:
+                continue
+            package_dirs.add(candidate.parent)
+
+    packages = {}
+    used_names = set()
+    for package_dir in sorted(package_dirs, key=lambda item: item.as_posix()):
+        sources = _detect_version_sources_in_dir(package_dir, workspace_root)
+        if not sources:
+            continue
+
+        package_name = _derive_scanned_package_name(package_dir, workspace_root, used_names)
+        used_names.add(package_name)
+        packages[package_name] = PackageConfig(
+            version=_detect_source_version(sources, default="0.1.0"),
+            sources=sources,
+        )
+
+    return packages or None
 
 
 @version_cmd.command(name="diff")

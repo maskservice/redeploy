@@ -238,6 +238,60 @@ class TestVersionCurrent:
             assert "2.0.0" in result.output
 
 
+class TestVersionInit:
+    def test_init_scan_creates_synced_manifest_from_root_sources(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            Path("VERSION").write_text("2.3.4\n", encoding="utf-8")
+
+            result = runner.invoke(
+                cli,
+                ["version", "init", "--scan"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["version"] == "2.3.4"
+            assert manifest["version"]["policy"] == "synced"
+            assert manifest["version"]["sources"] == [
+                {"path": "VERSION", "format": "plain", "optional": False}
+            ]
+
+    def test_init_scan_creates_independent_manifest_from_package_dirs(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            Path("backend").mkdir(parents=True, exist_ok=True)
+            Path("frontend").mkdir(parents=True, exist_ok=True)
+            Path("backend/VERSION").write_text("1.0.0\n", encoding="utf-8")
+            Path("frontend/package.json").write_text(
+                '{"name": "frontend", "version": "2.0.0"}\n',
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                ["version", "init", "--scan"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["policy"] == "independent"
+            assert manifest["version"]["version"] == "0.0.0"
+            assert manifest["version"].get("sources", []) == []
+            assert manifest["version"]["packages"]["backend"]["version"] == "1.0.0"
+            assert manifest["version"]["packages"]["backend"]["sources"] == [
+                {"path": "backend/VERSION", "format": "plain", "optional": False}
+            ]
+            assert manifest["version"]["packages"]["frontend"]["version"] == "2.0.0"
+            assert manifest["version"]["packages"]["frontend"]["sources"] == [
+                {"path": "frontend/package.json", "format": "json", "key": "version", "optional": False}
+            ]
+            assert "Policy: independent" in result.output
+            assert "Packages: 2" in result.output
+
+
 class TestVersionVerify:
     def test_verify_all_packages_succeeds_when_in_sync(self, tmp_path):
         runner = _runner()
