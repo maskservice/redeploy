@@ -13,7 +13,7 @@ Generated on 2026-04-20 using [openrouter/qwen/qwen3-coder-next](https://openrou
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.1.6-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.1.7-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -139,7 +139,14 @@ Execute deploy from a YAML spec file (or `redeploy.yaml` project manifest if no 
 | `--plan-only` | Show steps without connecting via SSH |
 | `--dry-run` | Connect, show steps, make no changes |
 | `--detect` | Live-probe host before planning (recommended for prod) |
+| `--env NAME` | Use named environment from `redeploy.yaml` (e.g. `prod`, `rpi5`) |
 | `--plan-out FILE` | Save generated plan to file |
+
+```bash
+redeploy run --env prod             # use prod env from redeploy.yaml
+redeploy run --env rpi5 --detect    # deploy to rpi5 with live probe
+redeploy run --dry-run              # uses .env DEPLOY_* vars if no redeploy.yaml
+```
 
 ### `redeploy scan [options]`
 
@@ -304,6 +311,11 @@ extra_steps:
 | `version_check` | `version_check` | Verify deployed version |
 | `sync_env` | `scp` | Copy .env to remote |
 | `podman_daemon_reload` | `systemctl_start` | `systemctl --user daemon-reload` |
+| `stop_podman` | `systemctl_stop` | Stop all Podman containers via systemd |
+| `enable_podman_unit` | `systemctl_start` | `systemctl daemon-reload && enable --now {service}.service` |
+| `systemctl_restart` | `systemctl_start` | Restart a systemd service (`command=` to override) |
+| `systemctl_daemon_reload` | `ssh_cmd` | `systemctl daemon-reload` |
+| `git_pull` | `ssh_cmd` | `git pull --ff-only` with rollback (`git reset --hard HEAD@{1}`) |
 
 ### `insert_before`
 
@@ -317,15 +329,40 @@ extra_steps:
 
 ## `redeploy.yaml` project manifest
 
-Place in project root — `redeploy run` (no args) uses it automatically:
+Place in project root — `redeploy run` (no args) uses it automatically.
+Supports **named environments** for multi-target projects:
 
 ```yaml
 spec: migration.yaml          # default spec file
-host: root@87.106.87.183
 app: myapp
-domain: myapp.example.com
-ssh_port: 22
-env_file: envs/vps.env
+
+environments:
+  prod:
+    host: root@87.106.87.183
+    strategy: docker_full
+    domain: myapp.example.com
+    env_file: envs/vps.env
+    verify_url: https://myapp.example.com/api/v1/health
+  rpi5:
+    host: pi@192.168.188.108
+    strategy: systemd
+    env_file: .env
+    verify_url: http://192.168.188.108:8000/api/v1/health
+  dev:
+    host: local
+    strategy: docker_full
+    env_file: .env.local
+    verify_url: http://localhost:8000/api/v1/health
+```
+
+Fallback: if no `redeploy.yaml` found, `redeploy run` reads `DEPLOY_*` vars from `.env`:
+
+```bash
+# .env
+DEPLOY_HOST=pi@192.168.1.5
+DEPLOY_APP=myapp
+DEPLOY_DOMAIN=myapp.local
+DEPLOY_ENV_FILE=.env
 ```
 
 ## doql integration

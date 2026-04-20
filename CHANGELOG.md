@@ -7,12 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-04-20
+
+### Added
+- `redeploy run --env NAME` — use named environment from `redeploy.yaml` (e.g. `--env prod`, `--env rpi5`)
+- `ProjectManifest.from_dotenv()` — fallback: read `DEPLOY_*` vars from `.env` when no `redeploy.yaml`
+- `ProjectManifest.resolve_env()` — merge named env config with manifest defaults
+- `EnvironmentConfig.spec` — per-environment spec file override
+- `StepLibrary`: 5 new steps — `stop_podman`, `enable_podman_unit`, `systemctl_restart`, `systemctl_daemon_reload`, `git_pull`
+- `SshClient.put_file(content, remote_path, mode)` — write string content directly to remote via `cat+stdin`, no temp file
+- `TargetConfig.host` — optional field; `Planner` uses `target.host` over `state.host` when set (multi-host foundation)
+- `check_version_http(endpoint=...)` — parametrized version check endpoint (default: `/api/v3/version/check`)
+- `detect` and `migrate` CLI commands now read `app`/`domain` defaults from `ProjectManifest`
+
+### Fixed
+- `datetime.utcnow()` → `datetime.now(timezone.utc)` — all occurrences removed (`models.py`, `discovery.py`), eliminates `DeprecationWarning` on Python 3.12+
+
 ### Refactored
 - `cli.py`: Extracted 4 helper functions from `target()` to reduce cyclomatic complexity (CC: 16 → 9)
   - `_resolve_device()` — device registry lookup + auto-probe fallback
   - `_load_spec_with_manifest()` — spec loading with manifest overlay
   - `_overlay_device_onto_spec()` — device values → spec target config
   - `_run_detect_for_spec()` — conditional detect + planner creation
+
+### Test
+- `test_manifest.py` (38 tests) — `ProjectManifest`, `EnvironmentConfig`, `DeviceRegistry`, `KnownDevice`
+- `test_templates.py` (47 tests) — `TemplateEngine`, `build_context`, `DetectionTemplate.score`, built-in templates
+- `test_data_sync.py` (14 tests) — `collect_sqlite_counts`, `rsync_timeout_for_path`
+- `test_version.py` (23 tests) — `read_local/remote_version`, `check_version`, `check_version_http`
+- Total: **569 tests** (all passing)
 
 ## [0.1.6] - 2026-04-20
 
