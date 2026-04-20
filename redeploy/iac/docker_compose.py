@@ -312,6 +312,8 @@ class DockerComposeParser:
         # ports
         ports: list[PortInfo] = []
         for raw in (cfg.get("ports") or []):
+            if isinstance(raw, str):
+                raw = _resolve_var(raw, env_context)
             p = _parse_port(raw)
             if p:
                 ports.append(p)

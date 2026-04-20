@@ -1430,3 +1430,189 @@ def diff(ci_file, host, from_src, to_src, out_format):
     console.print("[yellow]⚠ redeploy diff is not yet implemented (Phase 3).[/yellow]")
     console.print("  Planned: compare IaC file vs live SSH probe for drift detection.")
     console.print("  Use [bold]redeploy import[/bold] to parse IaC files for now.")
+
+
+# ── audit ─────────────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("-n", "--last", default=20, show_default=True,
+              help="Number of most-recent entries to show")
+@click.option("--host", default=None, help="Filter by host (substring match)")
+@click.option("--app", default=None, help="Filter by app name")
+@click.option("--failed", "only_failed", is_flag=True, help="Show only failed deployments")
+@click.option("--ok", "only_ok", is_flag=True, help="Show only successful deployments")
+@click.option("--log", default=None, type=click.Path(), help="Custom audit log path")
+@click.option("--json", "as_json", is_flag=True, help="Output raw JSONL")
+@click.option("--report", "show_report", default=None,
+              help="Show full DeployReport for entry N (1-based)")
+@click.option("--clear", "do_clear", is_flag=True, help="Truncate audit log (irreversible)")
+def audit(last, host, app, only_failed, only_ok, log, as_json, show_report, do_clear):
+    """Show deploy audit log from ~/.config/redeploy/audit.jsonl.
+
+    \b
+    Examples:
+        redeploy audit
+        redeploy audit --last 50 --failed
+        redeploy audit --app myapp --host prod
+        redeploy audit --report 1
+        redeploy audit --clear
+    """
+    import json as _json
+    from rich.console import Console
+    from rich.table import Table
+    from .observe import DeployAuditLog, DeployReport
+
+    console = Console()
+    log_path = Path(log) if log else None
+    audit_log = DeployAuditLog(path=log_path)
+
+    if do_clear:
+        if not audit_log.path.exists():
+            console.print("[dim]Audit log is already empty.[/dim]")
+            return
+        click.confirm(f"Truncate {audit_log.path}?", abort=True)
+        audit_log.clear()
+        console.print(f"[green]✓[/green] Audit log cleared: {audit_log.path}")
+        return
+
+    ok_filter = None
+    if only_failed:
+        ok_filter = False
+    elif only_ok:
+        ok_filter = True
+
+    entries = audit_log.filter(host=host, app=app, ok=ok_filter)
+    entries = entries[-last:]
+
+    if not entries:
+        console.print("[dim]No audit entries found.[/dim]")
+        console.print(f"  Log: {audit_log.path}")
+        return
+
+    if show_report:
+        try:
+            idx = int(show_report) - 1
+            entry = entries[idx]
+        except (ValueError, IndexError):
+            console.print(f"[red]Entry {show_report} not found (1–{len(entries)} available)[/red]")
+            sys.exit(1)
+        console.print(DeployReport(entry).text())
+        return
+
+    if as_json:
+        for e in entries:
+            print(_json.dumps(e.to_dict(), ensure_ascii=False))
+        return
+
+    t = Table(show_header=True, box=None, padding=(0, 2))
+    t.add_column("#", style="dim", width=3)
+    t.add_column("Time", style="dim")
+    t.add_column("Host")
+    t.add_column("App", style="bold")
+    t.add_column("Strategy", style="cyan")
+    t.add_column("Result")
+    t.add_column("Steps", style="dim")
+    t.add_column("Elapsed", style="dim")
+
+    for i, e in enumerate(entries, 1):
+        ts = e.ts[11:16] if len(e.ts) >= 16 else e.ts
+        date = e.ts[:10] if len(e.ts) >= 10 else ""
+        strategy = f"{e.from_strategy}→{e.to_strategy}"
+        if e.ok:
+            result = "[green]ok[/green]"
+        else:
+            result = "[red]FAIL[/red]"
+        if e.dry_run:
+            result += " [dim](dry)[/dim]"
+        steps_str = f"{e.steps_ok}/{e.steps_total}"
+        if e.steps_failed:
+            steps_str += f" [red]✗{e.steps_failed}[/red]"
+        elapsed = f"{e.elapsed_s:.1f}s"
+        t.add_row(str(i), f"{date} {ts}", e.host, e.app,
+                  strategy, result, steps_str, elapsed)
+
+    console.print(t)
+    console.print(f"\n  [dim]{len(entries)} entr{'y' if len(entries)==1 else 'ies'}  •  {audit_log.path}[/dim]")
+    console.print("  [dim]Tip: --report N  for full step breakdown[/dim]")
+
+
+# ── patterns ──────────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.argument("name", default=None, required=False)
+def patterns(name):
+    """List available deploy patterns or show detail for one.
+
+    \b
+    Examples:
+        redeploy patterns
+        redeploy patterns blue_green
+        redeploy patterns canary
+    """
+    from rich.console import Console
+    from rich.table import Table
+    from .patterns import pattern_registry, BlueGreenPattern, CanaryPattern, RollbackOnFailurePattern
+
+    console = Console()
+
+    if name:
+        cls = pattern_registry.get(name)
+        if not cls:
+            console.print(f"[red]Pattern '{name}' not found.[/red]")
+            console.print(f"  Available: {', '.join(pattern_registry.keys())}")
+            sys.exit(1)
+
+        p_map = {
+            "blue_green": BlueGreenPattern(app="myapp", remote_dir="~/myapp",
+                                           verify_url="http://localhost:8080"),
+            "canary": CanaryPattern(app="myapp", remote_dir="~/myapp",
+                                    verify_url="http://localhost:8080"),
+            "rollback_on_failure": RollbackOnFailurePattern(app="myapp", remote_dir="~/myapp",
+                                                             verify_url="http://localhost:8080"),
+        }
+        instance = p_map.get(name)
+        steps = instance.expand() if instance else []
+
+        console.print(f"\n[bold]{name}[/bold] — {cls.description}")
+        if steps:
+            t = Table(show_header=True, box=None, padding=(0, 2))
+            t.add_column("#", style="dim", width=3)
+            t.add_column("ID")
+            t.add_column("Action", style="cyan")
+            t.add_column("Risk", style="dim")
+            t.add_column("Rollback", style="dim")
+            for i, s in enumerate(steps, 1):
+                t.add_row(
+                    str(i), s.id, s.action.value, s.risk.value,
+                    "✓" if s.rollback_command else "—",
+                )
+            console.print(t)
+
+        console.print(f"\n  [dim]Usage in target config:[/dim]")
+        console.print(f"    [cyan]pattern: {name}[/cyan]")
+        console.print(f"    [cyan]pattern_config:[/cyan]")
+        console.print(f"      [cyan]verify_url: http://your-app/health[/cyan]")
+        return
+
+    # List all patterns
+    console.print("\n[bold]Available deploy patterns:[/bold]\n")
+    t = Table(show_header=True, box=None, padding=(0, 2))
+    t.add_column("Name", style="bold cyan")
+    t.add_column("Description")
+    t.add_column("Steps", style="dim")
+
+    step_counts = {
+        "blue_green": len(BlueGreenPattern(app="x", remote_dir="~/x",
+                                           verify_url="http://x").expand()),
+        "canary": len(CanaryPattern(app="x", remote_dir="~/x",
+                                    verify_url="http://x").expand()),
+        "rollback_on_failure": len(RollbackOnFailurePattern(app="x", remote_dir="~/x",
+                                                             verify_url="http://x").expand()),
+    }
+
+    for pname, cls in pattern_registry.items():
+        t.add_row(pname, cls.description, str(step_counts.get(pname, "?")))
+    console.print(t)
+
+    console.print("\n  [dim]Use [bold]redeploy patterns <name>[/bold] for step details[/dim]")
+    console.print("  [dim]Set in target YAML:  pattern: blue_green[/dim]")
