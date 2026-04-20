@@ -17,11 +17,12 @@ from redeploy.steps import StepLibrary
 
 EXAMPLES_DIR = Path(__file__).resolve().parents[2] / "examples"
 
-MIGRATION_YAMLS = sorted(EXAMPLES_DIR.glob("*/migration.yaml"))
+# YAML examples are now in examples/yaml/*/
+MIGRATION_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/*/migration.yaml"))
 # 10-multienv uses dev/staging/prod.yaml instead of migration.yaml
-MULTIENV_YAMLS = sorted(EXAMPLES_DIR.glob("10-multienv/*.yaml"))
-FLEET_YAMLS = sorted(EXAMPLES_DIR.glob("*/fleet.yaml"))
-REDEPLOY_YAMLS = sorted(EXAMPLES_DIR.glob("*/redeploy.yaml"))
+MULTIENV_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/10-multienv/*.yaml"))
+FLEET_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/*/fleet.yaml"))
+REDEPLOY_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/*/redeploy.yaml"))
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ class TestMultienvYamls:
 
 class TestScenario01VpsVersionBump:
     def _spec(self):
-        return _load_spec(EXAMPLES_DIR / "01-vps-version-bump" / "migration.yaml")
+        return _load_spec(EXAMPLES_DIR / "yaml" / "01-vps-version-bump" / "migration.yaml")
 
     def test_same_strategy(self):
         spec = self._spec()
@@ -176,7 +177,7 @@ class TestScenario01VpsVersionBump:
 
 class TestScenario02K3sToDocker:
     def _spec(self):
-        return _load_spec(EXAMPLES_DIR / "02-k3s-to-docker" / "migration.yaml")
+        return _load_spec(EXAMPLES_DIR / "yaml" / "02-k3s-to-docker" / "migration.yaml")
 
     def test_strategy_change(self):
         spec = self._spec()
@@ -206,7 +207,7 @@ class TestScenario02K3sToDocker:
 
 class TestScenario03DockerToQuadlet:
     def _spec(self):
-        return _load_spec(EXAMPLES_DIR / "03-docker-to-podman-quadlet" / "migration.yaml")
+        return _load_spec(EXAMPLES_DIR / "yaml" / "03-docker-to-podman-quadlet" / "migration.yaml")
 
     def test_strategy_change(self):
         spec = self._spec()
@@ -231,7 +232,7 @@ class TestScenario03DockerToQuadlet:
 
 class TestScenario07StagingToProd:
     def _spec(self):
-        return _load_spec(EXAMPLES_DIR / "07-staging-to-prod" / "migration.yaml")
+        return _load_spec(EXAMPLES_DIR / "yaml" / "07-staging-to-prod" / "migration.yaml")
 
     def test_insert_before_smoke_test(self):
         plan = _plan_from_spec(self._spec())
@@ -249,7 +250,7 @@ class TestScenario07StagingToProd:
 
 class TestScenario08Rollback:
     def _spec(self):
-        return _load_spec(EXAMPLES_DIR / "08-rollback" / "migration.yaml")
+        return _load_spec(EXAMPLES_DIR / "yaml" / "08-rollback" / "migration.yaml")
 
     def test_version_goes_down(self):
         spec = self._spec()
@@ -289,7 +290,7 @@ class TestFleetYaml:
 
 class TestScenario09FleetYaml:
     def _config(self):
-        return FleetConfig.from_file(EXAMPLES_DIR / "09-fleet-yaml" / "fleet.yaml")
+        return FleetConfig.from_file(EXAMPLES_DIR / "yaml" / "09-fleet-yaml" / "fleet.yaml")
 
     def test_prod_devices_have_no_k3s_expectation(self):
         config = self._config()
@@ -321,7 +322,7 @@ class TestScenario09FleetYaml:
         assert DeviceExpectation.DISK_OK in iot.expectations
 
     def test_has_readme(self):
-        readme = EXAMPLES_DIR / "09-fleet-yaml" / "README.md"
+        readme = EXAMPLES_DIR / "yaml" / "09-fleet-yaml" / "README.md"
         assert readme.exists()
 
 
@@ -332,7 +333,7 @@ class TestStepLibraryCompleteness:
     def test_all_named_steps_in_examples_are_in_library(self):
         """Every id used without 'action' in any example must be in StepLibrary."""
         missing = []
-        for yaml_path in EXAMPLES_DIR.glob("*/migration.yaml"):
+        for yaml_path in EXAMPLES_DIR.glob("yaml/*/migration.yaml"):
             with yaml_path.open() as f:
                 raw = yaml.safe_load(f) or {}
             for step in raw.get("extra_steps", []):
@@ -359,7 +360,7 @@ class TestStepLibraryCompleteness:
     def test_named_steps_checked_in_all_spec_yamls(self):
         """Extend check to multienv yamls (dev/staging/prod) too."""
         missing = []
-        for yaml_path in list(EXAMPLES_DIR.glob("*/migration.yaml")) + \
+        for yaml_path in list(EXAMPLES_DIR.glob("yaml/*/migration.yaml")) + \
                          [p for p in MULTIENV_YAMLS if p.stem in ("dev", "staging", "prod")]:
             with yaml_path.open() as f:
                 raw = yaml.safe_load(f) or {}
@@ -376,25 +377,25 @@ class TestStepLibraryCompleteness:
 class TestScenario10Multienv:
     def test_all_three_specs_exist(self):
         for name in ("dev.yaml", "staging.yaml", "prod.yaml"):
-            assert (EXAMPLES_DIR / "10-multienv" / name).exists()
+            assert (EXAMPLES_DIR / "yaml" / "10-multienv" / name).exists()
 
     def test_redeploy_yaml_has_local_spec(self):
-        with (EXAMPLES_DIR / "10-multienv" / "redeploy.yaml").open() as f:
+        with (EXAMPLES_DIR / "yaml" / "10-multienv" / "redeploy.yaml").open() as f:
             data = yaml.safe_load(f)
         assert "local_spec" in data
         assert data["local_spec"] == "dev.yaml"
 
     def test_prod_has_domain(self):
-        spec = _load_spec(EXAMPLES_DIR / "10-multienv" / "prod.yaml")
+        spec = _load_spec(EXAMPLES_DIR / "yaml" / "10-multienv" / "prod.yaml")
         assert spec.target.domain
 
     def test_dev_host_is_local(self):
-        spec = _load_spec(EXAMPLES_DIR / "10-multienv" / "dev.yaml")
+        spec = _load_spec(EXAMPLES_DIR / "yaml" / "10-multienv" / "dev.yaml")
         assert spec.target.host in ("local", "", None) or spec.source.host == "local"
 
     def test_staging_has_different_host_than_prod(self):
-        staging = _load_spec(EXAMPLES_DIR / "10-multienv" / "staging.yaml")
-        prod = _load_spec(EXAMPLES_DIR / "10-multienv" / "prod.yaml")
+        staging = _load_spec(EXAMPLES_DIR / "yaml" / "10-multienv" / "staging.yaml")
+        prod = _load_spec(EXAMPLES_DIR / "yaml" / "10-multienv" / "prod.yaml")
         assert staging.target.host != prod.target.host
 
 
@@ -403,7 +404,7 @@ class TestScenario10Multienv:
 
 class TestScenario11TraefikTls:
     def _dir(self):
-        return EXAMPLES_DIR / "11-traefik-tls"
+        return EXAMPLES_DIR / "yaml" / "11-traefik-tls"
 
     def test_tls_yml_exists(self):
         assert (self._dir() / "traefik" / "dynamic" / "tls.yml").exists()
@@ -429,7 +430,7 @@ class TestScenario11TraefikTls:
 
 class TestScenario12CiPipeline:
     def _dir(self):
-        return EXAMPLES_DIR / "12-ci-pipeline"
+        return EXAMPLES_DIR / "yaml" / "12-ci-pipeline"
 
     def test_github_workflow_exists(self):
         assert (self._dir() / "deploy.github.yml").exists()
@@ -460,7 +461,7 @@ class TestScenario12CiPipeline:
 
 class TestScenario13Monorepo:
     def _dir(self):
-        return EXAMPLES_DIR / "13-multi-app-monorepo"
+        return EXAMPLES_DIR / "yaml" / "13-multi-app-monorepo"
 
     def test_has_fleet_yaml(self):
         assert (self._dir() / "fleet.yaml").exists()

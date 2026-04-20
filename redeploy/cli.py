@@ -2018,9 +2018,12 @@ def version_cmd():
 @version_cmd.command(name="current")
 @click.option("--manifest", "-m", default=".redeploy/version.yaml",
               help="Path to version manifest")
-def version_current(manifest):
+@click.option("--package", "package_name", "-p", help="Show version for a specific package (for monorepo)")
+@click.option("--all-packages", is_flag=True, help="Show versions for all packages (for monorepo)")
+def version_current(manifest, package_name, all_packages):
     """Show current version from manifest."""
     from rich.console import Console
+    from rich.table import Table
     from .version import VersionManifest
 
     console = Console()
@@ -2033,6 +2036,24 @@ def version_current(manifest):
 
     try:
         m = VersionManifest.load(path)
+        targets = _resolve_monorepo_targets(m, package_name, all_packages, console)
+
+        if targets:
+            if package_name:
+                console.print(f"[bold]{m.get_package(package_name).version}[/bold]")
+                return
+
+            console.print("[bold]Package current versions[/bold]")
+            table = Table(show_header=True, box=None)
+            table.add_column("Package", style="bold")
+            table.add_column("Version")
+
+            for pkg_name in targets:
+                table.add_row(pkg_name, m.get_package(pkg_name).version)
+
+            console.print(table)
+            return
+
         console.print(f"[bold]{m.version}[/bold]")
     except Exception as e:
         console.print(f"[red]✗ Error loading manifest: {e}[/red]")
@@ -2457,6 +2478,106 @@ def _print_verify_result(console, result, expected_version: str, *, label: str |
                 f"  [red]✗[/red] {source['path']}: expected {expected_version}, found {actual}"
             )
     return True
+
+
+def _print_source_drift_status(console, result, expected_version: str) -> bool:
+    if not result["all_match"]:
+        mismatch_count = len([source for source in result["sources"] if not source["match"]])
+        console.print(f"[yellow]⚠ Source drift detected in {mismatch_count} file(s)[/yellow]")
+        for source in result["sources"]:
+            if not source["match"]:
+                actual = source.get("actual") or "ERROR"
+                console.print(f"  [red]✗[/red] {source['path']}: {actual} ≠ {expected_version}")
+        return True
+
+    console.print(f"[green]✓ All {len(result['sources'])} sources in sync at {expected_version}[/green]")
+    return False
+
+
+def _load_spec_version_diff(manifest_model, spec):
+    import yaml
+
+    from .version.diff import VersionDiff, diff_manifest_vs_spec
+
+    if not spec:
+        return None
+
+    spec_path = Path(spec)
+    if not spec_path.exists():
+        return VersionDiff(
+            source="spec",
+            version=None,
+            expected=manifest_model.version,
+            match=False,
+            error=f"Spec not found: {spec_path}",
+        )
+
+    try:
+        spec_data = yaml.safe_load(spec_path.read_text()) or {}
+        if not isinstance(spec_data, dict):
+            raise ValueError("spec root must be a mapping")
+
+        target_data = spec_data.get("target") or {}
+        if not isinstance(target_data, dict):
+            raise ValueError("spec target must be a mapping")
+
+        return diff_manifest_vs_spec(manifest_model, target_data.get("version"))
+    except Exception as e:
+        return VersionDiff(
+            source="spec",
+            version=None,
+            expected=manifest_model.version,
+            match=False,
+            error=f"Could not read spec: {e}",
+        )
+
+
+def _load_live_version_diff(manifest_model, live, app):
+    from .ssh import SshClient
+    from .version import read_remote_version
+    from .version.diff import VersionDiff, diff_manifest_vs_live
+
+    if not live:
+        return None
+
+    try:
+        remote = SshClient(live)
+        live_version = read_remote_version(remote, "~/c2004", app)
+        return diff_manifest_vs_live(manifest_model, live_version)
+    except Exception as e:
+        return VersionDiff(
+            source="live",
+            version=None,
+            expected=manifest_model.version,
+            match=False,
+            error=f"Could not check live version: {e}",
+        )
+
+
+def _run_version_diff_for_manifest(console, manifest_model, spec, live, app, *, label: str | None = None) -> bool:
+    from .version import verify_sources
+    from .version.diff import format_diff_report
+
+    if label:
+        console.print(f"[bold]{label}[/bold]")
+
+    result = verify_sources(manifest_model)
+    has_source_drift = _print_source_drift_status(console, result, manifest_model.version)
+
+    diffs = []
+    spec_diff = _load_spec_version_diff(manifest_model, spec)
+    if spec_diff is not None:
+        diffs.append(spec_diff)
+
+    live_diff = _load_live_version_diff(manifest_model, live, app)
+    if live_diff is not None:
+        diffs.append(live_diff)
+
+    if diffs:
+        console.print()
+        console.print(format_diff_report(diffs, manifest_model.version))
+
+    return (not has_source_drift) and all(diff.match for diff in diffs)
 
 
 def _resolve_monorepo_targets(manifest_model, package_name, all_packages, console):
@@ -2893,10 +3014,12 @@ def version_init(scan, force):
 @version_cmd.command(name="diff")
 @click.option("--manifest", "-m", default=".redeploy/version.yaml",
               help="Path to version manifest")
+@click.option("--package", "package_name", "-p", help="Compare a specific package (for monorepo)")
+@click.option("--all-packages", is_flag=True, help="Compare all packages (for monorepo, source drift only)")
 @click.option("--spec", help="Path to migration.yaml to compare")
 @click.option("--live", help="SSH host to check live version (user@host)")
 @click.option("--app", default="c2004", help="Application name for live check")
-def version_diff(manifest, spec, live, app):
+def version_diff(manifest, package_name, all_packages, spec, live, app):
     """Compare manifest version vs spec vs live.
 
     Examples:
@@ -2905,8 +3028,7 @@ def version_diff(manifest, spec, live, app):
         redeploy version diff --live root@vps.example.com  # vs live
     """
     from rich.console import Console
-    from .version import VersionManifest, verify_sources
-    from .version.diff import VersionDiff, diff_manifest_vs_spec, diff_manifest_vs_live, format_diff_report
+    from .version import VersionManifest
 
     console = Console()
     path = Path(manifest)
@@ -2916,75 +3038,34 @@ def version_diff(manifest, spec, live, app):
         sys.exit(1)
 
     m = VersionManifest.load(path)
-    diffs = []
+    targets = _resolve_monorepo_targets(m, package_name, all_packages, console)
 
-    # 1. Check sources (always)
-    result = verify_sources(m)
-    if not result["all_match"]:
-        console.print(f"[yellow]⚠ Source drift detected in {len([s for s in result['sources'] if not s['match']])} file(s)[/yellow]")
-        for s in result["sources"]:
-            if not s["match"]:
-                console.print(f"  [red]✗[/red] {s['path']}: {s.get('actual', 'ERROR')} ≠ {m.version}")
+    if targets and not package_name and (spec or live):
+        console.print("[red]✗ --spec/--live require --package for monorepo manifests; --all-packages checks source drift only.[/red]")
+        sys.exit(1)
+
+    if targets:
+        all_match = True
+        for index, pkg_name in enumerate(targets):
+            if index:
+                console.print()
+            pkg_manifest = _build_package_version_manifest(
+                m,
+                pkg_name,
+                allow_root_changelog_fallback=True,
+            )
+            if not _run_version_diff_for_manifest(
+                console,
+                pkg_manifest,
+                spec,
+                live,
+                app,
+                label=pkg_name,
+            ):
+                all_match = False
     else:
-        console.print(f"[green]✓ All {len(result['sources'])} sources in sync at {m.version}[/green]")
+        all_match = _run_version_diff_for_manifest(console, m, spec, live, app)
 
-    # 2. Compare with migration.yaml spec
-    if spec:
-        import yaml
-        spec_path = Path(spec)
-        if not spec_path.exists():
-            diffs.append(VersionDiff(
-                source="spec",
-                version=None,
-                expected=m.version,
-                match=False,
-                error=f"Spec not found: {spec_path}",
-            ))
-        else:
-            try:
-                spec_data = yaml.safe_load(spec_path.read_text()) or {}
-                if not isinstance(spec_data, dict):
-                    raise ValueError("spec root must be a mapping")
-
-                target_data = spec_data.get("target") or {}
-                if not isinstance(target_data, dict):
-                    raise ValueError("spec target must be a mapping")
-
-                diffs.append(diff_manifest_vs_spec(m, target_data.get("version")))
-            except Exception as e:
-                diffs.append(VersionDiff(
-                    source="spec",
-                    version=None,
-                    expected=m.version,
-                    match=False,
-                    error=f"Could not read spec: {e}",
-                ))
-
-    # 3. Compare with live host
-    if live:
-        from .version import read_remote_version
-        from .ssh import SshClient
-
-        try:
-            remote = SshClient(live)
-            live_version = read_remote_version(remote, "~/c2004", app)
-            diff = diff_manifest_vs_live(m, live_version)
-            diffs.append(diff)
-        except Exception as e:
-            diffs.append(VersionDiff(
-                source="live",
-                version=None,
-                expected=m.version,
-                match=False,
-                error=f"Could not check live version: {e}",
-            ))
-
-    if diffs:
-        console.print()
-        console.print(format_diff_report(diffs, m.version))
-
-    # Summary
-    all_match = result["all_match"] and all(d.match for d in diffs)
     if all_match:
         console.print(f"\n[green]✓ No version drift detected[/green]")
     else:

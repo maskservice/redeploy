@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.5-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$3.45-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-5.6h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.6-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$3.75-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-7.4h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $3.4500 (23 commits)
-- 👤 **Human dev:** ~$563 (5.6h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $3.7500 (25 commits)
+- 👤 **Human dev:** ~$738 (7.4h @ $100/h, 30min dedup)
 
 Generated on 2026-04-20 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.5-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.6-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 

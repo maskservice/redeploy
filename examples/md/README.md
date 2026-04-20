@@ -36,9 +36,58 @@ Unlike YAML or JSON, it allows embedding multiple languages in a single file:
 - **Python** — For complex logic and automation
 - **Bash** — For shell commands
 
-## Action Types
+## Executable Code Blocks
 
-markpact supports the same action types as YAML format:
+In addition to YAML steps, markpact can directly execute Python and Bash code blocks:
+
+### Python Block (`markpact:python`)
+
+```markdown
+```markpact:python
+# This Python code will be executed during deployment
+import urllib.request
+import json
+
+def check_health():
+    req = urllib.request.Request("http://localhost:8080/health")
+    with urllib.request.urlopen(req, timeout=10) as response:
+        data = json.loads(response.read())
+        assert data["status"] == "healthy"
+        print("✓ Health check passed")
+
+check_health()
+```
+```
+
+### Bash/Shell Block (`markpact:bash` or `markpact:shell`)
+
+```markdown
+```markpact:bash
+#!/bin/bash
+# This script will be executed during deployment
+echo "Running post-deploy cleanup..."
+rm -rf /tmp/deploy-cache
+find /var/log -name "*.old" -delete
+echo "Cleanup complete"
+```
+```
+
+### Run Block (`markpact:run`)
+
+Final verification block (executed as bash):
+
+```markdown
+```markpact:run
+#!/bin/bash
+# Final verification - runs after all steps
+curl -sf http://localhost:8080/health || exit 1
+echo "✓ Deployment verified"
+```
+```
+
+## Action Types (YAML Steps)
+
+For structured deployment steps, markpact supports the same action types as YAML format:
 
 | Action | Description | Example Use |
 |--------|-------------|-------------|

@@ -189,6 +189,55 @@ class TestVersionList:
             assert "Some sources are out of sync" in result.output
 
 
+class TestVersionCurrent:
+    def test_current_shows_manifest_version(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_version_workspace(Path.cwd(), version="2.3.4")
+
+            result = runner.invoke(
+                cli,
+                ["version", "current"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "2.3.4" in result.output
+
+    def test_current_package_shows_selected_package_version(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "current", "--package", "backend"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "1.0.0" in result.output
+            assert "2.0.0" not in result.output
+
+    def test_current_all_packages_shows_package_versions(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "current", "--all-packages"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "Package current versions" in result.output
+            assert "backend" in result.output
+            assert "frontend" in result.output
+            assert "1.0.0" in result.output
+            assert "2.0.0" in result.output
+
+
 class TestVersionVerify:
     def test_verify_all_packages_succeeds_when_in_sync(self, tmp_path):
         runner = _runner()
@@ -433,6 +482,80 @@ class TestVersionBump:
 
 
 class TestVersionDiff:
+    def test_diff_all_packages_shows_package_source_status(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "diff", "--all-packages"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "backend" in result.output
+            assert "frontend" in result.output
+            assert "All 1 sources in sync at 1.0.0" in result.output
+            assert "All 1 sources in sync at 2.0.0" in result.output
+            assert "No version drift detected" in result.output
+
+    def test_diff_package_spec_mismatch_returns_nonzero(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+            Path("migration.yaml").write_text(
+                """
+name: test
+source:
+  strategy: docker_full
+  host: local
+  app: myapp
+  version: "1.0.0"
+target:
+  strategy: docker_full
+  host: local
+  app: myapp
+  version: "1.0.9"
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                ["version", "diff", "--package", "backend", "--spec", "migration.yaml"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 1, result.output
+            assert "backend" in result.output
+            assert "spec: 1.0.9" in result.output
+            assert "Version drift detected" in result.output
+
+    def test_diff_all_packages_rejects_spec_without_package(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+            Path("migration.yaml").write_text(
+                """
+name: test
+target:
+  version: "1.0.1"
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                ["version", "diff", "--all-packages", "--spec", "migration.yaml"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 1, result.output
+            assert "--spec/--live require --package for monorepo manifests" in result.output
+
     def test_diff_spec_match_returns_zero(self, tmp_path):
         runner = _runner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
