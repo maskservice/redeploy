@@ -180,6 +180,31 @@ def test_step_library_importable():
     assert len(ids) > 5
 
 
+def test_fleet_importable():
+    assert callable(redeploy.Fleet)
+
+
+def test_fleet_empty():
+    fleet = redeploy.Fleet([])
+    assert len(fleet) == 0
+    assert list(fleet) == []
+
+
+def test_fleet_from_registry_empty():
+    from unittest.mock import patch
+    with patch("redeploy.models.DeviceRegistry.load",
+               return_value=redeploy.DeviceRegistry()):
+        fleet = redeploy.Fleet.from_registry()
+    assert len(fleet) == 0
+
+
+def test_fleet_merge():
+    a = redeploy.Fleet([redeploy.FleetDevice(id="a", ssh_host="root@1.1.1.1")])
+    b = redeploy.Fleet([redeploy.FleetDevice(id="b", ssh_host="root@1.1.1.2")])
+    merged = a.merge(b)
+    assert len(merged) == 2
+
+
 # ── Planner + KIOSK_APPLIANCE ─────────────────────────────────────────────────
 
 

@@ -360,3 +360,166 @@ class TestTargetConfigHost:
         p = self._make_planner()
         plan = p.run()
         assert plan.app == "myapp"
+
+
+# ── Fleet (unified first-class view) ─────────────────────────────────────────
+
+
+class TestFleet:
+    def _yaml(self, tmp_path: Path, content: str) -> Path:
+        p = tmp_path / "fleet.yaml"
+        p.write_text(textwrap.dedent(content))
+        return p
+
+    def test_from_file_basic(self, tmp_path):
+        from redeploy.fleet import Fleet
+        path = self._yaml(tmp_path, """
+            devices:
+              - id: pi1
+                name: Pi One
+                ssh_host: pi@192.168.1.10
+                strategy: docker_full
+                tags: [prod]
+              - id: pi2
+                ssh_host: pi@192.168.1.11
+                strategy: podman_quadlet
+                tags: [dev]
+        """)
+        fleet = Fleet.from_file(path)
+        assert len(fleet) == 2
+        assert fleet.get("pi1") is not None
+        assert fleet.get("missing") is None
+
+    def test_from_file_iter(self, tmp_path):
+        from redeploy.fleet import Fleet
+        path = self._yaml(tmp_path, """
+            devices:
+              - id: d1
+                ssh_host: root@10.0.0.1
+              - id: d2
+                ssh_host: root@10.0.0.2
+        """)
+        fleet = Fleet.from_file(path)
+        ids = [d.id for d in fleet]
+        assert ids == ["d1", "d2"]
+
+    def test_by_tag(self, tmp_path):
+        from redeploy.fleet import Fleet
+        path = self._yaml(tmp_path, """
+            devices:
+              - id: a
+                ssh_host: root@1.1.1.1
+                tags: [kiosk, prod]
+              - id: b
+                ssh_host: root@1.1.1.2
+                tags: [docker]
+        """)
+        fleet = Fleet.from_file(path)
+        assert len(fleet.by_tag("kiosk")) == 1
+        assert fleet.by_tag("kiosk")[0].id == "a"
+        assert fleet.by_tag("missing") == []
+
+    def test_by_stage(self, tmp_path):
+        from redeploy.fleet import Fleet
+        path = self._yaml(tmp_path, """
+            devices:
+              - id: p
+                ssh_host: root@1.1.1.1
+                stage: prod
+                tags: [prod]
+              - id: d
+                ssh_host: root@1.1.1.2
+                stage: dev
+        """)
+        fleet = Fleet.from_file(path)
+        assert len(fleet.by_stage(Stage.PROD)) == 1
+        assert fleet.by_stage(Stage.PROD)[0].id == "p"
+
+    def test_by_strategy(self, tmp_path):
+        from redeploy.fleet import Fleet
+        path = self._yaml(tmp_path, """
+            devices:
+              - id: x
+                ssh_host: root@1.1.1.1
+                strategy: kiosk_appliance
+              - id: y
+                ssh_host: root@1.1.1.2
+                strategy: docker_full
+        """)
+        fleet = Fleet.from_file(path)
+        assert len(fleet.by_strategy("kiosk_appliance")) == 1
+        assert fleet.by_strategy("kiosk_appliance")[0].id == "x"
+
+    def test_prod_shortcut(self, tmp_path):
+        from redeploy.fleet import Fleet
+        path = self._yaml(tmp_path, """
+            devices:
+              - id: a
+                ssh_host: root@1.1.1.1
+                stage: prod
+                tags: [prod]
+              - id: b
+                ssh_host: root@1.1.1.2
+                stage: dev
+        """)
+        fleet = Fleet.from_file(path)
+        assert [d.id for d in fleet.prod()] == ["a"]
+
+    def test_merge_other_wins(self, tmp_path):
+        from redeploy.fleet import Fleet
+        base = Fleet([
+            FleetDevice(id="x", ssh_host="root@1.1.1.1", name="old"),
+            FleetDevice(id="y", ssh_host="root@1.1.1.2"),
+        ])
+        override = Fleet([
+            FleetDevice(id="x", ssh_host="root@9.9.9.9", name="new"),
+            FleetDevice(id="z", ssh_host="root@1.1.1.3"),
+        ])
+        merged = base.merge(override)
+        assert len(merged) == 3
+        assert merged.get("x").name == "new"
+        assert merged.get("x").ssh_host == "root@9.9.9.9"
+        assert merged.get("y") is not None
+        assert merged.get("z") is not None
+
+    def test_from_registry_empty(self, tmp_path):
+        from redeploy.fleet import Fleet
+        from unittest.mock import patch
+        from redeploy.models import DeviceRegistry
+        with patch.object(DeviceRegistry, "load", return_value=DeviceRegistry()):
+            fleet = Fleet.from_registry()
+        assert len(fleet) == 0
+
+    def test_from_registry_converts_known_device(self, tmp_path):
+        from redeploy.fleet import Fleet
+        from unittest.mock import patch
+        from redeploy.models import DeviceRegistry, KnownDevice
+        reg = DeviceRegistry()
+        reg.upsert(KnownDevice(
+            id="vps1", host="root@10.0.0.5",
+            strategy="docker_full", tags=["prod"],
+            domain="example.com",
+        ))
+        with patch.object(DeviceRegistry, "load", return_value=reg):
+            fleet = Fleet.from_registry()
+        assert len(fleet) == 1
+        d = fleet.get("vps1")
+        assert d is not None
+        assert d.ssh_host == "root@10.0.0.5"
+        assert d.stage == Stage.PROD
+
+    def test_from_config_wraps_fleet_config(self, tmp_path):
+        from redeploy.fleet import Fleet
+        path = self._yaml(tmp_path, """
+            devices:
+              - id: q1
+                ssh_host: root@1.1.1.1
+        """)
+        config = FleetConfig.from_file(path)
+        fleet = Fleet.from_config(config)
+        assert len(fleet) == 1
+
+    def test_repr(self, tmp_path):
+        from redeploy.fleet import Fleet
+        fleet = Fleet([FleetDevice(id="a", ssh_host="root@1.1.1.1")])
+        assert "1" in repr(fleet)

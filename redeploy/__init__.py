@@ -36,6 +36,7 @@ from .models import DeviceRegistry, KnownDevice  # noqa: F401
 from .fleet import (  # noqa: F401
     DeviceArch,
     DeviceExpectation,
+    Fleet,
     FleetConfig,
     FleetDevice,
     Stage,
@@ -67,6 +68,7 @@ __all__ = [
     # fleet / registry
     "DeviceRegistry",
     "KnownDevice",
+    "Fleet",
     "DeviceArch",
     "DeviceExpectation",
     "FleetConfig",

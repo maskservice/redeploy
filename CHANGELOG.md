@@ -31,6 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `pydantic.field_validator` added to imports in `models.py`
+- `TargetConfig` defaults no longer hardcode project-specific values (`"c2004"`, `"~/c2004"`)
+
+### Phase 2 — Fleet first-class (0.2.0)
+- `Fleet` class in `redeploy/fleet.py` — unified view over `FleetConfig` + `DeviceRegistry`
+  - `Fleet.from_file(path)` — load from `fleet.yaml`
+  - `Fleet.from_registry(path)` — load from devices.yaml, converts `KnownDevice` → `FleetDevice`
+  - `Fleet.from_config(config)` — wrap existing `FleetConfig`
+  - `Fleet.merge(other)` — union, other wins on id collision
+  - `Fleet.by_tag / by_stage / by_strategy / prod / reachable / get` — query API
+  - `Fleet.__len__ / __iter__ / __repr__`
+- `Fleet` added to `__all__` and exported from `redeploy`
+- 11 new `TestFleet` tests + 4 new `test_public_api` tests for `Fleet`
 
 ## [0.1.7] - 2026-04-20
 

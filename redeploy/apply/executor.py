@@ -270,9 +270,15 @@ class Executor:
             )
             if snap.ok and snap.out.strip():
                 lines = " | ".join(snap.out.strip().splitlines())
-                logger.debug(f"    [{elapsed}s] build cache: {lines}")
+                msg = f"[{elapsed}s] build cache: {lines}"
+                logger.debug(f"    {msg}")
+                if self._emitter:
+                    self._emitter.progress(step.id, msg)
             else:
-                logger.debug(f"    [{elapsed}s] build in progress (cache unavailable)...")
+                msg = f"[{elapsed}s] build in progress..."
+                logger.debug(f"    {msg}")
+                if self._emitter:
+                    self._emitter.progress(step.id, msg)
 
         if not result_holder:
             raise StepError(step, "Build thread did not return a result")

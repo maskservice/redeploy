@@ -20,6 +20,11 @@ FleetDevice
 FleetConfig
     Top-level fleet manifest: list of devices grouped by stage, loadable from
     ``fleet.yaml``.
+
+Fleet  (first-class from 0.2.0)
+    Unified view over ``FleetConfig`` (fleet.yaml) **and/or** the
+    ``DeviceRegistry`` (~/.config/redeploy/devices.yaml).  Supports merge,
+    stage/tag/strategy queries and reachability filtering.
 """
 from __future__ import annotations
 
@@ -255,3 +260,137 @@ class FleetConfig(BaseModel):
             workspace_root=workspace_root or Path(path).parent,
             devices=devices,
         )
+
+
+# ── Fleet — unified first-class view (0.2.0) ──────────────────────────────────
+
+
+class Fleet:
+    """Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
+
+    Provides a single query interface regardless of whether devices come from
+    a declarative ``fleet.yaml`` or the personal ``devices.yaml`` registry.
+
+    Usage::
+
+        # From fleet.yaml only
+        fleet = Fleet.from_file("fleet.yaml")
+
+        # From personal registry only
+        fleet = Fleet.from_registry()
+
+        # Merged: fleet.yaml + registry (registry fills in live metadata)
+        fleet = Fleet.from_file("fleet.yaml").merge(Fleet.from_registry())
+
+        # Queries
+        prod_devices = fleet.by_stage(Stage.PROD)
+        kiosk_devices = fleet.by_strategy("kiosk_appliance")
+        live_devices = fleet.reachable()
+    """
+
+    def __init__(self, devices: list[FleetDevice]) -> None:
+        self._devices = list(devices)
+
+    # ── constructors ──────────────────────────────────────────────────────────
+
+    @classmethod
+    def from_file(cls, path: "Path | str") -> "Fleet":
+        """Load from a ``fleet.yaml`` file."""
+        config = FleetConfig.from_file(Path(path))
+        return cls(config.devices)
+
+    @classmethod
+    def from_registry(cls, path: "Optional[Path]" = None) -> "Fleet":
+        """Load from the personal device registry (devices.yaml).
+
+        Registry ``KnownDevice`` records are converted to ``FleetDevice`` so
+        that the same query API applies to both sources.
+        """
+        from .models import DeviceRegistry
+        reg = DeviceRegistry.load(path)
+        devices: list[FleetDevice] = []
+        for kd in reg.devices:
+            devices.append(FleetDevice(
+                id=kd.id,
+                name=kd.name or kd.hostname or kd.id,
+                ssh_host=kd.host,
+                ssh_port=kd.ssh_port,
+                ssh_key=kd.ssh_key,
+                strategy=kd.strategy,
+                remote_dir=kd.remote_dir or "~/app",
+                domain=kd.domain,
+                tags=list(kd.tags),
+                stage=Stage.PROD if "prod" in kd.tags else Stage.DEV,
+            ))
+        return cls(devices)
+
+    @classmethod
+    def from_config(cls, config: FleetConfig) -> "Fleet":
+        """Wrap an existing ``FleetConfig``."""
+        return cls(config.devices)
+
+    # ── queries ───────────────────────────────────────────────────────────────
+
+    @property
+    def devices(self) -> list[FleetDevice]:
+        return list(self._devices)
+
+    def get(self, device_id: str) -> Optional[FleetDevice]:
+        return next((d for d in self._devices if d.id == device_id), None)
+
+    def by_tag(self, tag: str) -> list[FleetDevice]:
+        return [d for d in self._devices if tag in d.tags]
+
+    def by_stage(self, stage: Stage) -> list[FleetDevice]:
+        return [d for d in self._devices if d.stage == stage]
+
+    def by_strategy(self, strategy: str) -> list[FleetDevice]:
+        return [d for d in self._devices if d.strategy == strategy]
+
+    def prod(self) -> list[FleetDevice]:
+        return self.by_stage(Stage.PROD)
+
+    def reachable(self, within_seconds: int = 300) -> list[FleetDevice]:
+        """Return devices whose registry ``last_seen`` is within *within_seconds*.
+
+        For devices loaded from ``fleet.yaml`` (no registry metadata) this
+        always returns them as nominally reachable — use ``from_registry()``
+        or ``merge()`` for accurate liveness filtering.
+        """
+        from datetime import datetime, timezone
+        from .models import DeviceRegistry
+        reg = DeviceRegistry.load()
+        now = datetime.now(timezone.utc)
+        result: list[FleetDevice] = []
+        for d in self._devices:
+            kd = reg.get(d.id)
+            if kd and kd.last_seen:
+                if (now - kd.last_seen).total_seconds() < within_seconds:
+                    result.append(d)
+            else:
+                result.append(d)  # unknown → optimistically include
+        return result
+
+    # ── merge ─────────────────────────────────────────────────────────────────
+
+    def merge(self, other: "Fleet") -> "Fleet":
+        """Return a new Fleet that is the union of *self* and *other*.
+
+        Devices with the same ``id`` are taken from *other* (other wins —
+        registry metadata is preferred over static fleet.yaml).
+        """
+        index: dict[str, FleetDevice] = {d.id: d for d in self._devices}
+        for d in other._devices:
+            index[d.id] = d
+        return Fleet(list(index.values()))
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+
+    def __len__(self) -> int:
+        return len(self._devices)
+
+    def __iter__(self):
+        return iter(self._devices)
+
+    def __repr__(self) -> str:
+        return f"Fleet({len(self._devices)} devices)"
