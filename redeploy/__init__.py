@@ -62,6 +62,20 @@ from .observe import (  # noqa: F401
     DeployReport,
 )
 
+# ── IaC parsers (first-class from 0.3.0) ──────────────────────────────────────
+from .iac import (  # noqa: F401
+    ParsedSpec,
+    Parser,
+    ParserRegistry,
+    PortInfo,
+    ServiceInfo,
+    VolumeInfo,
+    ConversionWarning,
+    parse_file,
+    parse_dir,
+    parser_registry,
+)
+
 __all__ = [
     # version
     "__version__",
@@ -106,4 +120,15 @@ __all__ = [
     "AuditEntry",
     "DeployAuditLog",
     "DeployReport",
+    # iac parsers
+    "ParsedSpec",
+    "Parser",
+    "ParserRegistry",
+    "PortInfo",
+    "ServiceInfo",
+    "VolumeInfo",
+    "ConversionWarning",
+    "parse_file",
+    "parse_dir",
+    "parser_registry",
 ]

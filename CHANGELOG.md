@@ -38,6 +38,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pydantic.field_validator` added to imports in `models.py`
 - `TargetConfig` defaults no longer hardcode project-specific values (`"c2004"`, `"~/c2004"`)
 
+### Phase 6 — IaC parser (0.2.0)
+- `redeploy/iac/` — pluggable IaC/CI-CD parser framework (zero new deps, PyYAML already required)
+  - `base.py`: `ParsedSpec`, `Parser` protocol, `ParserRegistry`, `PortInfo`, `ServiceInfo`, `VolumeInfo`, `ConversionWarning`
+  - `docker_compose.py`: Tier 1 Docker Compose parser (`name="docker_compose"`)
+    - Compose v3.x: services, ports (string/long-form/protocol), volumes (bind/named/ro), env (dict/list), env_file, networks, depends_on (list/dict), healthcheck, labels (dict/list), restart, command (string/list), deploy.replicas, secrets, x-* extension keys, variable substitution `${VAR}`, `${VAR:-default}`
+    - Profile support, multi-file merge, `_deep_merge`
+  - `parsers/compose.py`: alternate lightweight parser (used by registry)
+  - `registry.py`: global `parser_registry` singleton + `parse_file()`, `parse_dir()`
+  - `__init__.py`: public API re-exports
+- `test_iac.py` — 41 tests: `can_parse`, `parse` (ports/volumes/env/labels/healthcheck/secrets/networks/replicas/command/build), `ParserRegistry`, `parse_file`, `parse_dir`, `ConversionWarning`
+
 ### Phase 5 — Observability (0.2.0)
 - `redeploy/observe.py` — new module:
   - `AuditEntry` — immutable snapshot of one deployment (ts, host, app, strategies, ok, elapsed, steps)
