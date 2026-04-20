@@ -16,6 +16,10 @@ redeploy target   →  deploy to named device (fleet)
 ## Install
 
 ```bash
+# Recommended — installs CLI globally (no venv conflicts)
+pipx install redeploy
+
+# Or inside a venv
 pip install redeploy
 
 # With doql integration (generates migration.yaml from app.doql):
@@ -25,9 +29,9 @@ pip install doql[deploy]
 ## Quick start — VPS production deploy
 
 ```bash
-# 1. Create spec file (or use redeploy init)
+# 1. Create spec file
 cat > migration.yaml << 'EOF'
-name: "myapp deploy"
+name: "myapp deploy 1.0.19 → 1.0.20"
 source:
   strategy: docker_full
   host: root@YOUR_VPS_IP
@@ -39,18 +43,24 @@ target:
   app: myapp
   version: "1.0.20"
   domain: myapp.example.com
-  env_file: .env
-  verify_url: https://myapp.example.com/api/health
+  env_file: envs/prod.env
+  compose_files:
+    - docker-compose.prod.yml
+  verify_url: https://myapp.example.com/api/v1/health
+  verify_version: "1.0.20"
 EOF
 
-# 2. Preview steps (no SSH)
+# 2. Preview steps (no SSH needed)
 redeploy run migration.yaml --plan-only
 
-# 3. Dry run (SSH connect, no changes)
+# 3. Dry run (connects via SSH, makes no changes)
 redeploy run migration.yaml --dry-run
 
-# 4. Deploy
+# 4. Full deploy (live detect → plan → apply)
 redeploy run migration.yaml --detect
+
+# Or without --detect (faster, uses spec source as-is)
+redeploy run migration.yaml
 ```
 
 ## Quick start — Raspberry Pi kiosk
@@ -188,6 +198,32 @@ wait_kiosk_start       → 20s
 http_health_check      → curl http://localhost:8080
 ```
 
+### `podman_quadlet` plan steps
+
+```
+sync_env               → scp .env to remote
+install_quadlet_files  → cp *.container *.network *.volume → ~/.config/containers/systemd/
+podman_daemon_reload   → systemctl --user daemon-reload
+stop_<app>             → systemctl --user stop <app>.service
+start_<app>            → systemctl --user start <app>.service
+wait_startup           → 15s
+http_health_check      → verify_url health endpoint
+version_check          → verify_version match
+```
+
+For system (root) mode, set `stop_services: true` in `target` — switches to `systemctl` (no `--user`) and `/etc/containers/systemd/`.
+
+### `docker_full` plan steps
+
+```
+sync_env               → scp env_file → remote_dir/.env
+docker_build_pull      → docker compose build (on remote)
+docker_compose_up      → docker compose up -d --build
+wait_startup           → 30s
+http_health_check      → verify_url health endpoint
+version_check          → verify_version match
+```
+
 ## `migration.yaml` spec format
 
 ```yaml
@@ -215,13 +251,55 @@ target:
   verify_url: https://myapp.example.com/api/v1/health
   verify_version: "1.0.20"
 
-extra_steps:                  # optional — appended after generated steps
-  - id: flush_k3s_iptables    # named step from StepLibrary
-  - id: notify_slack
+extra_steps:                   # optional — appended or inserted
+  - id: flush_k3s_iptables     # StepLibrary name — no action needed
+    insert_before: docker_build_pull   # inject before specific step
+  - id: docker_prune           # StepLibrary: prune unused images
+  - id: notify_slack           # custom step (needs action:)
     action: ssh_cmd
     description: "Send deploy notification"
     command: "curl -s -X POST $SLACK_WEBHOOK -d '{\"text\":\"deployed 1.0.20\"}'"
     risk: low
+```
+
+## StepLibrary — reusable named steps
+
+Reference any step by `id` alone — no `action` needed. Fields can be overridden:
+
+```yaml
+extra_steps:
+  - id: flush_k3s_iptables           # use as-is
+  - id: stop_k3s
+  - id: http_health_check
+    url: https://myapp.example.com/health   # override url
+  - id: wait_startup_long            # 60s instead of 30s
+```
+
+| ID | Action | Description |
+|----|--------|-------------|
+| `flush_k3s_iptables` | `ssh_cmd` | Flush CNI-HOSTPORT-DNAT + KUBE-* chains (stale k3s rules block Docker-proxy on 80/443) |
+| `delete_k3s_ingresses` | `kubectl_delete` | Delete all k3s ingresses |
+| `stop_k3s` | `systemctl_stop` | Stop k3s service |
+| `disable_k3s` | `systemctl_disable` | Disable k3s on boot |
+| `stop_nginx` | `systemctl_stop` | Stop host nginx (port 80 conflict) |
+| `restart_traefik` | `ssh_cmd` | Restart Traefik container |
+| `docker_prune` | `ssh_cmd` | Prune unused images + build cache |
+| `docker_compose_down` | `docker_compose_down` | Stop Docker Compose stack |
+| `wait_startup` | `wait` | Wait 30s |
+| `wait_startup_long` | `wait` | Wait 60s |
+| `http_health_check` | `http_check` | Verify health endpoint (`expect: healthy`) |
+| `version_check` | `version_check` | Verify deployed version |
+| `sync_env` | `scp` | Copy .env to remote |
+| `podman_daemon_reload` | `systemctl_start` | `systemctl --user daemon-reload` |
+
+### `insert_before`
+
+By default extra steps are appended after all generated steps. Use `insert_before: <step_id>` to inject at a specific position:
+
+```yaml
+extra_steps:
+  - id: flush_k3s_iptables
+    insert_before: docker_build_pull   # runs before build, not after verify
 ```
 
 ## `redeploy.yaml` project manifest

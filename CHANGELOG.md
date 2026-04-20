@@ -9,14 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.2] - 2026-04-20
 
-### Docs
-- Update README.md
+### Added
+- `StepLibrary` — reusable named steps referenced by `id` in `extra_steps` (no `action` needed)
+- `insert_before: <step_id>` support in `extra_steps` — inject steps at a specific position in plan
+- `podman_quadlet` planner: full step sequence (sync_env → install_quadlet_files → daemon-reload → stop → start → wait → verify)
+- `podman_quadlet` rootless vs system mode: `systemctl --user` + `~/.config/containers/systemd/` vs `systemctl` + `/etc/containers/systemd/`
+- `ship` Makefile target: test → redeploy run --detect → verify (one-command pipeline)
 
-### Other
-- Update project/duplication.toon.yaml
-- Update project/validation.toon.yaml
-- Update redeploy/cli.py
-- Update redeploy/plan/planner.py
+### Fixed
+- `http_health_check`: `grep -qF` suppressed output — switched to `grep -F` so match is captured in `r.out`
+- `rollback_command` for `docker_compose_up`: was `down` (killed stack on health-check fail), now `up -d` (keep running)
+- `_append_extra_steps`: raw dict was mutated in-place across iterations (missing `dict(raw)` copy)
+- `planner._plan_podman_quadlet`: was a stub with only a note; now generates full step sequence
+
+### Changed
+- `Makefile` CLI invocation: `python -m deploy.cli` → `PYTHONPATH=. python cli.py` (direct script)
+- README: added `pipx install` as recommended install method
+- README: added `docker_full`, `podman_quadlet` plan step tables
+- README: added StepLibrary reference table with all 14 built-in steps
+- README: updated `migration.yaml` spec example with `compose_files`, `verify_version`, `insert_before`
 
 ## [0.1.1] - 2026-04-20
 
