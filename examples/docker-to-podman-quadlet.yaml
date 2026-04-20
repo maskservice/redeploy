@@ -1,0 +1,38 @@
+# migration.yaml — migrate from Docker Compose to Podman Quadlets
+# Usage: redeploy run examples/docker-to-podman-quadlet.yaml --dry-run
+
+name: "docker_full → podman_quadlet (c2004 VPS)"
+description: "Migrate from Docker Compose + Traefik to Podman Quadlet systemd units"
+
+source:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.19"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+  stop_services: []
+  disable_services: []
+
+target:
+  strategy: podman_quadlet
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.19"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+
+  verify_url: https://c2004.mask.services/api/v1/health
+  verify_version: "1.0.19"
+
+# Quadlet-specific steps added manually (auto-gen only covers systemctl reload)
+extra_steps:
+  - id: copy_quadlet_files
+    action: ssh_cmd
+    description: "Copy .container/.network files to /etc/containers/systemd/"
+    command: "cp ~/c2004/quadlets/*.container ~/c2004/quadlets/*.network /etc/containers/systemd/ 2>/dev/null || true"
+    risk: low
+
+notes:
+  - "Quadlet .container files must exist in ~/c2004/quadlets/ before apply"
+  - "Traefik must be configured as a Quadlet unit or via host install"

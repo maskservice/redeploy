@@ -169,6 +169,88 @@ class MigrationStep(BaseModel):
     error: Optional[str] = None
 
 
+# ── MigrationSpec (single YAML: from + to) ───────────────────────────────────
+
+class InfraSpec(BaseModel):
+    """Declarative description of one infrastructure state (from OR to)."""
+    strategy: DeployStrategy = DeployStrategy.UNKNOWN
+    host: str = "local"
+    app: str = "c2004"
+    version: Optional[str] = None
+    domain: Optional[str] = None
+    remote_dir: str = "~/c2004"
+
+    # docker_full
+    compose_files: list[str] = Field(default_factory=list)
+    env_file: Optional[str] = None
+
+    # services to stop/disable when leaving this state
+    stop_services: list[str] = Field(default_factory=list)
+    disable_services: list[str] = Field(default_factory=list)
+    delete_k3s_namespaces: list[str] = Field(default_factory=list)
+
+    # verification
+    verify_url: Optional[str] = None
+    verify_version: Optional[str] = None
+
+
+class MigrationSpec(BaseModel):
+    """Single YAML file describing full migration: from-state → to-state.
+
+    Usage:
+        redeploy run --spec migration.yaml
+    """
+    name: str = "migration"
+    description: str = ""
+
+    source: InfraSpec          # current / "before" state
+    target: InfraSpec          # desired / "after" state
+
+    # Optional explicit steps that override auto-generated ones
+    extra_steps: list[dict] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+    @classmethod
+    def from_file(cls, path: "Path") -> "MigrationSpec":  # type: ignore[name-defined]
+        import yaml
+        from pathlib import Path
+        with Path(path).open() as f:
+            return cls(**yaml.safe_load(f))
+
+    def to_infra_state(self) -> "InfraState":
+        """Build a minimal InfraState from source spec (used when detect is skipped)."""
+        rt = RuntimeInfo()
+        if self.source.strategy == DeployStrategy.K3S:
+            rt.k3s = "declared-in-spec"
+            rt.k3s_namespaces = self.source.delete_k3s_namespaces or [self.source.app]
+        if self.source.strategy == DeployStrategy.DOCKER_FULL:
+            rt.docker = "declared-in-spec"
+        return InfraState(
+            host=self.source.host,
+            app=self.source.app,
+            runtime=rt,
+            detected_strategy=self.source.strategy,
+            current_version=self.source.version,
+        )
+
+    def to_target_config(self) -> "TargetConfig":
+        """Convert target InfraSpec to TargetConfig for Planner."""
+        return TargetConfig(
+            strategy=self.target.strategy,
+            app=self.target.app,
+            version=self.target.version,
+            compose_files=self.target.compose_files,
+            env_file=self.target.env_file,
+            remote_dir=self.target.remote_dir,
+            domain=self.target.domain,
+            stop_services=self.source.stop_services,
+            disable_services=self.source.disable_services,
+            delete_k3s_namespaces=self.source.delete_k3s_namespaces,
+            verify_url=self.target.verify_url,
+            verify_version=self.target.verify_version or self.target.version,
+        )
+
+
 # ── MigrationPlan (output of plan, input to apply) ───────────────────────────
 
 class MigrationPlan(BaseModel):

@@ -277,3 +277,102 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
 
     if not ok:
         sys.exit(1)
+
+
+# ── run (single migration.yaml: source + target) ─────────────────────────────
+
+@cli.command()
+@click.argument("spec_file", default="migration.yaml",
+                type=click.Path(exists=True), metavar="SPEC")
+@click.option("--dry-run", is_flag=True, help="Show steps without executing")
+@click.option("--plan-only", is_flag=True, help="Generate plan but do not apply")
+@click.option("--detect", "do_detect", is_flag=True,
+              help="Run live detect first (overrides source state from spec)")
+@click.option("--plan-out", default=None, type=click.Path(),
+              help="Save generated plan to file")
+@click.option("-o", "--output", default=None, type=click.Path(),
+              help="Save apply results to file")
+@click.pass_context
+def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output):
+    """Execute migration from a single YAML spec (source + target in one file).
+
+    SPEC defaults to migration.yaml.
+
+    \b
+    Example:
+        redeploy run examples/k3s-to-docker.yaml
+        redeploy run migration.yaml --dry-run
+        redeploy run migration.yaml --detect --plan-out plan.yaml
+    """
+    from rich.console import Console
+    from rich.table import Table
+    from .models import MigrationSpec
+    from .plan import Planner
+    from .apply import Executor
+
+    console = Console()
+    spec = MigrationSpec.from_file(spec_file)
+
+    console.print(f"\n[bold]{spec.name}[/bold]"
+                  + (f"  [dim]{spec.description}[/dim]" if spec.description else ""))
+    console.print(f"  [dim]{spec.source.strategy.value}[/dim]  →  "
+                  f"[bold]{spec.target.strategy.value}[/bold]"
+                  f"  ({spec.source.host})")
+
+    # ── optional live detect (overrides source in spec) ──────────────────────
+    if do_detect:
+        from .detect import Detector
+        console.print(f"\n[bold]detect[/bold]  (live probe of {spec.source.host})")
+        d = Detector(
+            host=spec.source.host,
+            app=spec.source.app,
+            domain=spec.source.domain,
+        )
+        state = d.run()
+        console.print(f"  detected: {state.detected_strategy.value}  "
+                      f"version={state.current_version or '?'}  "
+                      f"conflicts={len(state.conflicts)}")
+        planner = Planner(state, spec.to_target_config())
+        planner._spec = spec
+    else:
+        planner = Planner.from_spec(spec)
+
+    # ── plan ─────────────────────────────────────────────────────────────────
+    console.print(f"\n[bold]plan[/bold]")
+    migration = planner.run()
+
+    if plan_out:
+        planner.save(migration, Path(plan_out))
+        console.print(f"  [dim]plan saved → {plan_out}[/dim]")
+
+    t = Table(show_header=True, box=None, padding=(0, 2))
+    t.add_column("#", style="dim", width=3)
+    t.add_column("ID")
+    t.add_column("Action", style="cyan")
+    t.add_column("Description")
+    t.add_column("Risk", style="dim")
+    for i, step in enumerate(migration.steps, 1):
+        t.add_row(str(i), step.id, step.action.value, step.description, step.risk.value)
+    console.print(t)
+    console.print(f"  risk={migration.risk.value}  downtime={migration.estimated_downtime}")
+
+    if migration.notes:
+        for note in migration.notes:
+            console.print(f"  [yellow]⚠ {note}[/yellow]")
+
+    if plan_only:
+        console.print("\n[dim]--plan-only: stopping before apply[/dim]")
+        return
+
+    # ── apply ─────────────────────────────────────────────────────────────────
+    prefix = "[DRY RUN] " if dry_run else ""
+    console.print(f"\n[bold]{prefix}apply[/bold]")
+    executor = Executor(migration, dry_run=dry_run)
+    ok = executor.run()
+    console.print(f"\n{executor.summary()}")
+
+    if output:
+        executor.save_results(Path(output))
+
+    if not ok:
+        sys.exit(1)

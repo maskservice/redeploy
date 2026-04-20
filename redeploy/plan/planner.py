@@ -21,6 +21,7 @@ class Planner:
         self.target = target
         self._steps: list[MigrationStep] = []
         self._notes: list[str] = []
+        self._spec = None   # set by from_spec()
 
     def run(self) -> MigrationPlan:
         logger.info(
@@ -32,6 +33,11 @@ class Planner:
         self._plan_stop_old_services()
         self._plan_deploy_new()
         self._plan_verify()
+        if self._spec:
+            self._append_extra_steps(self._spec)
+            for note in self._spec.notes:
+                if note not in self._notes:
+                    self._notes.append(note)
 
         risk = self._assess_risk()
         downtime = self._estimate_downtime()
@@ -277,6 +283,26 @@ class Planner:
                 target = TargetConfig(**yaml.safe_load(f))
 
         return Planner(state, target)
+
+    @staticmethod
+    def from_spec(spec: "MigrationSpec") -> "Planner":  # type: ignore[name-defined]
+        """Build Planner directly from a MigrationSpec (single from+to YAML)."""
+        from ..models import MigrationSpec  # local import avoids circular
+        state = spec.to_infra_state()
+        target = spec.to_target_config()
+        p = Planner(state, target)
+        p._spec = spec
+        return p
+
+    def _append_extra_steps(self, spec: "MigrationSpec") -> None:  # type: ignore[name-defined]
+        """Append manually declared extra_steps from spec after auto-generated ones."""
+        from ..models import MigrationStep, StepAction
+        for raw in spec.extra_steps:
+            try:
+                step = MigrationStep(**raw)
+                self._add_step(step)
+            except Exception as e:
+                self._notes.append(f"extra_step ignored ({raw.get('id', '?')}): {e}")
 
     def save(self, plan: MigrationPlan, output: Path) -> None:
         data = plan.model_dump(mode="json")

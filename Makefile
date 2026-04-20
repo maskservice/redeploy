@@ -12,8 +12,10 @@ APP        ?= c2004
 DOMAIN     ?= c2004.mask.services
 TARGET     ?= examples/target-from-k3s-to-docker.yaml
 STRATEGY   ?= docker_full
+SPEC       ?= examples/k3s-to-docker.yaml
 
 .PHONY: help install test lint fmt check \
+        run run-dry \
         detect plan apply migrate dry-run \
         push tag release clean
 
@@ -31,7 +33,12 @@ help:
 	@echo "    make fmt              Ruff formatter"
 	@echo "    make check            lint + test"
 	@echo ""
-	@echo "  Usage (set HOST/APP/DOMAIN/TARGET as needed):"
+	@echo "  Single-file spec (recommended):"
+	@echo "    make run              Execute SPEC migration.yaml (plan + apply)"
+	@echo "    make run-dry          Dry-run SPEC (no changes)"
+	@echo "    make run SPEC=examples/k3s-to-docker.yaml"
+	@echo ""
+	@echo "  Low-level (separate detect/plan/apply):"
 	@echo "    make detect           Probe infra → infra.yaml"
 	@echo "    make plan             infra.yaml + TARGET → migration-plan.yaml"
 	@echo "    make apply            Execute migration-plan.yaml"
@@ -66,6 +73,19 @@ fmt: install
 	$(RUFF) format redeploy/
 
 check: lint test
+
+# ── run (single spec file) ────────────────────────────────────────────────────
+run: install
+	$(REDEPLOY) -v run $(SPEC)
+
+run-dry: install
+	$(REDEPLOY) -v run $(SPEC) --dry-run
+
+run-plan: install
+	$(REDEPLOY) -v run $(SPEC) --plan-only --plan-out migration-plan.yaml
+
+run-detect: install
+	$(REDEPLOY) -v run $(SPEC) --detect --dry-run
 
 # ── detect / plan / apply ─────────────────────────────────────────────────────
 detect: install

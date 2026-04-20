@@ -97,6 +97,102 @@ def test_infra_state_serializes():
     assert restored.detected_strategy == state.detected_strategy
 
 
+def _make_spec(
+    from_strategy: DeployStrategy = DeployStrategy.K3S,
+    to_strategy: DeployStrategy = DeployStrategy.DOCKER_FULL,
+    extra_steps: list | None = None,
+) -> "MigrationSpec":
+    from redeploy.models import InfraSpec, MigrationSpec
+    return MigrationSpec(
+        name="test-migration",
+        description="unit test",
+        source=InfraSpec(
+            strategy=from_strategy,
+            host="root@1.2.3.4",
+            app="c2004",
+            version="1.0.18",
+            domain="c2004.example.com",
+            delete_k3s_namespaces=["identification"],
+            stop_services=["k3s"],
+            disable_services=["k3s"],
+        ),
+        target=InfraSpec(
+            strategy=to_strategy,
+            host="root@1.2.3.4",
+            app="c2004",
+            version="1.0.19",
+            domain="c2004.example.com",
+            compose_files=["docker-compose.vps.yml"],
+            env_file="envs/vps.env",
+            verify_url="https://c2004.example.com/api/v1/health",
+            verify_version="1.0.19",
+        ),
+        extra_steps=extra_steps or [],
+        notes=["test note"],
+    )
+
+
+def test_spec_to_infra_state():
+    spec = _make_spec()
+    state = spec.to_infra_state()
+    assert state.host == "root@1.2.3.4"
+    assert state.detected_strategy == DeployStrategy.K3S
+    assert state.runtime.k3s == "declared-in-spec"
+
+
+def test_spec_to_target_config():
+    spec = _make_spec()
+    target = spec.to_target_config()
+    assert target.strategy == DeployStrategy.DOCKER_FULL
+    assert target.compose_files == ["docker-compose.vps.yml"]
+    assert target.stop_services == ["k3s"]
+    assert target.verify_version == "1.0.19"
+
+
+def test_planner_from_spec_generates_steps():
+    from redeploy.plan.planner import Planner
+    spec = _make_spec()
+    planner = Planner.from_spec(spec)
+    migration = planner.run()
+    ids = [s.id for s in migration.steps]
+    assert "stop_k3s" in ids
+    assert "docker_compose_up" in ids
+    assert "version_check" in ids
+
+
+def test_planner_from_spec_appends_notes():
+    from redeploy.plan.planner import Planner
+    spec = _make_spec()
+    migration = Planner.from_spec(spec).run()
+    assert "test note" in migration.notes
+
+
+def test_planner_from_spec_extra_steps():
+    from redeploy.plan.planner import Planner
+    spec = _make_spec(extra_steps=[{
+        "id": "custom_step",
+        "action": "ssh_cmd",
+        "description": "Custom command",
+        "command": "echo hello",
+    }])
+    migration = Planner.from_spec(spec).run()
+    ids = [s.id for s in migration.steps]
+    assert "custom_step" in ids
+
+
+def test_spec_roundtrip_yaml(tmp_path):
+    """MigrationSpec can be written to YAML and re-read."""
+    import yaml
+    from redeploy.models import MigrationSpec
+    spec = _make_spec()
+    path = tmp_path / "migration.yaml"
+    path.write_text(yaml.dump(spec.model_dump(mode="json"), allow_unicode=True))
+    restored = MigrationSpec.from_file(path)
+    assert restored.name == spec.name
+    assert restored.source.strategy == spec.source.strategy
+    assert restored.target.version == spec.target.version
+
+
 def test_migration_plan_step_count_sane():
     state = _make_state(
         strategy=DeployStrategy.K3S,
