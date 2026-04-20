@@ -436,6 +436,16 @@ def _collect_ssh_keys() -> list[str]:
     return keys
 
 
+def _tcp_reachable(ip: str, port: int = 22, timeout: float = 2.0) -> bool:
+    """Fast TCP connect check — avoids waiting for SSH timeout on dead hosts."""
+    import socket as _socket
+    try:
+        with _socket.create_connection((ip, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 def _try_ssh_credentials(
     ip: str,
     users: list[str],
@@ -443,33 +453,72 @@ def _try_ssh_credentials(
     port: int = 22,
     timeout: int = 5,
 ) -> tuple[str, str, str]:
-    """Try (user, key) combos on ip:port. Return (user, key_path, host_str) or ('','','')."""
+    """Try (user, key) combos on ip:port. Return (user, key_path, host_str) or ('','','').
+
+    Starts with a fast TCP check to avoid waiting for SSH timeouts on dead hosts.
+    Runs all user×key combos in parallel threads; returns first success.
+    """
     import getpass
-    # Prepend current user so we try it first
+    import queue as _queue
+
+    # Fast TCP gate — if port 22 not open, skip all SSH attempts
+    if not _tcp_reachable(ip, port, timeout=min(timeout, 3.0)):
+        return "", "", ""
+
     cur = getpass.getuser()
     users = [cur] + [u for u in users if u != cur]
-    # Also try with no explicit key (agent / default)
-    keys_to_try = [None] + keys  # type: ignore[list-item]
+    keys_to_try: list = [None] + keys  # type: ignore[list-item]
 
+    result_q: _queue.Queue = _queue.Queue()
+
+    def try_one(user: str, key) -> None:
+        cmd = [
+            "ssh",
+            "-o", f"ConnectTimeout={timeout}",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "BatchMode=yes",
+            "-o", "PasswordAuthentication=no",
+            "-p", str(port),
+        ]
+        if key:
+            cmd += ["-i", key]
+        cmd += [f"{user}@{ip}", "echo __ok__"]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
+            if r.returncode == 0 and "__ok__" in r.stdout:
+                result_q.put((user, key or "", f"{user}@{ip}"))
+        except Exception:
+            pass
+
+    # Try agent/default first (no key) for each user sequentially — fast path
     for user in users:
-        for key in keys_to_try:
-            cmd = [
-                "ssh",
-                "-o", f"ConnectTimeout={timeout}",
-                "-o", "StrictHostKeyChecking=no",
-                "-o", "BatchMode=yes",
-                "-o", "PasswordAuthentication=no",
-                "-p", str(port),
-            ]
-            if key:
-                cmd += ["-i", key]
-            cmd += [f"{user}@{ip}", "echo __ok__"]
-            try:
-                r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
-                if r.returncode == 0 and "__ok__" in r.stdout:
-                    return user, (key or ""), f"{user}@{ip}"
-            except Exception:
-                pass
+        cmd = [
+            "ssh",
+            "-o", f"ConnectTimeout={timeout}",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "BatchMode=yes",
+            "-o", "PasswordAuthentication=no",
+            "-p", str(port),
+            f"{user}@{ip}", "echo __ok__",
+        ]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
+            if r.returncode == 0 and "__ok__" in r.stdout:
+                return user, "", f"{user}@{ip}"
+        except Exception:
+            pass
+
+    # Parallel fallback: try all user×key combos concurrently
+    combos = [(u, k) for u in users for k in keys_to_try if k is not None]
+    with ThreadPoolExecutor(max_workers=min(len(combos), 16)) as ex:
+        futures = [ex.submit(try_one, u, k) for u, k in combos]
+        try:
+            return result_q.get(timeout=timeout + 3)
+        except _queue.Empty:
+            pass
+        for f in futures:
+            f.cancel()
+
     return "", "", ""
 
 
