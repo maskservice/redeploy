@@ -1,7 +1,7 @@
 """Shared data models for redeploy: InfraState, MigrationPlan, Target."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
@@ -104,7 +104,7 @@ class InfraState(BaseModel):
     """Full detected state of infrastructure — output of `detect`."""
     host: str                             # "root@1.2.3.4" or "local"
     app: str = "unknown"
-    scanned_at: datetime = Field(default_factory=datetime.utcnow)
+    scanned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     runtime: RuntimeInfo = Field(default_factory=RuntimeInfo)
     ports: dict[int, PortInfo] = Field(default_factory=dict)
@@ -259,7 +259,7 @@ class MigrationPlan(BaseModel):
     """Full migration plan — output of `plan`, input to `apply`."""
     infra_file: str = "infra.yaml"
     target_file: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     host: str
     app: str
@@ -355,9 +355,10 @@ class KnownDevice(BaseModel):
     ip: str = ""
     mac: str = ""
     hostname: str = ""
+    ssh_user: str = ""                   # SSH username that worked (auto-detected)
     last_seen: Optional[datetime] = None
     last_ssh_ok: Optional[datetime] = None
-    source: str = "manual"              # manual | arp | mdns | known_hosts
+    source: str = "manual"              # manual | arp | mdns | known_hosts | probe
 
     # Deploy history
     deploys: list[DeployRecord] = Field(default_factory=list)

@@ -22,10 +22,13 @@ class StepError(Exception):
 class Executor:
     """Execute MigrationPlan steps on a remote host."""
 
-    def __init__(self, plan: MigrationPlan, dry_run: bool = False):
+    def __init__(self, plan: MigrationPlan, dry_run: bool = False,
+                 ssh_key: Optional[str] = None):
         self.plan = plan
         self.dry_run = dry_run
         self.probe = RemoteProbe(plan.host)
+        if ssh_key:
+            self.probe.key = ssh_key
         self._completed: list[MigrationStep] = []
 
     def run(self) -> bool:
@@ -90,7 +93,7 @@ class Executor:
         r = self.probe.run(cmd, timeout=300)
         step.result = r.out[:500]
         if not r.ok:
-            raise StepError(step, f"exit={r.returncode}: {r.stderr[:200]}")
+            raise StepError(step, f"exit={r.exit_code}: {r.stderr[:200]}")
         step.status = StepStatus.DONE
 
     def _run_scp(self, step: MigrationStep) -> None:

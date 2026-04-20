@@ -19,7 +19,7 @@ import socket
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from loguru import logger
@@ -194,7 +194,7 @@ def _probe_ssh(
                 if r.returncode == 0 and "ok" in r.stdout:
                     host.ssh_ok = True
                     host.ssh_user = user
-                    host.last_ssh_ok = datetime.utcnow()  # type: ignore[attr-defined]
+                    host.last_ssh_ok = datetime.now(timezone.utc)  # type: ignore[attr-defined]
                     break
             except Exception:
                 pass
@@ -323,7 +323,7 @@ def update_registry(
     Devices not seen in this scan are NOT removed (preserved for history).
     """
     reg = registry or DeviceRegistry.load()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     for h in hosts:
         if not h.ip:
@@ -372,3 +372,294 @@ def _run(cmd: str, timeout: int = 10) -> str:
 
 def _is_ip(s: str) -> bool:
     return bool(re.match(r"^\d+\.\d+\.\d+\.\d+$", s))
+
+
+# ── ProbeResult ───────────────────────────────────────────────────────────────
+
+@dataclass
+class ProbeResult:
+    """Full autonomous probe result for a single host."""
+    ip: str
+    host: str = ""                      # user@ip that worked
+    ssh_user: str = ""
+    ssh_key: str = ""                   # key path that succeeded
+    ssh_port: int = 22
+    reachable: bool = False
+
+    # detected from remote
+    strategy: str = "unknown"           # docker_full | systemd | podman_quadlet | native_kiosk
+    app: str = ""
+    version: str = ""
+    hostname: str = ""
+    arch: str = ""                      # uname -m
+    os_info: str = ""
+    has_docker: bool = False
+    has_podman: bool = False
+    has_chromium: bool = False
+    running_services: list[str] = field(default_factory=list)
+    error: str = ""
+
+
+# ── Core autonomous probe ─────────────────────────────────────────────────────
+
+_DEFAULT_USERS = ["pi", "ubuntu", "root", "admin", "tom", "debian"]
+_DEFAULT_KEY_NAMES = [
+    "id_ed25519", "id_rsa", "id_ecdsa",
+    "rpi_key", "safetytwin-key",
+]
+
+
+def _collect_ssh_keys() -> list[str]:
+    """Return all available private key paths under ~/.ssh/."""
+    import os
+    home = __import__("pathlib").Path.home()
+    keys: list[str] = []
+    # env override first
+    env_key = os.environ.get("SSH_KEY_PATH") or os.environ.get("SSH_KEY_FILE")
+    if env_key and __import__("pathlib").Path(env_key).is_file():
+        keys.append(env_key)
+    ssh_dir = home / ".ssh"
+    if ssh_dir.is_dir():
+        for name in _DEFAULT_KEY_NAMES:
+            p = ssh_dir / name
+            if p.is_file() and ".pub" not in str(p):
+                k = str(p)
+                if k not in keys:
+                    keys.append(k)
+        # also any other non-.pub files that look like keys
+        for p in sorted(ssh_dir.iterdir()):
+            if p.suffix in ("", ) and not p.name.endswith(".pub") \
+               and p.name not in ("known_hosts", "config", "authorized_keys"):
+                k = str(p)
+                if k not in keys:
+                    keys.append(k)
+    return keys
+
+
+def _try_ssh_credentials(
+    ip: str,
+    users: list[str],
+    keys: list[str],
+    port: int = 22,
+    timeout: int = 5,
+) -> tuple[str, str, str]:
+    """Try (user, key) combos on ip:port. Return (user, key_path, host_str) or ('','','')."""
+    import getpass
+    # Prepend current user so we try it first
+    cur = getpass.getuser()
+    users = [cur] + [u for u in users if u != cur]
+    # Also try with no explicit key (agent / default)
+    keys_to_try = [None] + keys  # type: ignore[list-item]
+
+    for user in users:
+        for key in keys_to_try:
+            cmd = [
+                "ssh",
+                "-o", f"ConnectTimeout={timeout}",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "BatchMode=yes",
+                "-o", "PasswordAuthentication=no",
+                "-p", str(port),
+            ]
+            if key:
+                cmd += ["-i", key]
+            cmd += [f"{user}@{ip}", "echo __ok__"]
+            try:
+                r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 2)
+                if r.returncode == 0 and "__ok__" in r.stdout:
+                    return user, (key or ""), f"{user}@{ip}"
+            except Exception:
+                pass
+    return "", "", ""
+
+
+def _detect_strategy_remote(
+    host: str, key: str, port: int = 22, timeout: int = 10
+) -> dict:
+    """Run a single SSH session to detect strategy, app, version, etc."""
+    key_opts = ["-i", key] if key else []
+    probe_cmd = (
+        "echo __arch__=$(uname -m); "
+        "echo __os__=$(. /etc/os-release 2>/dev/null && echo $PRETTY_NAME || uname -s); "
+        "echo __hostname__=$(hostname); "
+        "docker info --format 'ok' 2>/dev/null && echo __docker__=1 || echo __docker__=0; "
+        "podman --version 2>/dev/null && echo __podman__=1 || echo __podman__=0; "
+        "which chromium chromium-browser 2>/dev/null && echo __chromium__=1 || echo __chromium__=0; "
+        "systemctl is-active --quiet docker 2>/dev/null && echo __docker_active__=1 || echo __docker_active__=0; "
+        "systemctl list-units --type=service --state=running --no-pager --no-legend 2>/dev/null | awk '{print $1}' | head -30; "
+        "echo __end_services__"
+    )
+    cmd = ["ssh"] + [
+        "-o", f"ConnectTimeout={timeout}",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "BatchMode=yes",
+        "-p", str(port),
+    ] + key_opts + [host, probe_cmd]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 5)
+        if r.returncode != 0:
+            return {}
+        out = r.stdout
+    except Exception:
+        return {}
+
+    info: dict = {}
+    services: list[str] = []
+    in_services = False
+
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith("__arch__="):
+            info["arch"] = line.split("=", 1)[1]
+        elif line.startswith("__os__="):
+            info["os_info"] = line.split("=", 1)[1]
+        elif line.startswith("__hostname__="):
+            info["hostname"] = line.split("=", 1)[1]
+        elif line.startswith("__docker__="):
+            info["has_docker"] = line.endswith("1")
+        elif line.startswith("__podman__="):
+            info["has_podman"] = line.endswith("1")
+        elif line.startswith("__chromium__="):
+            info["has_chromium"] = line.endswith("1")
+        elif line.startswith("__docker_active__="):
+            info["docker_active"] = line.endswith("1")
+        elif line == "__end_services__":
+            in_services = False
+        elif in_services:
+            if line:
+                services.append(line)
+        elif line.endswith(".service") or ("loaded" in line and "active" in line):
+            in_services = True
+            if line.endswith(".service"):
+                services.append(line)
+
+    info["running_services"] = services
+
+    # Infer strategy
+    if info.get("docker_active") or info.get("has_docker"):
+        info["strategy"] = "docker_full"
+    elif info.get("has_podman"):
+        info["strategy"] = "podman_quadlet"
+    elif info.get("has_chromium") and any("kiosk" in s or "chromium" in s for s in services):
+        info["strategy"] = "native_kiosk"
+    else:
+        info["strategy"] = "systemd"
+
+    return info
+
+
+def auto_probe(
+    ip_or_host: str,
+    users: Optional[list[str]] = None,
+    port: int = 22,
+    timeout: int = 6,
+    app_hint: str = "",
+    save: bool = True,
+) -> "ProbeResult":
+    """Autonomously probe a host — try all available SSH keys and users.
+
+    Detects: SSH credentials, strategy (docker/podman/systemd/kiosk),
+    running services, arch, OS. Saves to DeviceRegistry automatically.
+
+    Args:
+        ip_or_host:  IP address or ``user@ip`` string.
+        users:       SSH users to try (default: pi, ubuntu, root, admin, current user).
+        port:        SSH port.
+        timeout:     Per-attempt SSH timeout.
+        app_hint:    Hint for app name (checked in running services).
+        save:        Persist result to registry.
+
+    Returns:
+        ProbeResult with all discovered fields.
+    """
+    # Normalise input
+    if "@" in ip_or_host:
+        forced_user, ip = ip_or_host.split("@", 1)
+        users = [forced_user] + (users or _DEFAULT_USERS)
+    else:
+        ip = ip_or_host
+        users = users or _DEFAULT_USERS
+
+    result = ProbeResult(ip=ip, ssh_port=port)
+
+    # Collect available SSH keys
+    keys = _collect_ssh_keys()
+
+    # Find working credentials
+    ssh_user, ssh_key, host_str = _try_ssh_credentials(ip, users, keys, port, timeout)
+    if not host_str:
+        result.error = f"No SSH access: tried {len(users)} users × {len(keys)+1} keys"
+        logger.warning(f"[probe {ip}] {result.error}")
+        return result
+
+    result.reachable = True
+    result.ssh_user = ssh_user
+    result.ssh_key = ssh_key
+    result.host = host_str
+    logger.info(f"[probe {ip}] SSH OK as {ssh_user}"
+                + (f" via {__import__('os').path.basename(ssh_key)}" if ssh_key else " (agent/default)"))
+
+    # Detect remote strategy + metadata
+    info = _detect_strategy_remote(host_str, ssh_key, port, timeout=timeout * 2)
+    if info:
+        result.strategy = info.get("strategy", "systemd")
+        result.hostname = info.get("hostname", "")
+        result.arch = info.get("arch", "")
+        result.os_info = info.get("os_info", "")
+        result.has_docker = bool(info.get("has_docker"))
+        result.has_podman = bool(info.get("has_podman"))
+        result.has_chromium = bool(info.get("has_chromium"))
+        result.running_services = info.get("running_services", [])
+
+        # Try to detect app + version
+        app = app_hint
+        if not app:
+            for svc in result.running_services:
+                for candidate in ("c2004", "app", "backend", "kiosk", "api"):
+                    if candidate in svc.lower():
+                        app = candidate
+                        break
+                if app:
+                    break
+        result.app = app
+
+    # Save to registry
+    if save:
+        reg = DeviceRegistry.load()
+        now = datetime.utcnow()
+        existing = reg.get(host_str) or reg.get(ip)
+        if existing:
+            existing.host = host_str
+            existing.ip = ip
+            existing.ssh_user = ssh_user
+            if ssh_key:
+                existing.ssh_key = ssh_key
+            existing.ssh_port = port
+            existing.strategy = result.strategy
+            existing.hostname = result.hostname or existing.hostname
+            existing.last_seen = now
+            existing.last_ssh_ok = now
+            if result.app and not existing.app:
+                existing.app = result.app
+            reg.upsert(existing)
+        else:
+            reg.upsert(KnownDevice(
+                id=host_str,
+                host=host_str,
+                ip=ip,
+                mac="",
+                hostname=result.hostname,
+                ssh_user=ssh_user,
+                ssh_key=ssh_key if ssh_key else None,
+                ssh_port=port,
+                strategy=result.strategy,
+                app=result.app,
+                last_seen=now,
+                last_ssh_ok=now,
+                source="probe",
+                tags=["discovered"],
+            ))
+        reg.save()
+        logger.info(f"[probe {ip}] saved to registry as {host_str}")
+
+    return result
