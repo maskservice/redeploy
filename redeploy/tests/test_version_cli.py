@@ -32,6 +32,41 @@ def _write_version_workspace(base: Path, version: str = "1.0.0") -> None:
     )
 
 
+def _write_monorepo_version_workspace(base: Path) -> None:
+    (base / ".redeploy").mkdir(parents=True, exist_ok=True)
+    (base / "backend").mkdir(parents=True, exist_ok=True)
+    (base / "frontend").mkdir(parents=True, exist_ok=True)
+    (base / "backend" / "VERSION").write_text("1.0.0\n", encoding="utf-8")
+    (base / "frontend" / "VERSION").write_text("2.0.0\n", encoding="utf-8")
+
+    manifest = {
+        "version": {
+            "version": "0.0.0",
+            "scheme": "semver",
+            "policy": "independent",
+            "sources": [],
+            "packages": {
+                "backend": {
+                    "version": "1.0.0",
+                    "sources": [
+                        {"path": "backend/VERSION", "format": "plain"},
+                    ],
+                },
+                "frontend": {
+                    "version": "2.0.0",
+                    "sources": [
+                        {"path": "frontend/VERSION", "format": "plain"},
+                    ],
+                },
+            },
+        }
+    }
+    (base / ".redeploy" / "version.yaml").write_text(
+        yaml.dump(manifest, sort_keys=False),
+        encoding="utf-8",
+    )
+
+
 class TestVersionSet:
     def test_set_updates_manifest_and_sources(self, tmp_path):
         runner = _runner()
@@ -60,6 +95,61 @@ class TestVersionSet:
             assert result.exit_code == 0, result.output
             assert "DRY RUN" in result.output
             assert Path("VERSION").read_text(encoding="utf-8").strip() == "1.0.0"
+
+    def test_set_package_updates_only_selected_package(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "set", "3.3.3", "--package", "backend"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert Path("backend/VERSION").read_text(encoding="utf-8").strip() == "3.3.3"
+            assert Path("frontend/VERSION").read_text(encoding="utf-8").strip() == "2.0.0"
+
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["packages"]["backend"]["version"] == "3.3.3"
+            assert manifest["version"]["packages"]["frontend"]["version"] == "2.0.0"
+            assert manifest["version"]["version"] == "0.0.0"
+
+    def test_set_all_packages_updates_all_packages(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "set", "4.4.4", "--all-packages"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert Path("backend/VERSION").read_text(encoding="utf-8").strip() == "4.4.4"
+            assert Path("frontend/VERSION").read_text(encoding="utf-8").strip() == "4.4.4"
+
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["packages"]["backend"]["version"] == "4.4.4"
+            assert manifest["version"]["packages"]["frontend"]["version"] == "4.4.4"
+
+    def test_set_package_dry_run_does_not_modify_monorepo(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "set", "5.5.5", "--package", "backend", "--dry-run"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "Would set backend: 1.0.0 → 5.5.5" in result.output
+            assert Path("backend/VERSION").read_text(encoding="utf-8").strip() == "1.0.0"
+            assert Path("frontend/VERSION").read_text(encoding="utf-8").strip() == "2.0.0"
 
 
 class TestVersionDiff:

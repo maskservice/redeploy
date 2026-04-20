@@ -2347,6 +2347,8 @@ def _calculate_bump(current: str, bump_type: str) -> str:
 @click.argument("version")
 @click.option("--manifest", "manifest_path_str", default=".redeploy/version.yaml",
               help="Path to version manifest")
+@click.option("--package", "package_name", "-p", help="Set version for a specific package (for monorepo)")
+@click.option("--all-packages", is_flag=True, help="Set version for all packages (for monorepo)")
 @click.option("--dry-run", is_flag=True, help="Preview changes without applying")
 @click.option("--commit", is_flag=True, help="Create git commit with changes")
 @click.option("--tag", is_flag=True, help="Create git tag for new version")
@@ -2354,10 +2356,13 @@ def _calculate_bump(current: str, bump_type: str) -> str:
 @click.option("--sign", is_flag=True, help="Sign tag with GPG")
 @click.option("--allow-dirty", is_flag=True, help="Allow version change with dirty working directory")
 @click.option("--changelog", is_flag=True, help="Update CHANGELOG.md")
-def version_set(version, manifest_path_str, dry_run, commit, tag, push, sign, allow_dirty, changelog):
+def version_set(version, manifest_path_str, package_name, all_packages, dry_run, commit, tag, push, sign, allow_dirty, changelog):
     """Set an explicit version across all manifest sources."""
     from rich.console import Console
     from .version import VersionManifest
+    from .version.bump import bump_package
+    from .version.changelog import ChangelogManager, get_commits_since_tag
+    from .version.git_integration import GitIntegration, GitIntegrationError
 
     console = Console()
     manifest_path = Path(manifest_path_str)
@@ -2368,6 +2373,97 @@ def version_set(version, manifest_path_str, dry_run, commit, tag, push, sign, al
         sys.exit(1)
 
     manifest_model = VersionManifest.load(manifest_path)
+
+    if package_name and all_packages:
+        console.print("[red]✗ Use either --package NAME or --all-packages, not both.[/red]")
+        sys.exit(1)
+
+    if package_name or all_packages:
+        if not manifest_model.is_monorepo():
+            console.print("[red]✗ Manifest has no packages defined. Add 'packages:' section for monorepo support.[/red]")
+            sys.exit(1)
+
+        if package_name:
+            targets = [package_name]
+            pkg = manifest_model.get_package(package_name)
+            if pkg is None:
+                console.print(f"[red]✗ Package '{package_name}' not found in manifest[/red]")
+                console.print(f"  Available: {manifest_model.list_packages()}")
+                sys.exit(1)
+        else:
+            targets = manifest_model.list_packages()
+
+        repo_path = manifest_path.parent.parent
+
+        if dry_run:
+            for pkg_name in targets:
+                pkg = manifest_model.get_package(pkg_name)
+                console.print(f"[DRY RUN] Would set {pkg_name}: {pkg.version} → {version}")
+                console.print(f"  Sources: {len(pkg.sources)}")
+                for source in pkg.sources:
+                    console.print(f"    - {source.path} ({source.format})")
+            return
+
+        try:
+            git = None
+            if commit or tag or push:
+                git_config = manifest_model.get_package(package_name).git if package_name and manifest_model.get_package(package_name) and manifest_model.get_package(package_name).git else manifest_model.git
+                git = GitIntegration(git_config, repo_path)
+                if git_config.require_clean and not allow_dirty:
+                    git.require_clean()
+
+            touched_files = []
+            if changelog:
+                changelog_path = manifest_model.changelog.path if manifest_model.changelog else Path("CHANGELOG.md")
+                changelog_mgr = ChangelogManager(repo_path / changelog_path)
+                commits = get_commits_since_tag(repo_path, manifest_model.git.tag_format.format(version=manifest_model.version))
+                new_content = changelog_mgr.prepare_release(version, commit_messages=commits)
+                changelog_mgr.write(new_content)
+                console.print(f"[green]✓ Updated {changelog_path}[/green]")
+                touched_files.append(changelog_path)
+
+            for pkg_name in targets:
+                pkg = manifest_model.get_package(pkg_name)
+                result = bump_package(manifest_model, pkg_name, "patch", new_version=version)
+                touched_files.extend(source.path for source in pkg.sources)
+                console.print(f"[green]✓[/green] {pkg_name}: {result['old']} → {result['new_version']}  ({result['success']}/{result['total']} sources)")
+
+            manifest_model.save(manifest_path)
+            touched_files.append(manifest_path)
+
+            if git:
+                unique_files = []
+                for file_path in touched_files:
+                    if file_path not in unique_files:
+                        unique_files.append(file_path)
+
+                commit_hash = None
+                tag_name = None
+                if commit or push:
+                    commit_hash = git.commit(version, unique_files)
+                if tag or push:
+                    tag_name = git.tag(version, sign=sign)
+                if push:
+                    git.push(follow_tags=True)
+
+                console.print(f"[green]✓ Set version to {version} for {len(targets)} package(s)[/green]")
+                if commit_hash:
+                    console.print(f"  Commit: {commit_hash[:8]}")
+                if tag_name:
+                    console.print(f"  Tag: {tag_name}")
+                if push:
+                    console.print("  Pushed to origin")
+
+            return
+        except GitIntegrationError as e:
+            console.print(f"[red]✗ Git error: {e}[/red]")
+            sys.exit(1)
+        except Exception as e:
+            console.print(f"[red]✗ Version set failed: {e}[/red]")
+            import traceback
+            console.print(f"[dim]{traceback.format_exc()}[/dim]")
+            sys.exit(1)
+
     _bump_single(
         manifest_model,
         "patch",
