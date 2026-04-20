@@ -1,0 +1,65 @@
+# 04-rpi-kiosk/migration.yaml
+# Update kiosk app on Raspberry Pi (native_kiosk strategy)
+# Usage: redeploy run examples/04-rpi-kiosk/migration.yaml --detect
+
+name: "rpi-kiosk native_kiosk — version bump 1.0.19 → 1.0.20"
+description: "Rsync updated app, restart systemd kiosk service, verify local HTTP"
+
+source:
+  strategy: native_kiosk
+  host: tom@192.168.188.154
+  app: c2004
+  version: "1.0.19"
+  domain: localhost
+  remote_dir: /home/pi/c2004
+
+target:
+  strategy: native_kiosk
+  host: tom@192.168.188.154
+  app: c2004
+  version: "1.0.20"
+  domain: localhost
+  remote_dir: /home/pi/c2004
+  env_file: envs/rpi3.env
+  verify_url: http://localhost:8000/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps:
+  - id: stop_kiosk_browser
+    action: ssh_cmd
+    description: "Gracefully stop Chromium kiosk browser"
+    command: "pkill -f 'chromium-browser --kiosk' 2>/dev/null || true"
+    risk: low
+
+  - id: rsync_app
+    action: rsync
+    description: "Sync updated app files"
+    src: "./c2004/"
+    dst: "/home/pi/c2004/c2004/"
+    risk: low
+
+  - id: restart_backend
+    action: ssh_cmd
+    description: "Restart backend systemd service"
+    command: "systemctl restart c2004-backend.service"
+    risk: low
+    rollback_command: "systemctl start c2004-backend.service"
+
+  - id: restart_frontend
+    action: ssh_cmd
+    description: "Restart frontend (nginx) service"
+    command: "systemctl restart c2004-frontend.service"
+    risk: low
+
+  - id: restart_kiosk_browser
+    action: ssh_cmd
+    description: "Relaunch Chromium in kiosk mode"
+    command: >-
+      DISPLAY=:0 chromium-browser --kiosk --noerrdialogs
+      --disable-infobars --app=http://localhost:8100 &
+    risk: low
+
+notes:
+  - "RPi3: native Python backend + nginx frontend — no Docker"
+  - "kiosk user must have DISPLAY=:0 and Chromium installed"
+  - "After deploy: journalctl -u c2004-backend -f"

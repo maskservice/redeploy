@@ -1,0 +1,11 @@
+# redeploy.yaml — project manifest
+# Place in project root; redeploy run picks it up automatically
+# Usage: redeploy run   (reads spec, host, domain from here)
+
+spec: migration.yaml
+host: root@87.106.87.183
+app: c2004
+domain: c2004.mask.services
+ssh_key: ~/.ssh/id_ed25519
+remote_dir: ~/c2004
+env_file: envs/vps.env

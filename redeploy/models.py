@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 
 # ── Enums ─────────────────────────────────────────────────────────────────────
@@ -319,3 +320,119 @@ class ProjectManifest(BaseModel):
             spec.target.domain = self.domain
         if self.remote_dir and not spec.target.remote_dir:
             spec.target.remote_dir = self.remote_dir
+
+
+# ── DeviceRegistry (znane urządzenia + historia deployów) ─────────────────────
+
+class DeployRecord(BaseModel):
+    """Single deployment event recorded for a device."""
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    spec_name: str = ""
+    from_strategy: str = ""
+    to_strategy: str = ""
+    version: str = ""
+    ok: bool = True
+    steps_total: int = 0
+    steps_ok: int = 0
+    note: str = ""
+
+
+class KnownDevice(BaseModel):
+    """Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml."""
+    id: str                              # unique: user@ip or hostname
+    host: str                            # SSH target: user@ip
+    name: str = ""                       # human-friendly label
+    tags: list[str] = Field(default_factory=list)
+    strategy: str = "docker_full"        # last known deploy strategy
+    app: str = ""                        # last deployed app
+    domain: str = ""
+    remote_dir: str = ""
+    ssh_port: int = 22
+    ssh_key: Optional[str] = None        # None = auto-detect
+
+    # Discovery metadata
+    ip: str = ""
+    mac: str = ""
+    hostname: str = ""
+    last_seen: Optional[datetime] = None
+    last_ssh_ok: Optional[datetime] = None
+    source: str = "manual"              # manual | arp | mdns | known_hosts
+
+    # Deploy history
+    deploys: list[DeployRecord] = Field(default_factory=list)
+
+    @property
+    def last_deploy(self) -> Optional[DeployRecord]:
+        return self.deploys[-1] if self.deploys else None
+
+    @property
+    def is_reachable(self) -> bool:
+        if self.last_seen is None:
+            return False
+        return (datetime.utcnow() - self.last_seen).total_seconds() < 300
+
+    def record_deploy(self, record: DeployRecord) -> None:
+        self.deploys.append(record)
+        # Keep last 50 deploy records per device
+        self.deploys = self.deploys[-50:]
+
+
+class DeviceRegistry(BaseModel):
+    """Persistent device registry — stored at ~/.config/redeploy/devices.yaml."""
+    devices: list[KnownDevice] = Field(default_factory=list)
+    _path: Optional[Path] = PrivateAttr(default=None)
+
+    # ── CRUD ──────────────────────────────────────────────────────────────────
+
+    def get(self, device_id: str) -> Optional[KnownDevice]:
+        return next((d for d in self.devices if d.id == device_id), None)
+
+    def upsert(self, device: KnownDevice) -> None:
+        for i, d in enumerate(self.devices):
+            if d.id == device.id:
+                self.devices[i] = device
+                return
+        self.devices.append(device)
+
+    def remove(self, device_id: str) -> bool:
+        before = len(self.devices)
+        self.devices = [d for d in self.devices if d.id != device_id]
+        return len(self.devices) < before
+
+    def by_tag(self, tag: str) -> list[KnownDevice]:
+        return [d for d in self.devices if tag in d.tags]
+
+    def by_strategy(self, strategy: str) -> list[KnownDevice]:
+        return [d for d in self.devices if d.strategy == strategy]
+
+    def reachable(self) -> list[KnownDevice]:
+        return [d for d in self.devices if d.is_reachable]
+
+    # ── persistence ───────────────────────────────────────────────────────────
+
+    @classmethod
+    def default_path(cls) -> Path:
+        return Path.home() / ".config" / "redeploy" / "devices.yaml"
+
+    @classmethod
+    def load(cls, path: Optional[Path] = None) -> "DeviceRegistry":
+        import yaml
+        p = path or cls.default_path()
+        if not p.exists():
+            return cls()
+        raw = yaml.safe_load(p.read_text()) or {}
+        devices = [KnownDevice(**d) for d in raw.get("devices", [])]
+        reg = cls(devices=devices)
+        reg._path = p
+        return reg
+
+    def save(self, path: Optional[Path] = None) -> None:
+        import yaml
+        p = path or self._path or self.default_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        # Permissions: 600 — registry may contain SSH key paths
+        data = {"devices": [d.model_dump(mode="json") for d in self.devices]}
+        tmp = p.with_suffix(".tmp")
+        tmp.write_text(yaml.dump(data, allow_unicode=True, sort_keys=False))
+        tmp.chmod(0o600)
+        tmp.replace(p)

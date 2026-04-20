@@ -1,0 +1,44 @@
+# 08-rollback/migration.yaml
+# Emergency rollback: redeploy previous working version
+# Usage: redeploy run examples/08-rollback/migration.yaml --detect
+
+name: "rollback 1.0.20 → 1.0.19 (emergency)"
+description: "Revert to last known-good version after a bad deploy"
+
+source:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.20"              # bad version currently running
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+
+target:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.19"              # last good version
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+  compose_files:
+    - docker-compose.vps.yml
+  env_file: envs/vps.env
+  verify_url: https://c2004.mask.services/api/v1/health
+  verify_version: "1.0.19"
+
+extra_steps:
+  - id: tag_rollback_event
+    action: ssh_cmd
+    description: "Write rollback marker to remote for audit log"
+    command: >-
+      echo "rollback from 1.0.20 to 1.0.19 at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      >> ~/c2004/deploy.log
+    risk: low
+
+  - id: flush_k3s_iptables
+
+notes:
+  - "Rollback = version-bump migration with source/target swapped"
+  - "Ensure envs/vps.env has SERVICE_VERSION=1.0.19 before running"
+  - "Image 1.0.19 must still be present in remote Docker cache or registry"
+  - "If image was pruned: re-run full deploy of 1.0.19 from source"

@@ -1,0 +1,35 @@
+# 06-local-dev/migration.yaml
+# Local Docker Compose development — rebuild and restart with new version
+# Usage: redeploy run examples/06-local-dev/migration.yaml
+
+name: "local-dev docker_full — rebuild 1.0.19 → 1.0.20"
+description: "Local docker compose build + up for dev iteration"
+
+source:
+  strategy: docker_full
+  host: local
+  app: c2004
+  version: "1.0.19"
+  domain: localhost
+  remote_dir: ""
+
+target:
+  strategy: docker_full
+  host: local
+  app: c2004
+  version: "1.0.20"
+  domain: localhost
+  remote_dir: ""
+  compose_files:
+    - c2004/docker-compose.yml
+  env_file: .env
+  verify_url: http://localhost:8000/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps:
+  - id: wait_startup
+
+notes:
+  - "host: local — no SSH; all commands run locally"
+  - "Use VITE_SERVICE_VERSION in .env for frontend version injection"
+  - "docker compose logs -f to follow output"

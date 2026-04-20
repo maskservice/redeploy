@@ -1,0 +1,61 @@
+# 07-staging-to-prod/migration.yaml
+# Promote validated staging image to production VPS
+# Usage: redeploy run examples/07-staging-to-prod/migration.yaml --detect --dry-run
+
+name: "staging → prod promotion 1.0.20"
+description: "Deploy image validated on staging to production VPS with smoke tests"
+
+source:
+  strategy: docker_full
+  host: root@10.0.0.10           # staging VPS
+  app: c2004
+  version: "1.0.20"
+  domain: staging.c2004.example.com
+  remote_dir: ~/c2004
+
+target:
+  strategy: docker_full
+  host: root@87.106.87.183       # production VPS
+  app: c2004
+  version: "1.0.20"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+  compose_files:
+    - docker-compose.vps.yml
+  env_file: envs/vps.env
+  verify_url: https://c2004.mask.services/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps:
+  - id: flush_k3s_iptables
+
+  - id: smoke_test_staging
+    action: ssh_cmd
+    description: "Verify staging is healthy before touching prod"
+    command: >-
+      curl -skf --max-time 10 https://staging.c2004.example.com/api/v1/health
+      | grep -q healthy && echo staging-ok
+    risk: low
+    insert_before: sync_env
+
+  - id: notify_deploy_start
+    action: ssh_cmd
+    description: "Post deploy start notification (curl webhook)"
+    command: >-
+      curl -sf -X POST https://hooks.example.com/deploy
+      -d '{"env":"prod","version":"1.0.20","status":"started"}' || true
+    risk: low
+    insert_before: sync_env
+
+  - id: notify_deploy_done
+    action: ssh_cmd
+    description: "Post deploy success notification"
+    command: >-
+      curl -sf -X POST https://hooks.example.com/deploy
+      -d '{"env":"prod","version":"1.0.20","status":"done"}' || true
+    risk: low
+
+notes:
+  - "smoke_test_staging uses insert_before to run before sync_env (fail fast)"
+  - "Replace webhook URLs with Slack/PagerDuty/custom endpoint"
+  - "Run --detect on PROD host (target.host) to detect conflicts before apply"

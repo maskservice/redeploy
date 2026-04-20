@@ -1,0 +1,52 @@
+# 05-iot-fleet-ota/migration.yaml
+# OTA update for a single IoT edge node (Docker on Raspberry Pi / Jetson)
+# Usage: redeploy run examples/05-iot-fleet-ota/migration.yaml --detect
+
+name: "iot-fleet OTA 0.4.2 → 0.5.0"
+description: "Pull new image, backup DB, roll container, verify"
+
+source:
+  strategy: docker_full
+  host: pi@192.168.1.42
+  app: iot-agent
+  version: "0.4.2"
+  domain: iot-node-42.local
+  remote_dir: ~/iot-agent
+
+target:
+  strategy: docker_full
+  host: pi@192.168.1.42
+  app: iot-agent
+  version: "0.5.0"
+  domain: iot-node-42.local
+  remote_dir: ~/iot-agent
+  compose_files:
+    - docker-compose.yml
+  env_file: .env
+  verify_url: http://localhost:8080/health
+  verify_version: "0.5.0"
+
+extra_steps:
+  - id: backup_local_db
+    action: ssh_cmd
+    description: "Backup SQLite telemetry DB before upgrade"
+    command: >-
+      cp /var/lib/iot-agent/telemetry.db
+      /var/lib/iot-agent/telemetry.db.bak.$(date +%Y%m%d%H%M)
+    risk: low
+    rollback_command: >-
+      mv /var/lib/iot-agent/telemetry.db.bak.* /var/lib/iot-agent/telemetry.db
+      2>/dev/null || true
+
+  - id: docker_prune
+
+  - id: write_version_file
+    action: ssh_cmd
+    description: "Write VERSION after successful deploy"
+    command: "echo '0.5.0' > ~/iot-agent/VERSION"
+    risk: low
+
+notes:
+  - "For canary rollout: run against a subset of fleet nodes first"
+  - "docker_prune is a named library step — clears old images to save SD card space"
+  - "Rollback: re-run with source/target swapped, or restore DB backup"

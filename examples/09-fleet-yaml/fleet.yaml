@@ -1,0 +1,128 @@
+# 09-fleet-yaml/fleet.yaml
+# Example fleet.yaml using redeploy FleetDevice model
+# Demonstrates: stages, tags, expectations, multi-device, multi-strategy
+
+devices:
+  # ── Local dev ─────────────────────────────────────────────────────────────
+  - id: docker-local
+    name: "Local Docker (dev)"
+    arch: amd64
+    strategy: docker_full
+    ssh_host: ""              # empty = local, no SSH
+    remote_dir: ""
+    version: "latest"
+    env_file: "envs/local.env"
+    apps: [c2004]
+    stage: local
+    tags: [dev, docker]
+    expectations:
+      - has_docker
+      - has_docker_compose
+    debug: true
+    color: "#10b981"
+
+  # ── Staging VPS ───────────────────────────────────────────────────────────
+  - id: vps-staging
+    name: "VPS Staging (docker_full)"
+    arch: amd64
+    strategy: docker_full
+    ssh_host: "root@10.0.0.10"
+    remote_dir: "~/c2004"
+    version: "1.0.20"
+    env_file: "envs/staging.env"
+    domain: "staging.c2004.example.com"
+    compose_files: ["docker-compose.vps.yml"]
+    apps: [c2004]
+    stage: staging
+    tags: [staging, vps, docker]
+    expectations:
+      - has_docker
+      - has_docker_compose
+      - ssh_reachable
+      - https_reachable
+      - no_k3s
+    color: "#3b82f6"
+
+  # ── Production VPS ────────────────────────────────────────────────────────
+  - id: vps-prod
+    name: "VPS Production (docker_full + Traefik)"
+    arch: amd64
+    strategy: docker_full
+    ssh_host: "root@87.106.87.183"
+    remote_dir: "~/c2004"
+    version: "1.0.20"
+    env_file: "envs/vps.env"
+    domain: "c2004.mask.services"
+    compose_files: ["docker-compose.vps.yml"]
+    apps: [c2004]
+    stage: prod
+    tags: [prod, vps, docker, traefik]
+    expectations:
+      - has_docker
+      - has_docker_compose
+      - has_traefik
+      - ssh_reachable
+      - https_reachable
+      - no_k3s
+    color: "#f59e0b"
+
+  # ── RPi3 kiosk (native) ───────────────────────────────────────────────────
+  - id: rpi3-lab
+    name: "RPi3 Lab Kiosk (native)"
+    arch: rpi3
+    strategy: native_kiosk
+    ssh_host: "tom@192.168.188.154"
+    ssh_port: 22
+    remote_dir: "/home/pi/c2004"
+    version: "latest"
+    env_file: "envs/rpi3.env"
+    apps: [c2004, fleet]
+    stage: dev
+    tags: [dev, rpi, kiosk]
+    expectations:
+      - ssh_reachable
+    debug: true
+    color: "#ef4444"
+
+  # ── RPi5 DSI kiosk ────────────────────────────────────────────────────────
+  - id: rpi5-dsi
+    name: "RPi5 DSI Kiosk (WaveShare 8-inch)"
+    arch: rpi5
+    strategy: native_kiosk
+    ssh_host: "pi@192.168.188.108"
+    ssh_port: 22
+    remote_dir: "/home/pi/c2004"
+    version: "latest"
+    env_file: "envs/rpi5.env"
+    apps: [c2004, fleet]
+    stage: prod
+    tags: [prod, rpi, kiosk, dsi]
+    expectations:
+      - ssh_reachable
+      - https_reachable
+    debug: false
+    color: "#8b5cf6"
+    display:
+      output: "DSI-2"
+      transform: 90
+      rotation_command: "wlr-randr --output DSI-2 --transform 90"
+
+  # ── IoT edge node ─────────────────────────────────────────────────────────
+  - id: iot-node-42
+    name: "IoT Edge Node 42 (RPi + Docker)"
+    arch: rpi4
+    strategy: docker_full
+    ssh_host: "pi@192.168.1.42"
+    remote_dir: "~/iot-agent"
+    version: "0.5.0"
+    env_file: ".env"
+    apps: [iot-agent]
+    stage: prod
+    tags: [prod, rpi, iot, docker]
+    expectations:
+      - has_docker
+      - has_docker_compose
+      - ssh_reachable
+      - disk_ok
+      - no_k3s
+    color: "#06b6d4"
