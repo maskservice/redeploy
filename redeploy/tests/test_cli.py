@@ -101,6 +101,16 @@ class TestRunPlanOnly:
             result = _runner().invoke(cli, ["run", str(spec), "--plan-only", "--env", "prod"])
         assert result.exit_code == 0
 
+    def test_run_plan_only_rejects_markdown_spec_with_clear_error(self, tmp_path):
+        spec = tmp_path / "migration.md"
+        spec.write_text("# markpact prototype\n", encoding="utf-8")
+
+        result = _runner().invoke(cli, ["run", str(spec), "--plan-only"])
+
+        assert result.exit_code == 1
+        assert "Unsupported spec format '.md'" in result.output
+        assert "markdown/markpact specs are not implemented" in result.output
+
 
 # ── redeploy status ───────────────────────────────────────────────────────────
 
@@ -122,6 +132,17 @@ class TestStatus:
             result = _runner().invoke(cli, ["status"])
         assert result.exit_code == 0
         assert "myapp" in result.output
+
+    def test_status_rejects_markdown_spec_with_clear_error(self, tmp_path):
+        spec = tmp_path / "migration.md"
+        spec.write_text("# markpact prototype\n", encoding="utf-8")
+
+        with patch("redeploy.models.ProjectManifest.find_and_load", return_value=None):
+            result = _runner().invoke(cli, ["status", str(spec)])
+
+        assert result.exit_code == 1
+        assert "Unsupported spec format '.md'" in result.output
+        assert "markdown/markpact specs are not implemented" in result.output
 
 
 # ── redeploy init ─────────────────────────────────────────────────────────────
@@ -190,6 +211,19 @@ class TestDevices:
         data = json.loads(result.output)
         assert isinstance(data, list)
         assert data[0]["id"] == "x@1"
+
+
+class TestTarget:
+    def test_target_rejects_markdown_spec_with_clear_error(self, tmp_path):
+        spec = tmp_path / "migration.md"
+        spec.write_text("# markpact prototype\n", encoding="utf-8")
+
+        with patch("redeploy.cli._resolve_device", return_value=(None, None)):
+            result = _runner().invoke(cli, ["target", "pi@192.168.1.42", str(spec), "--plan-only"])
+
+        assert result.exit_code == 1
+        assert "Unsupported spec format '.md'" in result.output
+        assert "markdown/markpact specs are not implemented" in result.output
 
 
 # ── redeploy apply ────────────────────────────────────────────────────────────

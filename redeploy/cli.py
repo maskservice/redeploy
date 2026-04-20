@@ -853,7 +853,7 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_nam
         redeploy run migration.yaml --detect --plan-out plan.yaml
     """
     from rich.console import Console
-    from .models import MigrationSpec, ProjectManifest
+    from .models import ProjectManifest
     from .plan import Planner
 
     console = Console()
@@ -868,7 +868,7 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_nam
         console.print("[dim]  Create one with: redeploy init[/dim]")
         sys.exit(1)
 
-    spec = MigrationSpec.from_file(resolved_spec)
+    spec = _load_spec_or_exit(console, resolved_spec)
 
     # overlay manifest values — env-specific or global
     if manifest:
@@ -937,6 +937,16 @@ def _find_manifest_path() -> str:
     return "redeploy.yaml"
 
 
+def _load_spec_or_exit(console, path: str | Path):
+    from .spec_loader import SpecLoaderError, load_migration_spec
+
+    try:
+        return load_migration_spec(path)
+    except SpecLoaderError as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        sys.exit(1)
+
+
 def _resolve_device(console, device_id: str) -> tuple:
     """Resolve device from registry or auto-probe. Returns (device, registry) or (None, None)."""
     from .discovery import auto_probe
@@ -964,7 +974,7 @@ def _resolve_device(console, device_id: str) -> tuple:
 
 def _load_spec_with_manifest(console, spec_file: str | None, dev) -> "MigrationSpec":
     """Load spec and apply manifest/device overlays."""
-    from .models import MigrationSpec, ProjectManifest
+    from .models import ProjectManifest
 
     manifest = ProjectManifest.find_and_load(Path.cwd())
     resolved_spec = spec_file or (manifest.spec if manifest else "migration.yaml")
@@ -972,7 +982,7 @@ def _load_spec_with_manifest(console, spec_file: str | None, dev) -> "MigrationS
         console.print(f"[red]✗ spec not found: {resolved_spec}[/red]")
         sys.exit(1)
 
-    spec = MigrationSpec.from_file(resolved_spec)
+    spec = _load_spec_or_exit(console, resolved_spec)
     if manifest:
         manifest.apply_to_spec(spec)
 
@@ -1145,7 +1155,7 @@ def status(spec_file):
     """
     from rich.console import Console
     from rich.table import Table
-    from .models import MigrationSpec, ProjectManifest
+    from .models import ProjectManifest
 
     console = Console()
 
@@ -1163,7 +1173,7 @@ def status(spec_file):
     resolved = spec_file or (manifest.spec if manifest else "migration.yaml")
     spec_path = Path(resolved)
     if spec_path.exists():
-        spec = MigrationSpec.from_file(str(spec_path))
+        spec = _load_spec_or_exit(console, spec_path)
         if manifest:
             manifest.apply_to_spec(spec)
         console.print(f"\n[bold]{spec_path}[/bold]  [dim]{spec.name}[/dim]")
