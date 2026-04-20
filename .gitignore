@@ -22,7 +22,12 @@ htmlcov/
 # generated output files (not committed — user-specific)
 infra.yaml
 migration-plan.yaml
+migration-local.yaml
 apply-results.yaml
+
+# redeploy init output at project root (not for library itself)
+/migration.yaml
+/redeploy.yaml
 
 # Environment variables
 .env

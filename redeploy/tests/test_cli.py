@@ -129,15 +129,20 @@ class TestStatus:
 
 class TestInit:
     def test_init_creates_migration_yaml(self, tmp_path):
-        result = _runner().invoke(cli, ["init", "--app", "myapp",
-                                        "--host", "local", "--strategy", "docker_full"],
-                                  catch_exceptions=False)
+        runner = CliRunner(mix_stderr=False)
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result = runner.invoke(cli, ["init", "--app", "myapp",
+                                         "--host", "local", "--strategy", "docker_full"],
+                                   catch_exceptions=False)
         assert result.exit_code == 0
 
-    def test_init_dry_run_no_file(self, tmp_path):
-        # Running init twice should not crash
-        result = _runner().invoke(cli, ["init", "--app", "test"])
-        assert result.exit_code in (0, 1)   # may already exist
+    def test_init_idempotent(self, tmp_path):
+        runner = CliRunner(mix_stderr=False)
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result1 = runner.invoke(cli, ["init", "--app", "test"])
+            result2 = runner.invoke(cli, ["init", "--app", "test"])
+        assert result1.exit_code in (0, 1)
+        assert result2.exit_code in (0, 1)
 
 
 # ── redeploy devices ──────────────────────────────────────────────────────────
