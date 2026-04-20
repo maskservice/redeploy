@@ -2042,7 +2042,9 @@ def version_current(manifest):
 @version_cmd.command(name="list")
 @click.option("--manifest", "-m", default=".redeploy/version.yaml",
               help="Path to version manifest")
-def version_list(manifest):
+@click.option("--package", "package_name", "-p", help="List sources for a specific package (for monorepo)")
+@click.option("--all-packages", is_flag=True, help="List sources for all packages (for monorepo)")
+def version_list(manifest, package_name, all_packages):
     """List all version sources and their values."""
     from rich.console import Console
     from rich.table import Table
@@ -2056,6 +2058,47 @@ def version_list(manifest):
         sys.exit(1)
 
     m = VersionManifest.load(path)
+    targets = _resolve_monorepo_targets(m, package_name, all_packages, console)
+
+    if targets:
+        any_drift = False
+        console.print("[bold]Package version sources[/bold]")
+        t = Table(show_header=True, box=None)
+        t.add_column("Package", style="bold")
+        t.add_column("Manifest")
+        t.add_column("Source")
+        t.add_column("Format")
+        t.add_column("Current")
+        t.add_column("Status")
+
+        for pkg_name in targets:
+            pkg_manifest = _build_package_version_manifest(
+                m,
+                pkg_name,
+                allow_root_changelog_fallback=True,
+            )
+            result = verify_sources(pkg_manifest)
+            if not result["all_match"]:
+                any_drift = True
+
+            for source in result["sources"]:
+                status = "[green]✓" if source["match"] else "[red]✗ drift"
+                actual = source["actual"] or "[dim]—[/dim]"
+                t.add_row(
+                    pkg_name,
+                    result["version"],
+                    str(source["path"]),
+                    source["format"],
+                    actual,
+                    status,
+                )
+
+        console.print(t)
+        if any_drift:
+            console.print("\n[yellow]⚠ Some sources are out of sync[/yellow]")
+            sys.exit(1)
+        return
+
     result = verify_sources(m)
 
     console.print(f"[bold]Version sources[/bold] (manifest: {m.version})")
@@ -2079,7 +2122,9 @@ def version_list(manifest):
 @version_cmd.command(name="verify")
 @click.option("--manifest", "-m", default=".redeploy/version.yaml",
               help="Path to version manifest")
-def version_verify(manifest):
+@click.option("--package", "package_name", "-p", help="Verify sources for a specific package (for monorepo)")
+@click.option("--all-packages", is_flag=True, help="Verify sources for all packages (for monorepo)")
+def version_verify(manifest, package_name, all_packages):
     """Verify all sources match manifest version."""
     from rich.console import Console
     from .version import VersionManifest, verify_sources
@@ -2092,15 +2137,30 @@ def version_verify(manifest):
         sys.exit(1)
 
     m = VersionManifest.load(path)
-    result = verify_sources(m)
+    targets = _resolve_monorepo_targets(m, package_name, all_packages, console)
 
-    if result["all_match"]:
-        console.print(f"[green]✓ All {len(result['sources'])} sources in sync at {m.version}[/green]")
-    else:
-        console.print(f"[red]✗ Version drift detected[/red]")
-        for s in result["sources"]:
-            if not s["match"]:
-                console.print(f"  [red]✗[/red] {s['path']}: expected {m.version}, found {s.get('actual', 'ERROR')}")
+    if targets:
+        any_drift = False
+        for pkg_name in targets:
+            pkg_manifest = _build_package_version_manifest(
+                m,
+                pkg_name,
+                allow_root_changelog_fallback=True,
+            )
+            result = verify_sources(pkg_manifest)
+            any_drift = _print_verify_result(
+                console,
+                result,
+                pkg_manifest.version,
+                label=pkg_name,
+            ) or any_drift
+
+        if any_drift:
+            sys.exit(1)
+        return
+
+    result = verify_sources(m)
+    if _print_verify_result(console, result, m.version):
         sys.exit(1)
 
 
@@ -2148,17 +2208,10 @@ def version_bump(type, manifest, package, all_packages, dry_run, analyze, commit
             console.print(f"  Available: {m.list_packages()}")
             sys.exit(1)
 
-        # Create temporary manifest for this package
-        from .version.manifest import VersionManifest, GitConfig
-
-        pkg_manifest = VersionManifest(
-            version=pkg.version,
-            scheme=m.scheme,
-            policy="synced",  # Single package uses synced
-            sources=pkg.sources,
-            git=pkg.git or m.git,
-            changelog=pkg.changelog,
-            commits=m.commits,
+        pkg_manifest = _build_package_version_manifest(
+            m,
+            package,
+            allow_root_changelog_fallback=True,
         )
 
         result = _bump_single(
@@ -2166,6 +2219,7 @@ def version_bump(type, manifest, package, all_packages, dry_run, analyze, commit
             repo_path=path.parent.parent,
             console=console,
             package_name=package,
+            allow_default_changelog=True,
         )
 
         # Update package version in main manifest
@@ -2180,14 +2234,10 @@ def version_bump(type, manifest, package, all_packages, dry_run, analyze, commit
         for pkg_name in m.list_packages():
             console.print(f"\n[bold]Bumping package: {pkg_name}[/bold]")
             pkg = m.get_package(pkg_name)
-            pkg_manifest = VersionManifest(
-                version=pkg.version,
-                scheme=m.scheme,
-                policy="synced",
-                sources=pkg.sources,
-                git=pkg.git or m.git,
-                changelog=pkg.changelog,
-                commits=m.commits,
+            pkg_manifest = _build_package_version_manifest(
+                m,
+                pkg_name,
+                allow_root_changelog_fallback=False,
             )
 
             _bump_single(
@@ -2195,6 +2245,7 @@ def version_bump(type, manifest, package, all_packages, dry_run, analyze, commit
                 repo_path=path.parent.parent,
                 console=console,
                 package_name=pkg_name,
+                allow_default_changelog=False,
             )
 
             if not dry_run:
@@ -2221,9 +2272,9 @@ def _bump_single(
     m, type, dry_run, analyze, commit, tag, push, sign, allow_dirty, changelog,
     *, repo_path, console, package_name: str = None, manifest_path: Path | None = None,
     new_version: str | None = None,
+    allow_default_changelog: bool = True,
 ):
     from .version.bump import _calculate_bump, bump_version, bump_version_with_git
-    from .version.changelog import ChangelogManager, get_commits_since_tag
     from .version.commits import analyze_commits, format_analysis_report
     from .version.git_integration import GitIntegrationError
 
@@ -2268,12 +2319,15 @@ def _bump_single(
     try:
         # Handle changelog update
         if changelog:
-            changelog_path = m.changelog.path if m.changelog else Path("CHANGELOG.md")
-            changelog_mgr = ChangelogManager(repo_path / changelog_path)
-            commits = get_commits_since_tag(repo_path, m.git.tag_format.format(version=old))
-            new_content = changelog_mgr.prepare_release(target_version, commit_messages=commits)
-            changelog_mgr.write(new_content)
-            console.print(f"[green]✓ Updated {changelog_path}[/green]")
+            _update_release_changelog(
+                m,
+                repo_path,
+                target_version,
+                console,
+                previous_tag=_format_release_tag(m.git, old),
+                label=package_name,
+                allow_default=allow_default_changelog,
+            )
 
         if commit or tag or push:
             # Use git integration
@@ -2313,6 +2367,361 @@ def _bump_single(
         import traceback
         console.print(f"[dim]{traceback.format_exc()}[/dim]")
         sys.exit(1)
+
+
+def _format_release_tag(git_config, version: str) -> str:
+    return git_config.tag_format.format(version=version)
+
+
+def _resolve_package_release_git_config(manifest_model, package_name: str | None):
+    if not package_name:
+        return manifest_model.git
+
+    package_manifest = manifest_model.get_package(package_name)
+    if package_manifest is None:
+        raise ValueError(f"Package '{package_name}' not found in manifest")
+
+    git_config = package_manifest.git if package_manifest.git else manifest_model.git
+
+    try:
+        tag_format = package_manifest.tag_format.format(
+            package=package_name,
+            version="{version}",
+        )
+    except KeyError as exc:
+        raise ValueError(
+            f"Invalid tag_format for package '{package_name}': missing placeholder '{exc.args[0]}'"
+        ) from exc
+
+    return git_config.model_copy(update={"tag_format": tag_format})
+
+
+def _resolve_package_release_changelog_config(
+    manifest_model,
+    package_name: str | None,
+    *,
+    allow_root_fallback: bool,
+):
+    if not package_name:
+        return manifest_model.changelog
+
+    package_manifest = manifest_model.get_package(package_name)
+    if package_manifest is None:
+        raise ValueError(f"Package '{package_name}' not found in manifest")
+
+    if package_manifest.changelog is not None:
+        return package_manifest.changelog
+
+    if allow_root_fallback:
+        return manifest_model.changelog
+
+    return None
+
+
+def _build_package_version_manifest(manifest_model, package_name: str, *, allow_root_changelog_fallback: bool):
+    from .version.manifest import VersionManifest
+
+    package_manifest = manifest_model.get_package(package_name)
+    if package_manifest is None:
+        raise ValueError(f"Package '{package_name}' not found in manifest")
+
+    return VersionManifest(
+        version=package_manifest.version,
+        scheme=manifest_model.scheme,
+        policy="synced",
+        sources=package_manifest.sources,
+        git=_resolve_package_release_git_config(manifest_model, package_name),
+        changelog=_resolve_package_release_changelog_config(
+            manifest_model,
+            package_name,
+            allow_root_fallback=allow_root_changelog_fallback,
+        ),
+        commits=manifest_model.commits,
+    )
+
+
+def _print_verify_result(console, result, expected_version: str, *, label: str | None = None) -> bool:
+    prefix = f"{label}: " if label else ""
+
+    if result["all_match"]:
+        console.print(
+            f"[green]✓ {prefix}All {len(result['sources'])} sources in sync at {expected_version}[/green]"
+        )
+        return False
+
+    console.print(f"[red]✗ {prefix}Version drift detected[/red]")
+    for source in result["sources"]:
+        if not source["match"]:
+            actual = source.get("actual") or "ERROR"
+            console.print(
+                f"  [red]✗[/red] {source['path']}: expected {expected_version}, found {actual}"
+            )
+    return True
+
+
+def _resolve_monorepo_targets(manifest_model, package_name, all_packages, console):
+    if package_name and all_packages:
+        console.print("[red]✗ Use either --package NAME or --all-packages, not both.[/red]")
+        sys.exit(1)
+
+    if not (package_name or all_packages):
+        return None
+
+    if not manifest_model.is_monorepo():
+        console.print("[red]✗ Manifest has no packages defined. Add 'packages:' section for monorepo support.[/red]")
+        sys.exit(1)
+
+    if package_name:
+        pkg = manifest_model.get_package(package_name)
+        if pkg is None:
+            console.print(f"[red]✗ Package '{package_name}' not found in manifest[/red]")
+            console.print(f"  Available: {manifest_model.list_packages()}")
+            sys.exit(1)
+        return [package_name]
+
+    return manifest_model.list_packages()
+
+
+def _update_release_changelog(
+    manifest_model,
+    repo_path,
+    version,
+    console,
+    *,
+    previous_tag: str,
+    label: str | None = None,
+    changelog_config=None,
+    allow_default: bool = True,
+):
+    from .version.changelog import ChangelogManager, get_commits_since_tag
+
+    config = changelog_config or manifest_model.changelog
+    if config is None and allow_default:
+        changelog_path = Path("CHANGELOG.md")
+    elif config is None:
+        label_text = f" for {label}" if label else ""
+        console.print(f"[yellow]⚠ Skipping changelog{label_text}: no package changelog configured[/yellow]")
+        return None
+    else:
+        changelog_path = config.path
+
+    changelog_mgr = ChangelogManager(repo_path / changelog_path)
+    commits = get_commits_since_tag(repo_path, previous_tag)
+    new_content = changelog_mgr.prepare_release(version, commit_messages=commits)
+    changelog_mgr.write(new_content)
+    label_text = f" for {label}" if label else ""
+    console.print(f"[green]✓ Updated {changelog_path}{label_text}[/green]")
+    return changelog_path
+
+
+def _update_monorepo_release_changelogs(manifest_model, repo_path, version, targets, console, *, package_name):
+    touched_files = []
+
+    if package_name:
+        package_manifest = manifest_model.get_package(package_name)
+        touched = _update_release_changelog(
+            manifest_model,
+            repo_path,
+            version,
+            console,
+            previous_tag=_format_release_tag(
+                _resolve_package_release_git_config(manifest_model, package_name),
+                package_manifest.version,
+            ),
+            label=package_name,
+            changelog_config=_resolve_package_release_changelog_config(
+                manifest_model,
+                package_name,
+                allow_root_fallback=True,
+            ),
+            allow_default=True,
+        )
+        if touched is not None:
+            touched_files.append(touched)
+        return touched_files
+
+    for pkg_name in targets:
+        package_manifest = manifest_model.get_package(pkg_name)
+        touched = _update_release_changelog(
+            manifest_model,
+            repo_path,
+            version,
+            console,
+            previous_tag=_format_release_tag(
+                _resolve_package_release_git_config(manifest_model, pkg_name),
+                package_manifest.version,
+            ),
+            label=pkg_name,
+            changelog_config=_resolve_package_release_changelog_config(
+                manifest_model,
+                pkg_name,
+                allow_root_fallback=False,
+            ),
+            allow_default=False,
+        )
+        if touched is not None:
+            touched_files.append(touched)
+
+    return touched_files
+
+
+def _print_monorepo_set_dry_run(manifest_model, targets, version, console):
+    for pkg_name in targets:
+        pkg = manifest_model.get_package(pkg_name)
+        console.print(f"[DRY RUN] Would set {pkg_name}: {pkg.version} → {version}")
+        console.print(f"  Sources: {len(pkg.sources)}")
+        for source in pkg.sources:
+            console.print(f"    - {source.path} ({source.format})")
+
+
+def _create_version_set_git(manifest_model, repo_path, package_name, commit, tag, push, allow_dirty):
+    from .version.git_integration import GitIntegration
+
+    if not (commit or tag or push):
+        return None
+
+    git_config = _resolve_package_release_git_config(manifest_model, package_name)
+    git = GitIntegration(git_config, repo_path)
+
+    if git_config.require_clean and not allow_dirty:
+        git.require_clean()
+
+    return git
+
+
+def _create_version_set_taggers(manifest_model, repo_path, targets):
+    from .version.git_integration import GitIntegration
+
+    return [
+        GitIntegration(_resolve_package_release_git_config(manifest_model, pkg_name), repo_path)
+        for pkg_name in targets
+    ]
+
+
+def _create_release_tags(taggers, version, sign):
+    tag_names = []
+    seen = set()
+
+    for git in taggers:
+        tag_name = _format_release_tag(git.config, version)
+        if tag_name in seen:
+            continue
+        git.tag(version, sign=sign)
+        seen.add(tag_name)
+        tag_names.append(tag_name)
+
+    return tag_names
+
+
+def _finalize_monorepo_version_set(
+    git,
+    version,
+    touched_files,
+    commit,
+    tag,
+    push,
+    sign,
+    console,
+    package_count: int,
+    *,
+    taggers,
+):
+    unique_files = []
+    for file_path in touched_files:
+        if file_path not in unique_files:
+            unique_files.append(file_path)
+
+    commit_hash = None
+    tag_names = []
+    if commit or push:
+        commit_hash = git.commit(version, unique_files)
+    if tag or push:
+        tag_names = _create_release_tags(taggers, version, sign)
+    if push:
+        git.push(follow_tags=True)
+
+    console.print(f"[green]✓ Set version to {version} for {package_count} package(s)[/green]")
+    if commit_hash:
+        console.print(f"  Commit: {commit_hash[:8]}")
+    for tag_name in tag_names:
+        console.print(f"  Tag: {tag_name}")
+    if push:
+        console.print("  Pushed to origin")
+
+
+def _set_monorepo_version(
+    manifest_model,
+    version,
+    targets,
+    manifest_path,
+    dry_run,
+    commit,
+    tag,
+    push,
+    sign,
+    allow_dirty,
+    changelog,
+    console,
+    *,
+    package_name,
+):
+    from .version.bump import bump_package
+
+    repo_path = manifest_path.parent.parent
+
+    if dry_run:
+        _print_monorepo_set_dry_run(manifest_model, targets, version, console)
+        return
+
+    git = _create_version_set_git(
+        manifest_model,
+        repo_path,
+        package_name,
+        commit,
+        tag,
+        push,
+        allow_dirty,
+    )
+    taggers = _create_version_set_taggers(manifest_model, repo_path, targets) if (tag or push) else []
+
+    touched_files = []
+    if changelog:
+        touched_files.extend(
+            _update_monorepo_release_changelogs(
+                manifest_model,
+                repo_path,
+                version,
+                targets,
+                console,
+                package_name=package_name,
+            )
+        )
+
+    for pkg_name in targets:
+        pkg = manifest_model.get_package(pkg_name)
+        result = bump_package(manifest_model, pkg_name, "patch", new_version=version)
+        touched_files.extend(source.path for source in pkg.sources)
+        console.print(
+            f"[green]✓[/green] {pkg_name}: {result['old']} → {result['new_version']}  "
+            f"({result['success']}/{result['total']} sources)"
+        )
+
+    manifest_model.save(manifest_path)
+    touched_files.append(manifest_path)
+
+    if git:
+        _finalize_monorepo_version_set(
+            git,
+            version,
+            touched_files,
+            commit,
+            tag,
+            push,
+            sign,
+            console,
+            len(targets),
+            taggers=taggers,
+        )
 
 
 def _calculate_bump(current: str, bump_type: str) -> str:
@@ -2360,9 +2769,7 @@ def version_set(version, manifest_path_str, package_name, all_packages, dry_run,
     """Set an explicit version across all manifest sources."""
     from rich.console import Console
     from .version import VersionManifest
-    from .version.bump import bump_package
-    from .version.changelog import ChangelogManager, get_commits_since_tag
-    from .version.git_integration import GitIntegration, GitIntegrationError
+    from .version.git_integration import GitIntegrationError
 
     console = Console()
     manifest_path = Path(manifest_path_str)
@@ -2373,87 +2780,25 @@ def version_set(version, manifest_path_str, package_name, all_packages, dry_run,
         sys.exit(1)
 
     manifest_model = VersionManifest.load(manifest_path)
+    targets = _resolve_monorepo_targets(manifest_model, package_name, all_packages, console)
 
-    if package_name and all_packages:
-        console.print("[red]✗ Use either --package NAME or --all-packages, not both.[/red]")
-        sys.exit(1)
-
-    if package_name or all_packages:
-        if not manifest_model.is_monorepo():
-            console.print("[red]✗ Manifest has no packages defined. Add 'packages:' section for monorepo support.[/red]")
-            sys.exit(1)
-
-        if package_name:
-            targets = [package_name]
-            pkg = manifest_model.get_package(package_name)
-            if pkg is None:
-                console.print(f"[red]✗ Package '{package_name}' not found in manifest[/red]")
-                console.print(f"  Available: {manifest_model.list_packages()}")
-                sys.exit(1)
-        else:
-            targets = manifest_model.list_packages()
-
-        repo_path = manifest_path.parent.parent
-
-        if dry_run:
-            for pkg_name in targets:
-                pkg = manifest_model.get_package(pkg_name)
-                console.print(f"[DRY RUN] Would set {pkg_name}: {pkg.version} → {version}")
-                console.print(f"  Sources: {len(pkg.sources)}")
-                for source in pkg.sources:
-                    console.print(f"    - {source.path} ({source.format})")
-            return
-
+    if targets:
         try:
-            git = None
-            if commit or tag or push:
-                git_config = manifest_model.get_package(package_name).git if package_name and manifest_model.get_package(package_name) and manifest_model.get_package(package_name).git else manifest_model.git
-                git = GitIntegration(git_config, repo_path)
-                if git_config.require_clean and not allow_dirty:
-                    git.require_clean()
-
-            touched_files = []
-            if changelog:
-                changelog_path = manifest_model.changelog.path if manifest_model.changelog else Path("CHANGELOG.md")
-                changelog_mgr = ChangelogManager(repo_path / changelog_path)
-                commits = get_commits_since_tag(repo_path, manifest_model.git.tag_format.format(version=manifest_model.version))
-                new_content = changelog_mgr.prepare_release(version, commit_messages=commits)
-                changelog_mgr.write(new_content)
-                console.print(f"[green]✓ Updated {changelog_path}[/green]")
-                touched_files.append(changelog_path)
-
-            for pkg_name in targets:
-                pkg = manifest_model.get_package(pkg_name)
-                result = bump_package(manifest_model, pkg_name, "patch", new_version=version)
-                touched_files.extend(source.path for source in pkg.sources)
-                console.print(f"[green]✓[/green] {pkg_name}: {result['old']} → {result['new_version']}  ({result['success']}/{result['total']} sources)")
-
-            manifest_model.save(manifest_path)
-            touched_files.append(manifest_path)
-
-            if git:
-                unique_files = []
-                for file_path in touched_files:
-                    if file_path not in unique_files:
-                        unique_files.append(file_path)
-
-                commit_hash = None
-                tag_name = None
-                if commit or push:
-                    commit_hash = git.commit(version, unique_files)
-                if tag or push:
-                    tag_name = git.tag(version, sign=sign)
-                if push:
-                    git.push(follow_tags=True)
-
-                console.print(f"[green]✓ Set version to {version} for {len(targets)} package(s)[/green]")
-                if commit_hash:
-                    console.print(f"  Commit: {commit_hash[:8]}")
-                if tag_name:
-                    console.print(f"  Tag: {tag_name}")
-                if push:
-                    console.print("  Pushed to origin")
-
+            _set_monorepo_version(
+                manifest_model,
+                version,
+                targets,
+                manifest_path,
+                dry_run,
+                commit,
+                tag,
+                push,
+                sign,
+                allow_dirty,
+                changelog,
+                console,
+                package_name=package_name,
+            )
             return
         except GitIntegrationError as e:
             console.print(f"[red]✗ Git error: {e}[/red]")

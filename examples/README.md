@@ -1,67 +1,47 @@
 # redeploy — Examples
 
-Each subdirectory is a self-contained scenario with `migration.yaml` + `redeploy.yaml` + `README.md`.
+This directory contains deployment examples in multiple formats:
+
+- **`yaml/`** — Traditional YAML format (migration.yaml)
+- **`md/`** — Markdown format with markpact blocks (migration.md) — **NEW**
+
+## Format Comparison
+
+| Format | Status | Best For |
+|--------|--------|----------|
+| YAML | Stable | Simple, declarative deployments |
+| Markdown (markpact) | **NEW** | Complex, multi-language deployments |
+
+## Quick Start
+
+### YAML Format (Traditional)
+```bash
+redeploy run examples/yaml/01-vps-version-bump/migration.yaml --dry-run
+```
+
+### Markdown Format (markpact) — NEW
+```bash
+# Via markpact runtime
+python -m markpact.runtime.cli examples/md/01-rpi5-deploy/migration.md --dry-run
+
+# Via redeploy (when integrated)
+redeploy run examples/md/01-rpi5-deploy/migration.md --dry-run
+```
 
 ```
+```
 examples/
-├── 01-vps-version-bump/          # Bump Docker version on VPS (same strategy)
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 02-k3s-to-docker/             # Migrate from k3s + ingress-nginx → Docker + Traefik
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 03-docker-to-podman-quadlet/  # Docker Compose → Podman Quadlet (rootless systemd)
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 04-rpi-kiosk/                 # Raspberry Pi native kiosk (systemd + Chromium)
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 05-iot-fleet-ota/             # IoT edge node OTA via Docker
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 06-local-dev/                 # Local Docker Compose dev iteration (no SSH)
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 07-staging-to-prod/           # Promote staging image to prod with webhooks
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 08-rollback/                  # Emergency rollback to previous version
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 09-fleet-yaml/                # fleet.yaml with stages/tags/expectations
-│   ├── fleet.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 10-multienv/                  # dev/staging/prod specs in one directory
-│   ├── dev.yaml
-│   ├── staging.yaml
-│   ├── prod.yaml
-│   ├── redeploy.yaml
-│   └── README.md
-├── 11-traefik-tls/               # Add TLS termination to Traefik via cert files
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   ├── traefik/dynamic/tls.yml
-│   └── README.md
-├── 12-ci-pipeline/               # GitHub Actions / GitLab CI automated deploy
-│   ├── migration.yaml
-│   ├── redeploy.yaml
-│   ├── deploy.github.yml
-│   ├── deploy.gitlab.yml
-│   └── README.md
-└── 13-multi-app-monorepo/        # Multiple apps from one monorepo to single VPS
-    ├── migration.yaml
-    ├── redeploy.yaml
-    ├── fleet.yaml
+├── yaml/                        # YAML format examples
+│   ├── 01-vps-version-bump/
+│   ├── 02-k3s-to-docker/
+│   ├── 03-docker-to-podman-quadlet/
+│   ├── 04-rpi-kiosk/
+│   └── ... (13+ examples)
+└── md/                          # Markdown format examples (markpact)
+    ├── 01-rpi5-deploy/
+    ├── 02-multi-language/
     └── README.md
+```
 ```
 
 ## Quick reference
@@ -107,3 +87,70 @@ extra_steps:
 ```
 
 Full list: `python -c "from redeploy.steps import StepLibrary; print(StepLibrary.list())"`
+
+---
+
+## markpact Format — NEW
+
+**markpact** is a universal deployment specification format based on markdown.
+It allows embedding multiple languages (YAML, TOML, JSON, Python, Bash) in a single file.
+
+### Benefits over YAML
+
+| Feature | YAML | markpact |
+|---------|------|----------|
+| Shell commands | Inline strings | Dedicated code blocks |
+| Multi-language | ❌ N/A | ✅ Python, Bash, etc. |
+| Documentation | Separate file | Embedded in markdown |
+| Extensibility | Limited | Plugin system |
+| IDE support | Schema validation | Full language support |
+
+### Example markpact file
+
+```markdown
+# My Deployment
+
+```markpact:config yaml
+name: "my-deployment"
+version: "1.0.0"
+```
+
+```markpact:steps yaml
+extra_steps:
+  - id: deploy
+    action: docker
+    description: "Deploy with Docker"
+    host: user@example.com
+```
+
+```markpact:python
+# Custom verification logic
+print("Deployment complete!")
+```
+```
+
+### Running markpact files
+
+```bash
+# Via markpact runtime (standalone)
+python -m markpact.runtime.cli examples/md/01-rpi5-deploy/migration.md
+
+# With dry-run
+python -m markpact.runtime.cli examples/md/01-rpi5-deploy/migration.md --dry-run
+
+# Via redeploy (when integrated)
+redeploy run examples/md/01-rpi5-deploy/migration.md --dry-run
+```
+
+### Plugin System
+
+markpact supports custom plugins from filesystem:
+
+```yaml
+plugins:
+  - path: ./custom_plugins
+  - path: ~/.markpact/plugins
+  - module: my_package.plugins
+```
+
+See [examples/md/README.md](md/README.md) for complete documentation.

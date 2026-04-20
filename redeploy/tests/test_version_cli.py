@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
+from unittest.mock import patch
 
 import yaml
 from click.testing import CliRunner
@@ -32,7 +34,7 @@ def _write_version_workspace(base: Path, version: str = "1.0.0") -> None:
     )
 
 
-def _write_monorepo_version_workspace(base: Path) -> None:
+def _write_monorepo_version_workspace(base: Path, *, with_package_changelogs: bool = False) -> None:
     (base / ".redeploy").mkdir(parents=True, exist_ok=True)
     (base / "backend").mkdir(parents=True, exist_ok=True)
     (base / "frontend").mkdir(parents=True, exist_ok=True)
@@ -61,6 +63,25 @@ def _write_monorepo_version_workspace(base: Path) -> None:
             },
         }
     }
+
+    if with_package_changelogs:
+        manifest["version"]["packages"]["backend"]["changelog"] = {
+            "path": "backend/CHANGELOG.md",
+            "format": "keepachangelog",
+        }
+        manifest["version"]["packages"]["frontend"]["changelog"] = {
+            "path": "frontend/CHANGELOG.md",
+            "format": "keepachangelog",
+        }
+        (base / "backend" / "CHANGELOG.md").write_text(
+            "# Changelog\n\n## [Unreleased]\n\n- backend pending\n",
+            encoding="utf-8",
+        )
+        (base / "frontend" / "CHANGELOG.md").write_text(
+            "# Changelog\n\n## [Unreleased]\n\n- frontend pending\n",
+            encoding="utf-8",
+        )
+
     (base / ".redeploy" / "version.yaml").write_text(
         yaml.dump(manifest, sort_keys=False),
         encoding="utf-8",
@@ -116,6 +137,105 @@ class TestVersionSet:
             assert manifest["version"]["packages"]["frontend"]["version"] == "2.0.0"
             assert manifest["version"]["version"] == "0.0.0"
 
+
+class TestVersionList:
+    def test_list_all_packages_shows_package_sources(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "list", "--all-packages"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "Package version sources" in result.output
+            assert "backend/VERSION" in result.output
+            assert "frontend/VERSION" in result.output
+            assert "backend" in result.output
+            assert "frontend" in result.output
+
+    def test_list_package_shows_only_selected_package(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "list", "--package", "backend"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "backend/VERSION" in result.output
+            assert "frontend/VERSION" not in result.output
+
+    def test_list_all_packages_returns_error_on_drift(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+            Path("frontend/VERSION").write_text("9.9.9\n", encoding="utf-8")
+
+            result = runner.invoke(
+                cli,
+                ["version", "list", "--all-packages"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 1, result.output
+            assert "frontend/VERSION" in result.output
+            assert "Some sources are out of sync" in result.output
+
+
+class TestVersionVerify:
+    def test_verify_all_packages_succeeds_when_in_sync(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "verify", "--all-packages"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "backend: All 1 sources in sync at 1.0.0" in result.output
+            assert "frontend: All 1 sources in sync at 2.0.0" in result.output
+
+    def test_verify_package_checks_only_selected_package(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "verify", "--package", "backend"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "backend: All 1 sources in sync at 1.0.0" in result.output
+            assert "frontend:" not in result.output
+
+    def test_verify_all_packages_returns_error_on_drift(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+            Path("frontend/VERSION").write_text("9.9.9\n", encoding="utf-8")
+
+            result = runner.invoke(
+                cli,
+                ["version", "verify", "--all-packages"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 1, result.output
+            assert "frontend: Version drift detected" in result.output
+            assert "frontend/VERSION: expected 2.0.0, found 9.9.9" in result.output
+
     def test_set_all_packages_updates_all_packages(self, tmp_path):
         runner = _runner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
@@ -150,6 +270,166 @@ class TestVersionSet:
             assert "Would set backend: 1.0.0 → 5.5.5" in result.output
             assert Path("backend/VERSION").read_text(encoding="utf-8").strip() == "1.0.0"
             assert Path("frontend/VERSION").read_text(encoding="utf-8").strip() == "2.0.0"
+
+    def test_set_package_with_commit_and_tag_uses_git_integration(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            with patch("redeploy.version.git_integration.GitIntegration.require_clean") as require_clean, \
+                 patch("redeploy.version.git_integration.GitIntegration.commit", return_value="abcdef123456") as git_commit, \
+                 patch(
+                     "redeploy.version.git_integration.GitIntegration._run",
+                     autospec=True,
+                     return_value=subprocess.CompletedProcess(["git", "tag"], 0, "", ""),
+                 ) as git_run:
+                result = runner.invoke(
+                    cli,
+                    ["version", "set", "6.0.0", "--package", "backend", "--commit", "--tag"],
+                    catch_exceptions=False,
+                )
+
+            assert result.exit_code == 0, result.output
+            require_clean.assert_called_once()
+            git_commit.assert_called_once()
+            assert "Commit: abcdef12" in result.output
+            assert "Tag: backend@v6.0.0" in result.output
+
+            tag_call = git_run.call_args.args[1]
+            assert tag_call[-1] == "backend@v6.0.0"
+
+            commit_files = [str(path) for path in git_commit.call_args.args[1]]
+            assert "backend/VERSION" in commit_files
+            assert ".redeploy/version.yaml" in commit_files
+            assert "frontend/VERSION" not in commit_files
+
+    def test_set_all_packages_with_push_allow_dirty_skips_clean_check(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            with patch("redeploy.version.git_integration.GitIntegration.require_clean") as require_clean, \
+                 patch("redeploy.version.git_integration.GitIntegration.commit", return_value="fedcba987654") as git_commit, \
+                 patch(
+                     "redeploy.version.git_integration.GitIntegration._run",
+                     autospec=True,
+                     return_value=subprocess.CompletedProcess(["git"], 0, "", ""),
+                 ) as git_run:
+                result = runner.invoke(
+                    cli,
+                    ["version", "set", "7.0.0", "--all-packages", "--push", "--allow-dirty"],
+                    catch_exceptions=False,
+                )
+
+            assert result.exit_code == 0, result.output
+            require_clean.assert_not_called()
+            git_commit.assert_called_once()
+            run_commands = [call.args[1] for call in git_run.call_args_list]
+            tag_commands = [cmd for cmd in run_commands if cmd and cmd[0] == "tag"]
+            assert [cmd[-1] for cmd in tag_commands] == ["backend@v7.0.0", "frontend@v7.0.0"]
+            assert [cmd for cmd in run_commands if cmd[:2] == ["push", "--follow-tags"]] == [
+                ["push", "--follow-tags", "origin"]
+            ]
+            assert "Tag: backend@v7.0.0" in result.output
+            assert "Tag: frontend@v7.0.0" in result.output
+            assert "Pushed to origin" in result.output
+
+            commit_files = [str(path) for path in git_commit.call_args.args[1]]
+            assert "backend/VERSION" in commit_files
+            assert "frontend/VERSION" in commit_files
+            assert ".redeploy/version.yaml" in commit_files
+
+    def test_set_all_packages_changelog_skips_global_default_without_package_configs(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            result = runner.invoke(
+                cli,
+                ["version", "set", "8.0.0", "--all-packages", "--changelog"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "Skipping changelog for backend" in result.output
+            assert "Skipping changelog for frontend" in result.output
+            assert not Path("CHANGELOG.md").exists()
+
+    def test_set_all_packages_changelog_updates_package_changelogs(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd(), with_package_changelogs=True)
+
+            result = runner.invoke(
+                cli,
+                ["version", "set", "8.1.0", "--all-packages", "--changelog"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            backend_changelog = Path("backend/CHANGELOG.md").read_text(encoding="utf-8")
+            frontend_changelog = Path("frontend/CHANGELOG.md").read_text(encoding="utf-8")
+            assert "## [8.1.0]" in backend_changelog
+            assert "## [8.1.0]" in frontend_changelog
+            assert "backend pending" in backend_changelog
+            assert "frontend pending" in frontend_changelog
+            assert "Updated backend/CHANGELOG.md for backend" in result.output
+            assert "Updated frontend/CHANGELOG.md for frontend" in result.output
+            assert not Path("CHANGELOG.md").exists()
+
+
+class TestVersionBump:
+    def test_bump_package_with_tag_uses_package_tag_format(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd())
+
+            with patch("redeploy.version.git_integration.GitIntegration.require_clean") as require_clean, \
+                 patch("redeploy.version.git_integration.GitIntegration.commit", return_value="112233445566") as git_commit, \
+                 patch(
+                     "redeploy.version.git_integration.GitIntegration._run",
+                     autospec=True,
+                     return_value=subprocess.CompletedProcess(["git", "tag"], 0, "", ""),
+                 ) as git_run:
+                result = runner.invoke(
+                    cli,
+                    ["version", "bump", "patch", "--package", "backend", "--commit", "--tag"],
+                    catch_exceptions=False,
+                )
+
+            assert result.exit_code == 0, result.output
+            require_clean.assert_called_once()
+            git_commit.assert_called_once()
+            assert "Tag: backend@v1.0.1" in result.output
+
+            tag_call = git_run.call_args.args[1]
+            assert tag_call[-1] == "backend@v1.0.1"
+            assert Path("backend/VERSION").read_text(encoding="utf-8").strip() == "1.0.1"
+            assert Path("frontend/VERSION").read_text(encoding="utf-8").strip() == "2.0.0"
+
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["packages"]["backend"]["version"] == "1.0.1"
+            assert manifest["version"]["packages"]["frontend"]["version"] == "2.0.0"
+
+    def test_bump_all_packages_changelog_updates_package_changelogs(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            _write_monorepo_version_workspace(Path.cwd(), with_package_changelogs=True)
+
+            result = runner.invoke(
+                cli,
+                ["version", "bump", "patch", "--all-packages", "--changelog"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            backend_changelog = Path("backend/CHANGELOG.md").read_text(encoding="utf-8")
+            frontend_changelog = Path("frontend/CHANGELOG.md").read_text(encoding="utf-8")
+            assert "## [1.0.1]" in backend_changelog
+            assert "## [2.0.1]" in frontend_changelog
+            assert "Updated backend/CHANGELOG.md for backend" in result.output
+            assert "Updated frontend/CHANGELOG.md for frontend" in result.output
+            assert not Path("CHANGELOG.md").exists()
 
 
 class TestVersionDiff:

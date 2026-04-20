@@ -1,9 +1,76 @@
-# redup/duplication | 0 groups | 21f 6250L | 2026-04-20
+# redup/duplication | 5 groups | 60f 14353L | 2026-04-20
 
 SUMMARY:
-  files_scanned: 21
-  total_lines:   6250
-  dup_groups:    0
-  dup_fragments: 0
-  saved_lines:   0
-  scan_ms:       5885
+  files_scanned: 60
+  total_lines:   14353
+  dup_groups:    5
+  dup_fragments: 13
+  saved_lines:   79
+  scan_ms:       11614
+
+HOTSPOTS[7] (files with most duplication):
+  redeploy/version.py  dup=77L  groups=4  frags=4  (0.5%)
+  redeploy/version/__init__.py  dup=67L  groups=4  frags=4  (0.5%)
+  redeploy/version/sources/json_.py  dup=3L  groups=1  frags=1  (0.0%)
+  redeploy/version/sources/plain.py  dup=3L  groups=1  frags=1  (0.0%)
+  redeploy/version/sources/regex.py  dup=3L  groups=1  frags=1  (0.0%)
+  redeploy/version/sources/toml_.py  dup=3L  groups=1  frags=1  (0.0%)
+  redeploy/version/sources/yaml_.py  dup=3L  groups=1  frags=1  (0.0%)
+
+DUPLICATES[5] (ranked by impact):
+  [2260446c0ed30fbb] ! STRU  check_version_http  L=40 N=2 saved=40 sim=1.00
+      redeploy/version/__init__.py:69-108  (check_version_http)
+      redeploy/version.py:52-96  (check_version_http)
+  [417dbd5e07eaa506]   EXAC  write  L=3 N=5 saved=12 sim=1.00
+      redeploy/version/sources/json_.py:45-47  (write)
+      redeploy/version/sources/plain.py:20-22  (write)
+      redeploy/version/sources/regex.py:33-35  (write)
+      redeploy/version/sources/toml_.py:65-67  (write)
+      redeploy/version/sources/yaml_.py:56-58  (write)
+  [baed60e8fcf7d577]   EXAC  read_local_version  L=11 N=2 saved=11 sim=1.00
+      redeploy/version/__init__.py:36-46  (read_local_version)
+      redeploy/version.py:14-24  (read_local_version)
+  [7f61e5aca9b95c89]   EXAC  check_version  L=9 N=2 saved=9 sim=1.00
+      redeploy/version/__init__.py:58-66  (check_version)
+      redeploy/version.py:41-49  (check_version)
+  [f269e2bd5ad747d0]   STRU  read_remote_version  L=7 N=2 saved=7 sim=1.00
+      redeploy/version/__init__.py:49-55  (read_remote_version)
+      redeploy/version.py:27-38  (read_remote_version)
+
+REFACTOR[5] (ranked by priority):
+  [1] ◐ extract_function   → redeploy/utils/check_version_http.py
+      WHY: 2 occurrences of 40-line block across 2 files — saves 40 lines
+      FILES: redeploy/version.py, redeploy/version/__init__.py
+  [2] ○ extract_function   → redeploy/version/sources/utils/write.py
+      WHY: 5 occurrences of 3-line block across 5 files — saves 12 lines
+      FILES: redeploy/version/sources/json_.py, redeploy/version/sources/plain.py, redeploy/version/sources/regex.py, redeploy/version/sources/toml_.py, redeploy/version/sources/yaml_.py
+  [3] ○ extract_function   → redeploy/utils/read_local_version.py
+      WHY: 2 occurrences of 11-line block across 2 files — saves 11 lines
+      FILES: redeploy/version.py, redeploy/version/__init__.py
+  [4] ○ extract_function   → redeploy/utils/check_version.py
+      WHY: 2 occurrences of 9-line block across 2 files — saves 9 lines
+      FILES: redeploy/version.py, redeploy/version/__init__.py
+  [5] ○ extract_function   → redeploy/utils/read_remote_version.py
+      WHY: 2 occurrences of 7-line block across 2 files — saves 7 lines
+      FILES: redeploy/version.py, redeploy/version/__init__.py
+
+QUICK_WINS[4] (low risk, high savings — do first):
+  [2] extract_function   saved=12L  → redeploy/version/sources/utils/write.py
+      FILES: json_.py, plain.py, regex.py +2
+  [3] extract_function   saved=11L  → redeploy/utils/read_local_version.py
+      FILES: version.py, __init__.py
+  [4] extract_function   saved=9L  → redeploy/utils/check_version.py
+      FILES: version.py, __init__.py
+  [5] extract_function   saved=7L  → redeploy/utils/read_remote_version.py
+      FILES: version.py, __init__.py
+
+EFFORT_ESTIMATE (total ≈ 3.3h):
+  hard   check_version_http                  saved=40L  ~120min
+  easy   write                               saved=12L  ~24min
+  easy   read_local_version                  saved=11L  ~22min
+  easy   check_version                       saved=9L  ~18min
+  easy   read_remote_version                 saved=7L  ~14min
+
+METRICS-TARGET:
+  dup_groups:  5 → 0
+  saved_lines: 79 lines recoverable
