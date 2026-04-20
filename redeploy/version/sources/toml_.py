@@ -1,6 +1,7 @@
 """Adapter for TOML files (pyproject.toml, etc.)."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from ..manifest import SourceConfig
@@ -68,8 +69,6 @@ class TomlAdapter(BaseAdapter):
         original = path.read_text(encoding="utf-8") if path.exists() else ""
 
         # Build pattern for key = "value" or key = 'value'
-        key_escaped = config.key.replace(".", r"\.")  # Escape dots for regex
-        # Match: key = "version" or key = 'version' with optional whitespace
         # Support dotted keys by matching last segment
         key_parts = config.key.split(".")
         final_key = key_parts[-1]
@@ -77,7 +76,6 @@ class TomlAdapter(BaseAdapter):
         # Pattern: final_key = "version" (with optional spaces)
         pattern = rf'(^\s*{re.escape(final_key)}\s*=\s*")[^"]+(")'
 
-        import re
         replacement = rf'\g<1>{new_version}\g<2>'
 
         updated, count = re.subn(pattern, replacement, original, count=1, flags=re.MULTILINE)

@@ -1,0 +1,30 @@
+version:
+  version: 0.2.2
+  scheme: semver
+  policy: synced
+  sources:
+  - path: VERSION
+    format: plain
+    optional: false
+  - path: pyproject.toml
+    format: toml
+    key: project.version
+    optional: false
+  git:
+    tag_format: v{version}
+    tag_message: Release {version}
+    commit_message: 'chore(release): {version}'
+    sign_tag: false
+    require_clean: true
+  commits:
+    analyze: false
+    convention: conventional
+    rules:
+      breaking: major
+      feat: minor
+      fix: patch
+      perf: patch
+      refactor: patch
+      docs: none
+      chore: none
+      test: none

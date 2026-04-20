@@ -363,14 +363,37 @@ class ProjectManifest(BaseModel):
 
     @classmethod
     def find_and_load(cls, start: "Path") -> "Optional[ProjectManifest]":  # type: ignore[name-defined]
-        """Walk up from *start* looking for redeploy.yaml."""
+        """Walk up from *start* looking for redeploy.css (preferred) or redeploy.yaml.
+
+        Priority: redeploy.css > redeploy.less > redeploy.yaml
+        """
         import yaml
         from pathlib import Path
         for d in [Path(start)] + list(Path(start).parents):
+            # CSS-like DSL format — highest priority
+            for css_name in ("redeploy.css", "redeploy.less"):
+                candidate = d / css_name
+                if candidate.exists():
+                    from .dsl.loader import load_css
+                    result = load_css(candidate)
+                    if result.manifest:
+                        return result.manifest
+            # YAML fallback
             candidate = d / "redeploy.yaml"
             if candidate.exists():
                 with candidate.open() as f:
                     return cls(**yaml.safe_load(f))
+        return None
+
+    @classmethod
+    def find_css(cls, start: "Path") -> "Optional[Path]":  # type: ignore[name-defined]
+        """Return path to redeploy.css/less if found, else None."""
+        from pathlib import Path
+        for d in [Path(start)] + list(Path(start).parents):
+            for name in ("redeploy.css", "redeploy.less"):
+                p = d / name
+                if p.exists():
+                    return p
         return None
 
     def env(self, name: str) -> "Optional[EnvironmentConfig]":

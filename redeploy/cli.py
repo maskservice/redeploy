@@ -62,7 +62,7 @@ def cli(ctx, verbose):
     ctx.obj["verbose"] = verbose
 
 
-def _run_detect_workflow(console, hosts, manifest, app, scan_subnet, deep, save_yaml):
+def _run_detect_workflow(console, hosts, manifest, app, scan_subnet, deep, save_yaml, fmt="yaml"):
     """Run DetectionWorkflow and print rich report."""
     from rich.table import Table
     from .detect.workflow import DetectionWorkflow
@@ -131,15 +131,40 @@ def _run_detect_workflow(console, hosts, manifest, app, scan_subnet, deep, save_
                           + " | ".join(f"{m.template.id} ({m.score:.1f})" for m in alts)
                           + "[/dim]")
 
-    # ── Generated redeploy.yaml ───────────────────────────────────────────────
+    # ── Generated output (yaml or css) ───────────────────────────────────────
     if result.reachable:
-        console.print(f"\n[bold]generated redeploy.yaml:[/bold]")
-        yaml_out = result.generated_redeploy_yaml()
-        console.print(yaml_out)
-
-        if save_yaml:
-            Path(save_yaml).write_text(yaml_out)
-            console.print(f"  [dim]saved → {save_yaml}[/dim]")
+        if fmt == "css":
+            from .dsl.loader import manifest_to_css, templates_to_css
+            from .detect.templates import TEMPLATES
+            gen_manifest = result.reachable[0].template_result  # use detected info
+            # Build a manifest from WorkflowResult
+            from .models import ProjectManifest, EnvironmentConfig
+            envs = {}
+            for h in result.reachable:
+                cfg = EnvironmentConfig(
+                    host=h.host,
+                    strategy=h.strategy.value,
+                    verify_url=(h.state.health[0].url if h.state and h.state.health else None),
+                    ssh_key=h.ssh_key or None,
+                )
+                envs[h.environment] = cfg
+            tmp_manifest = ProjectManifest(app=app, environments=envs)
+            css_out = manifest_to_css(tmp_manifest, app=app)
+            css_out += "\n\n" + templates_to_css(
+                [h.template_result.best.template for h in result.reachable if h.template_result]
+            )
+            console.print(f"\n[bold]generated redeploy.css:[/bold]")
+            console.print(css_out)
+            if save_yaml:
+                Path(save_yaml).write_text(css_out)
+                console.print(f"  [dim]saved → {save_yaml}[/dim]")
+        else:
+            yaml_out = result.generated_redeploy_yaml()
+            console.print(f"\n[bold]generated redeploy.yaml:[/bold]")
+            console.print(yaml_out)
+            if save_yaml:
+                Path(save_yaml).write_text(yaml_out)
+                console.print(f"  [dim]saved → {save_yaml}[/dim]")
 
 
 # ── detect ────────────────────────────────────────────────────────────────────
@@ -157,21 +182,24 @@ def _run_detect_workflow(console, hosts, manifest, app, scan_subnet, deep, save_
 @click.option("--no-deep", is_flag=True,
               help="Workflow: skip deep SSH probe (faster, less accurate)")
 @click.option("--save-yaml", default=None, type=click.Path(),
-              help="Workflow: save generated redeploy.yaml to file")
+              help="Workflow: save generated manifest to file")
+@click.option("--format", "output_fmt", default="yaml",
+              type=click.Choice(["yaml", "css"]),
+              help="Output format for generated manifest (yaml or css)")
 @click.pass_context
-def detect(ctx, host, app, domain, output, run_workflow, scan_subnet, no_deep, save_yaml):
+def detect(ctx, host, app, domain, output, run_workflow, scan_subnet, no_deep, save_yaml, output_fmt):
     """Probe infrastructure and produce infra.yaml.
 
     With --workflow: multi-host detection with template scoring.
-    Reads hosts from redeploy.yaml environments + device registry + --scan subnet.
+    Reads hosts from redeploy.yaml / redeploy.css environments + registry + --scan.
 
     \b
     Examples:
         redeploy detect --host pi@192.168.188.108
         redeploy detect --workflow
+        redeploy detect --workflow --format css --save-yaml redeploy.css
         redeploy detect --workflow --scan 192.168.188.0/24
-        redeploy detect --workflow --host 192.168.188.108 --host 87.106.87.183
-        redeploy detect --workflow --save-yaml redeploy.yaml
+        redeploy detect --workflow --no-deep
     """
     from rich.console import Console
     from .models import ProjectManifest
@@ -189,6 +217,7 @@ def detect(ctx, host, app, domain, output, run_workflow, scan_subnet, no_deep, s
             scan_subnet=scan_subnet,
             deep=not no_deep,
             save_yaml=save_yaml,
+            fmt=output_fmt,
         )
         return
 
@@ -250,6 +279,179 @@ def detect(ctx, host, app, domain, output, run_workflow, scan_subnet, no_deep, s
         console.print("\n[green]No conflicts detected.[/green]")
 
     console.print(f"\n[dim]Saved to {out_path}[/dim]")
+
+
+# ── inspect ───────────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--file", "css_file", default=None, type=click.Path(),
+              help="redeploy.css / redeploy.less file (auto-detected if omitted)")
+@click.pass_context
+def inspect(ctx, css_file):
+    """Show parsed content of redeploy.css — environments, templates, workflows.
+
+    Transparent view of what redeploy reads from the DSL file.
+    Useful for debugging and for LLMs to understand project configuration.
+
+    \b
+    Examples:
+        redeploy inspect
+        redeploy inspect --file redeploy.css
+    """
+    from rich.console import Console
+    from rich.table import Table
+    from .models import ProjectManifest
+
+    console = Console()
+
+    if css_file:
+        css_path = Path(css_file)
+    else:
+        css_path = ProjectManifest.find_css(Path.cwd())
+
+    if not css_path or not css_path.exists():
+        console.print("[yellow]No redeploy.css found — falling back to redeploy.yaml[/yellow]")
+        manifest = ProjectManifest.find_and_load(Path.cwd())
+        if not manifest:
+            console.print("[red]✗ No redeploy.css or redeploy.yaml found[/red]")
+            sys.exit(1)
+        console.print(f"  app={manifest.app}  envs={list(manifest.environments.keys())}")
+        return
+
+    from .dsl.loader import load_css
+    result = load_css(css_path)
+    console.print(f"\n[bold]redeploy inspect[/bold]  [dim]{css_path}[/dim]\n")
+
+    # ── App metadata ──────────────────────────────────────────────────────────
+    if result.manifest:
+        m = result.manifest
+        console.print(f"[bold cyan]app[/bold cyan]  {m.app}  spec={m.spec}"
+                      + (f"  domain={m.domain}" if m.domain else ""))
+
+    # ── Environments ──────────────────────────────────────────────────────────
+    if result.manifest and result.manifest.environments:
+        console.print(f"\n[bold]Environments ({len(result.manifest.environments)})[/bold]")
+        t = Table(show_header=True, box=None, padding=(0, 2))
+        t.add_column("Name", style="cyan")
+        t.add_column("Host")
+        t.add_column("Strategy")
+        t.add_column("Env file", style="dim")
+        t.add_column("Verify URL", style="dim")
+        for env_name, cfg in result.manifest.environments.items():
+            t.add_row(
+                env_name,
+                cfg.host or "—",
+                cfg.strategy or "—",
+                cfg.env_file or "—",
+                cfg.verify_url or "—",
+            )
+        console.print(t)
+
+    # ── Templates ─────────────────────────────────────────────────────────────
+    if result.templates:
+        console.print(f"\n[bold]Detection Templates ({len(result.templates)})[/bold]")
+        for tpl in result.templates:
+            console.print(f"  [cyan]{tpl.id}[/cyan]  env=[yellow]{tpl.environment}[/yellow]"
+                          f"  strategy={tpl.strategy.value}  max_score={tpl.max_score:.1f}")
+            console.print(f"    conditions: "
+                          + "  ".join(f"[dim]{c.description}[/dim]×{c.weight}" for c in tpl.conditions[:5]))
+            if tpl.required:
+                console.print(f"    required:   "
+                              + "  ".join(f"[red]{r.description}[/red]" for r in tpl.required))
+            if tpl.notes:
+                for note in tpl.notes[:2]:
+                    console.print(f"    [dim]→ {note}[/dim]")
+
+    # ── Workflows ─────────────────────────────────────────────────────────────
+    if result.workflows:
+        console.print(f"\n[bold]Workflows ({len(result.workflows)})[/bold]")
+        t2 = Table(show_header=True, box=None, padding=(0, 2))
+        t2.add_column("Name", style="cyan")
+        t2.add_column("Trigger", style="dim")
+        t2.add_column("Steps", style="dim")
+        t2.add_column("Description")
+        for wf in result.workflows:
+            t2.add_row(
+                wf.name,
+                wf.trigger,
+                str(len(wf.steps)),
+                wf.description or wf.doc[:50] if (wf.description or wf.doc) else "—",
+            )
+        console.print(t2)
+
+    # ── Raw nodes summary ─────────────────────────────────────────────────────
+    by_type: dict[str, int] = {}
+    for n in result.raw_nodes:
+        by_type[n.selector_type] = by_type.get(n.selector_type, 0) + 1
+    console.print(f"\n[dim]nodes: "
+                  + "  ".join(f"{t}×{c}" for t, c in sorted(by_type.items()))
+                  + "[/dim]")
+
+
+# ── workflow (run named workflow from redeploy.css) ───────────────────────────
+
+@cli.command("workflow")
+@click.argument("name", required=False, default=None)
+@click.option("--file", "css_file", default=None, type=click.Path(),
+              help="redeploy.css file (auto-detected if omitted)")
+@click.option("--dry-run", is_flag=True, help="Print steps without executing")
+@click.option("--list", "list_only", is_flag=True, help="List all available workflows")
+@click.pass_context
+def workflow_cmd(ctx, name, css_file, dry_run, list_only):
+    """Run a named workflow from redeploy.css.
+
+    \b
+    Examples:
+        redeploy workflow --list
+        redeploy workflow deploy:prod
+        redeploy workflow deploy:rpi5 --dry-run
+        redeploy workflow release
+    """
+    import subprocess as _sp
+    from rich.console import Console
+    from .models import ProjectManifest
+
+    console = Console()
+
+    css_path = Path(css_file) if css_file else ProjectManifest.find_css(Path.cwd())
+    if not css_path or not css_path.exists():
+        console.print("[red]✗ No redeploy.css found. Create one or use --file.[/red]")
+        sys.exit(1)
+
+    from .dsl.loader import load_css
+    result = load_css(css_path)
+
+    if list_only or not name:
+        console.print(f"[bold]Workflows in {css_path.name}:[/bold]")
+        for wf in result.workflows:
+            console.print(f"  [cyan]{wf.name}[/cyan]"
+                          + (f"  [dim]{wf.description}[/dim]" if wf.description else ""))
+            for step in wf.steps:
+                console.print(f"    step-{step.index}: [dim]{step.command[:70]}[/dim]")
+        return
+
+    wf = next((w for w in result.workflows if w.name == name), None)
+    if not wf:
+        available = [w.name for w in result.workflows]
+        console.print(f"[red]✗ Workflow '{name}' not found.[/red]")
+        console.print(f"  Available: {', '.join(available)}")
+        sys.exit(1)
+
+    console.print(f"[bold]workflow[/bold] [cyan]{wf.name}[/cyan]"
+                  + (f"  [dim]{wf.description}[/dim]" if wf.description else ""))
+
+    for step in wf.steps:
+        console.print(f"\n  [dim]step-{step.index}[/dim]  {step.command}")
+        if dry_run:
+            continue
+        ret = _sp.run(step.command, shell=True, cwd=str(css_path.parent))
+        if ret.returncode != 0:
+            console.print(f"  [red]✗ step-{step.index} failed (exit {ret.returncode})[/red]")
+            sys.exit(ret.returncode)
+        console.print(f"  [green]✓[/green]")
+
+    if not dry_run:
+        console.print(f"\n[green]✓ workflow '{wf.name}' complete[/green]")
 
 
 # ── plan ──────────────────────────────────────────────────────────────────────
@@ -1616,3 +1818,218 @@ def patterns(name):
 
     console.print("\n  [dim]Use [bold]redeploy patterns <name>[/bold] for step details[/dim]")
     console.print("  [dim]Set in target YAML:  pattern: blue_green[/dim]")
+
+
+# ── Version management commands ────────────────────────────────────────────────
+
+@cli.group(name="version")
+def version_cmd():
+    """Declarative version management: bump, verify, diff.
+
+    Reads .redeploy/version.yaml manifest and manages version
+    across all declared sources atomically.
+    """
+    pass
+
+
+@version_cmd.command(name="current")
+@click.option("--manifest", "-m", default=".redeploy/version.yaml",
+              help="Path to version manifest")
+def version_current(manifest):
+    """Show current version from manifest."""
+    from rich.console import Console
+    from .version import VersionManifest
+
+    console = Console()
+    path = Path(manifest)
+
+    if not path.exists():
+        console.print(f"[red]✗ Manifest not found: {path}[/red]")
+        console.print("  Run: redeploy version init")
+        sys.exit(1)
+
+    try:
+        m = VersionManifest.load(path)
+        console.print(f"[bold]{m.version}[/bold]")
+    except Exception as e:
+        console.print(f"[red]✗ Error loading manifest: {e}[/red]")
+        sys.exit(1)
+
+
+@version_cmd.command(name="list")
+@click.option("--manifest", "-m", default=".redeploy/version.yaml",
+              help="Path to version manifest")
+def version_list(manifest):
+    """List all version sources and their values."""
+    from rich.console import Console
+    from rich.table import Table
+    from .version import VersionManifest, verify_sources
+
+    console = Console()
+    path = Path(manifest)
+
+    if not path.exists():
+        console.print(f"[red]✗ Manifest not found: {path}[/red]")
+        sys.exit(1)
+
+    m = VersionManifest.load(path)
+    result = verify_sources(m)
+
+    console.print(f"[bold]Version sources[/bold] (manifest: {m.version})")
+    t = Table(show_header=True, box=None)
+    t.add_column("Source", style="bold")
+    t.add_column("Format")
+    t.add_column("Current")
+    t.add_column("Status")
+
+    for s in result["sources"]:
+        status = "[green]✓" if s["match"] else "[red]✗ drift"
+        actual = s["actual"] or "[dim]—[/dim]"
+        t.add_row(str(s["path"]), s["format"], actual, status)
+
+    console.print(t)
+    if not result["all_match"]:
+        console.print("\n[yellow]⚠ Some sources are out of sync[/yellow]")
+        sys.exit(1)
+
+
+@version_cmd.command(name="verify")
+@click.option("--manifest", "-m", default=".redeploy/version.yaml",
+              help="Path to version manifest")
+def version_verify(manifest):
+    """Verify all sources match manifest version."""
+    from rich.console import Console
+    from .version import VersionManifest, verify_sources
+
+    console = Console()
+    path = Path(manifest)
+
+    if not path.exists():
+        console.print(f"[red]✗ Manifest not found: {path}[/red]")
+        sys.exit(1)
+
+    m = VersionManifest.load(path)
+    result = verify_sources(m)
+
+    if result["all_match"]:
+        console.print(f"[green]✓ All {len(result['sources'])} sources in sync at {m.version}[/green]")
+    else:
+        console.print(f"[red]✗ Version drift detected[/red]")
+        for s in result["sources"]:
+            if not s["match"]:
+                console.print(f"  [red]✗[/red] {s['path']}: expected {m.version}, found {s.get('actual', 'ERROR')}")
+        sys.exit(1)
+
+
+@version_cmd.command(name="bump")
+@click.argument("type", type=click.Choice(["patch", "minor", "major", "prerelease"]))
+@click.option("--manifest", "-m", default=".redeploy/version.yaml",
+              help="Path to version manifest")
+@click.option("--dry-run", is_flag=True, help="Preview changes without applying")
+def version_bump(type, manifest, dry_run):
+    """Bump version across all sources atomically.
+
+    Example: redeploy version bump patch
+    """
+    from rich.console import Console
+    from .version import VersionManifest, bump_version
+
+    console = Console()
+    path = Path(manifest)
+
+    if not path.exists():
+        console.print(f"[red]✗ Manifest not found: {path}[/red]")
+        console.print("  Run: redeploy version init")
+        sys.exit(1)
+
+    m = VersionManifest.load(path)
+    old = m.version
+
+    prefix = "[DRY RUN] " if dry_run else ""
+    console.print(f"\n{prefix}[bold]Bumping version: {old} → ?[/bold]")
+
+    if dry_run:
+        # Just show what would happen
+        from .version.bump import _calculate_bump
+        new = _calculate_bump(old, type)
+        console.print(f"  Would bump to: [bold]{new}[/bold]")
+        console.print(f"  Sources to update: {len(m.sources)}")
+        for s in m.sources:
+            console.print(f"    - {s.path} ({s.format})")
+        return
+
+    try:
+        result = bump_version(m, type)
+        # Save updated manifest
+        m.save(path)
+
+        console.print(f"[green]✓ Bumped: {old} → {result['new_version']}[/green]")
+        console.print(f"  Updated {result['success']}/{result['total']} sources:")
+        for s in result["sources"]:
+            icon = "✓" if s["ok"] else "✗"
+            color = "green" if s["ok"] else "red"
+            console.print(f"    [{color}]{icon}[/{color}] {s['path']}: {s.get('old', '?')} → {s.get('new', '—')}")
+
+    except Exception as e:
+        console.print(f"[red]✗ Bump failed: {e}[/red]")
+        sys.exit(1)
+
+
+@version_cmd.command(name="init")
+@click.option("--scan", is_flag=True, help="Auto-detect version sources")
+@click.option("--force", is_flag=True, help="Overwrite existing manifest")
+def version_init(scan, force):
+    """Initialize .redeploy/version.yaml manifest."""
+    from rich.console import Console
+    from .version.manifest import VersionManifest, SourceConfig, GitConfig
+
+    console = Console()
+    manifest_path = Path(".redeploy/version.yaml")
+
+    if manifest_path.exists() and not force:
+        console.print(f"[yellow]⚠ Manifest already exists: {manifest_path}[/yellow]")
+        console.print("  Use --force to overwrite or edit existing file")
+        sys.exit(1)
+
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Detect sources if --scan
+    sources = []
+    if scan:
+        # Check common locations
+        if Path("VERSION").exists():
+            sources.append(SourceConfig(path=Path("VERSION"), format="plain"))
+        if Path("pyproject.toml").exists():
+            sources.append(SourceConfig(path=Path("pyproject.toml"), format="toml", key="project.version"))
+        if Path("package.json").exists():
+            sources.append(SourceConfig(path=Path("package.json"), format="json", key="version"))
+
+    if not sources:
+        # Default minimal manifest
+        sources = [SourceConfig(path=Path("VERSION"), format="plain")]
+
+    # Detect current version
+    current = "0.1.0"
+    for s in sources:
+        if s.path.exists():
+            try:
+                from .version.sources import get_adapter
+                current = get_adapter(s.format).read(s.path, s)
+                break
+            except Exception:
+                pass
+
+    m = VersionManifest(
+        version=current,
+        scheme="semver",
+        policy="synced",
+        sources=sources,
+        git=GitConfig(),
+    )
+
+    m.save(manifest_path)
+    console.print(f"[green]✓ Created {manifest_path}[/green]")
+    console.print(f"  Current version: {current}")
+    console.print(f"  Sources: {len(sources)}")
+    for s in sources:
+        console.print(f"    - {s.path} ({s.format})")
