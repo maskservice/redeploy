@@ -1,0 +1,69 @@
+# 04-rpi-kiosk/migration-rpi5.yaml
+# Deploy c2004 to RPi5 @ 192.168.188.108 (systemd strategy — no Docker)
+# Usage:
+#   redeploy run examples/04-rpi-kiosk/migration-rpi5.yaml --plan-only
+#   redeploy run examples/04-rpi-kiosk/migration-rpi5.yaml --dry-run
+#   redeploy run examples/04-rpi-kiosk/migration-rpi5.yaml --detect
+# Or via registry:
+#   redeploy target rpi5-c2004 examples/04-rpi-kiosk/migration-rpi5.yaml --detect
+
+name: "rpi5 c2004 systemd — 1.0.16 → 1.0.20"
+description: "Rsync updated c2004 app to RPi5, restart c2004-services, verify API"
+
+source:
+  strategy: systemd
+  host: pi@192.168.188.108
+  app: c2004
+  version: "1.0.16"
+  domain: "192.168.188.108"
+  remote_dir: /home/pi/c2004
+
+target:
+  strategy: systemd
+  host: pi@192.168.188.108
+  app: c2004
+  version: "1.0.20"
+  domain: "192.168.188.108"
+  remote_dir: /home/pi/c2004
+  env_file: /home/tom/github/maskservice/c2004/.env
+  verify_url: http://192.168.188.108:8000/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps:
+  - id: rsync_c2004_app
+    action: rsync
+    description: "Sync c2004 application source to RPi5"
+    src: "/home/tom/github/maskservice/c2004/c2004/"
+    dst: "/home/pi/c2004/c2004/"
+    risk: low
+
+  - id: restart_c2004_services
+    action: ssh_cmd
+    description: "Restart c2004-services systemd unit (backend + firmware + nginx)"
+    command: "sudo systemctl restart c2004-services.service"
+    risk: medium
+    rollback_command: "sudo systemctl start c2004-services.service || true"
+
+  - id: wait_startup
+    action: wait
+    description: "Wait for uvicorn to bind on :8000"
+    seconds: 8
+    risk: low
+
+  - id: verify_backend_api
+    action: ssh_cmd
+    description: "Verify backend API health from RPi itself"
+    command: "curl -sf --max-time 10 http://localhost:8000/api/v1/health | python3 -c \"import sys,json; d=json.load(sys.stdin); print('API OK version='+str(d.get('version',d.get('app_version','?'))))\" || curl -sf --max-time 10 http://localhost:8000/api/v1/health"
+    risk: low
+
+  - id: verify_frontend
+    action: ssh_cmd
+    description: "Verify nginx frontend serving on :8100"
+    command: "curl -sf --max-time 5 http://localhost:8100/ -o /dev/null && echo 'frontend OK' || echo 'frontend warn'"
+    risk: low
+
+notes:
+  - "RPi5 aarch64 — no Docker, pure systemd + uvicorn + nginx"
+  - "c2004-services.service: backend:8000 + firmware:8202 + nginx:8100"
+  - "SSH key: ~/.ssh/id_ed25519 as user pi"
+  - "After deploy: ssh pi@192.168.188.108 journalctl -u c2004-services -f"

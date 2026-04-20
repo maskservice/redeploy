@@ -32,12 +32,12 @@ class Planner:
         self._plan_conflict_fixes()
         self._plan_stop_old_services()
         self._plan_deploy_new()
-        self._plan_verify()
         if self._spec:
             self._append_extra_steps(self._spec)
             for note in self._spec.notes:
                 if note not in self._notes:
                     self._notes.append(note)
+        self._plan_verify()
 
         risk = self._assess_risk()
         downtime = self._estimate_downtime()
