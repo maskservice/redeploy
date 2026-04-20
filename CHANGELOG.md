@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.16] - 2026-04-20
+
+### Docs
+- Update README.md
+- Update TODO/zaproponuj runtime do obslugi tego typu pliku.md
+
+### Other
+- Update "TODO/Pomys\305\202 jest ciekawy i wbrew pozorom ca\305\202kiem sensow.md"
+- Update "TODO/a jak by to mia\305\202ol by\304\207 obslugiwane przez rozne jez.md"
+
 ## [0.2.15] - 2026-04-20
 
 ### Docs
