@@ -151,6 +151,78 @@ def test_collect_sqlite_missing_db(tmp_path):
     assert counts == {}
 
 
+# ── SshClient.put_file ────────────────────────────────────────────────────────
+
+
+class TestPutFile:
+    def test_local_writes_file(self, tmp_path):
+        client = SshClient("local")
+        target = str(tmp_path / "sub" / "config.env")
+        result = client.put_file("KEY=VALUE\n", target)
+        assert result.ok
+        from pathlib import Path
+        assert Path(target).read_text() == "KEY=VALUE\n"
+
+    def test_local_creates_parent_dirs(self, tmp_path):
+        client = SshClient("local")
+        target = str(tmp_path / "a" / "b" / "c" / "file.txt")
+        result = client.put_file("hello", target)
+        assert result.ok
+        from pathlib import Path
+        assert Path(target).exists()
+
+    def test_local_applies_chmod(self, tmp_path):
+        import os
+        client = SshClient("local")
+        target = str(tmp_path / "secret.env")
+        client.put_file("SECRET=1\n", target, mode="0600")
+        assert (os.stat(target).st_mode & 0o777) == 0o600
+
+    def test_local_write_error_returns_failure(self, tmp_path):
+        client = SshClient("local")
+        # directory as target — write_text will fail
+        result = client.put_file("data", str(tmp_path))
+        assert not result.ok
+        assert result.exit_code != 0
+
+    def test_remote_calls_ssh(self):
+        from unittest.mock import patch, MagicMock
+        client = SshClient("root@10.0.0.1")
+        client._key_explicit = "/tmp/key"
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = ""
+        mock_proc.stderr = ""
+        with patch("redeploy.ssh.subprocess.run", return_value=mock_proc) as mock_run:
+            result = client.put_file("MY_VAR=1\n", "/remote/path/.env")
+        assert result.ok
+        called_args = mock_run.call_args
+        cmd = called_args[0][0]
+        assert "ssh" in cmd[0]
+        assert "/remote/path/.env" in " ".join(cmd)
+
+    def test_remote_failure_returned(self):
+        from unittest.mock import patch, MagicMock
+        client = SshClient("root@10.0.0.1")
+        client._key_explicit = "/tmp/key"
+        mock_proc = MagicMock()
+        mock_proc.returncode = 1
+        mock_proc.stdout = ""
+        mock_proc.stderr = "Permission denied"
+        with patch("redeploy.ssh.subprocess.run", return_value=mock_proc):
+            result = client.put_file("data", "/root/.env")
+        assert not result.ok
+
+    def test_remote_exception_returns_failure(self):
+        from unittest.mock import patch
+        client = SshClient("root@10.0.0.1")
+        client._key_explicit = "/tmp/key"
+        with patch("redeploy.ssh.subprocess.run", side_effect=Exception("timeout")):
+            result = client.put_file("data", "/root/.env")
+        assert not result.ok
+        assert "timeout" in result.stderr
+
+
 # ── verify ────────────────────────────────────────────────────────────────────
 
 def test_verify_context_pass():

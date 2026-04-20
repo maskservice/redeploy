@@ -44,7 +44,7 @@ class Planner:
 
         return MigrationPlan(
             host=self.target.host or self.state.host,
-            app=self.target.app if self.target.app != "c2004" else self.state.app,
+            app=self.target.app or self.state.app,
             from_strategy=self.state.detected_strategy,
             to_strategy=self.target.strategy,
             risk=risk,

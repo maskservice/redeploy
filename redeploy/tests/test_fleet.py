@@ -269,3 +269,94 @@ class TestStepLibrary:
         assert len(lib) > 5
         lib["stop_k3s"].description = "modified"
         assert StepLibrary.get("stop_k3s").description != "modified"
+
+    def test_new_steps_registered(self):
+        ids = StepLibrary.list()
+        for expected in ["stop_podman", "enable_podman_unit",
+                         "systemctl_restart", "systemctl_daemon_reload", "git_pull"]:
+            assert expected in ids, f"Missing step: {expected}"
+
+    def test_stop_podman_has_rollback(self):
+        s = StepLibrary.get("stop_podman")
+        assert s is not None
+        assert s.rollback_command is not None
+        assert "start" in s.rollback_command
+
+    def test_git_pull_has_rollback(self):
+        s = StepLibrary.get("git_pull")
+        assert s is not None
+        assert "reset" in s.rollback_command
+        assert "ff-only" in s.command
+
+    def test_systemctl_restart_action(self):
+        s = StepLibrary.get("systemctl_restart")
+        assert s is not None
+        assert s.action == StepAction.SYSTEMCTL_START
+
+    def test_systemctl_daemon_reload_command(self):
+        s = StepLibrary.get("systemctl_daemon_reload")
+        assert s is not None
+        assert "daemon-reload" in s.command
+
+    def test_enable_podman_unit_command(self):
+        s = StepLibrary.get("enable_podman_unit")
+        assert s is not None
+        assert "enable" in s.command
+        assert "daemon-reload" in s.command
+
+
+# ── TargetConfig.host + Planner ───────────────────────────────────────────────
+
+
+class TestTargetConfigHost:
+    def _make_planner(self, target_host=None, state_host="root@10.0.0.1"):
+        from redeploy.models import (
+            DeployStrategy, InfraState, RuntimeInfo, TargetConfig,
+        )
+        from redeploy.plan import Planner
+
+        state = InfraState(
+            host=state_host,
+            app="myapp",
+            runtime=RuntimeInfo(docker="20.10"),
+            detected_strategy=DeployStrategy.DOCKER_FULL,
+        )
+        target = TargetConfig(
+            strategy=DeployStrategy.DOCKER_FULL,
+            app="myapp",
+            host=target_host,
+        )
+        return Planner(state, target)
+
+    def test_uses_state_host_when_target_host_none(self):
+        p = self._make_planner(target_host=None, state_host="root@1.2.3.4")
+        plan = p.run()
+        assert plan.host == "root@1.2.3.4"
+
+    def test_target_host_overrides_state_host(self):
+        p = self._make_planner(target_host="root@9.9.9.9", state_host="root@1.2.3.4")
+        plan = p.run()
+        assert plan.host == "root@9.9.9.9"
+
+    def test_app_fallback_from_state(self):
+        from redeploy.models import (
+            DeployStrategy, InfraState, RuntimeInfo, TargetConfig,
+        )
+        from redeploy.plan import Planner
+        state = InfraState(
+            host="root@1.2.3.4",
+            app="from_state",
+            runtime=RuntimeInfo(docker="20.10"),
+            detected_strategy=DeployStrategy.DOCKER_FULL,
+        )
+        target = TargetConfig(
+            strategy=DeployStrategy.DOCKER_FULL,
+            app="",      # empty → falls back to state.app
+        )
+        plan = Planner(state, target).run()
+        assert plan.app == "from_state"
+
+    def test_target_app_used_when_set(self):
+        p = self._make_planner()
+        plan = p.run()
+        assert plan.app == "myapp"
