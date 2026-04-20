@@ -25,7 +25,9 @@ MULTIENV_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/10-multienv/*.yaml"))
 FLEET_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/*/fleet.yaml"))
 REDEPLOY_YAMLS = sorted(EXAMPLES_DIR.glob("yaml/*/redeploy.yaml"))
 SUPPORTED_MARKDOWN_MIGRATIONS = [
-    EXAMPLES_DIR / "md" / "01-vps-version-bump" / "migration.md"
+    EXAMPLES_DIR / "md" / "01-vps-version-bump" / "migration.md",
+    EXAMPLES_DIR / "md" / "02-k3s-to-docker" / "migration.md",
+    EXAMPLES_DIR / "md" / "03-docker-to-podman-quadlet" / "migration.md",
 ]
 
 
@@ -103,6 +105,12 @@ class TestSupportedMarkdownMigration:
     def test_has_readme(self, md_path):
         readme = md_path.parent / "README.md"
         assert readme.exists(), f"Missing README.md in {md_path.parent.name}"
+
+    def test_readme_has_run_section(self, md_path):
+        readme = md_path.parent / "README.md"
+        content = readme.read_text()
+        assert "## Run" in content or "## run" in content.lower(), \
+            f"{md_path.parent.name}/README.md missing ## Run section"
 
 
 # ── redeploy.yaml manifest tests ──────────────────────────────────────────────

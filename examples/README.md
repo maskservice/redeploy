@@ -13,10 +13,12 @@ Use YAML examples with the current CLI. A limited markdown subset also works.
 redeploy run examples/yaml/01-vps-version-bump/migration.yaml --dry-run
 redeploy run examples/yaml/02-k3s-to-docker/migration.yaml --detect
 redeploy run examples/md/01-vps-version-bump/migration.md --plan-only
+redeploy run examples/md/02-k3s-to-docker/migration.md --detect --dry-run
+redeploy run examples/md/03-docker-to-podman-quadlet/migration.md --plan-only
 ```
 
 YAML examples are the primary supported path and remain the main test-backed
-scenario set. The repository also includes one supported markdown example for
+scenario set. The repository also includes three supported markdown examples for
 the Phase 1 markpact subset.
 
 ## What still does not work
@@ -40,7 +42,7 @@ They are not useful as:
 ```text
 examples/
 ├── yaml/   # supported, tested examples
-└── md/     # one supported markdown subset example plus prototypes
+└── md/     # three supported markdown subset examples plus prototypes
 ```
 
 ## Notes

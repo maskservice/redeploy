@@ -1,5 +1,9 @@
 # Markpact Implementation Plan
 
+Status: Phase 0 and the Phase 1 MVP are now implemented. The remaining
+sections are still useful as the roadmap for unsupported block kinds and
+runtime features.
+
 ## Goal
 
 Add real support for `redeploy run migration.md` without replacing the current
@@ -14,14 +18,15 @@ format, not as a second deployment engine.
 
 ## Constraints From Current Code
 
-- `redeploy run` currently loads specs through `MigrationSpec.from_file()`.
-- `MigrationSpec.from_file()` only accepts YAML.
+- `redeploy run` now loads specs through `redeploy.spec_loader.load_migration_spec()`.
+- YAML remains the reference input format; `.md` currently supports only the
+  Phase 1 markpact subset.
 - `MigrationStep` supports `timeout` and `rollback_command`, but not
   `retry`, `when`, `skip_if`, or `check_cmd`.
 - the executor already supports planning, apply, rollback, audit logging, and
-  progress output for the YAML flow.
-- `examples/md/` currently contain prototype semantics that are broader than the
-  implemented runtime.
+  progress output for the compiled YAML-shaped flow.
+- most of `examples/md/` still contain prototype semantics that are broader than
+  the implemented runtime.
 
 ## Non-Goals For MVP
 

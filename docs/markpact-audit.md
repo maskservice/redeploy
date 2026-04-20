@@ -39,8 +39,8 @@ examples in `examples/yaml/`.
 | YAML scenario | Markdown equivalent | Status |
 | --- | --- | --- |
 | `01-vps-version-bump` | `examples/md/01-vps-version-bump` | partial: supported Phase 1 subset counterpart |
-| `02-k3s-to-docker` | none | missing |
-| `03-docker-to-podman-quadlet` | none | missing |
+| `02-k3s-to-docker` | `examples/md/02-k3s-to-docker` | partial: supported Phase 1 subset counterpart |
+| `03-docker-to-podman-quadlet` | `examples/md/03-docker-to-podman-quadlet` | partial: supported Phase 1 subset counterpart |
 | `04-rpi-kiosk` | none | missing |
 | `04-rpi-fleet-update` | none | missing |
 | `05-iot-fleet-ota` | none | missing |
@@ -60,11 +60,13 @@ examples in `examples/yaml/`.
 | `16-auto-rollback.yaml` | none | missing |
 
 Current `examples/md/` content is mostly prototype or exploratory
-documentation, with one supported Phase 1 subset example:
+documentation, with three supported Phase 1 subset examples:
 
 | Markdown example | Nature |
 | --- | --- |
 | `01-vps-version-bump` | Supported markdown subset example compiled into the current runtime |
+| `02-k3s-to-docker` | Supported markdown subset example compiled into the current runtime |
+| `03-docker-to-podman-quadlet` | Supported markdown subset example compiled into the current runtime |
 | `01-rpi5-deploy` | Custom prototype scenario, not a port of a YAML example |
 | `02-multi-language` | Feature demo for mixed block formats |
 | `03-all-actions` | Aspirational action catalog, not aligned with current `MigrationStep` model |

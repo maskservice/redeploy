@@ -1,0 +1,45 @@
+# 02 - k3s to Docker Compose (Markdown Subset)
+
+This is a Phase 1 markpact example that mirrors the supported YAML scenario for
+migrating a single-node VPS from k3s to Docker Compose plus Traefik.
+
+```markpact:config yaml
+name: "k3s -> docker_full"
+description: "Stop k3s, flush iptables, start Docker Compose + Traefik on ports 80/443"
+
+source:
+  strategy: k3s
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.18"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+  delete_k3s_namespaces:
+    - c2004
+  stop_services:
+    - k3s
+  disable_services:
+    - k3s
+
+target:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.19"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+  compose_files:
+    - docker-compose.vps.yml
+  env_file: envs/vps.env
+  verify_url: https://c2004.mask.services/api/v1/health
+  verify_version: "1.0.19"
+
+notes:
+  - "k3s CNI-HOSTPORT-DNAT intercepts port 80/443 before docker-proxy - flush required"
+  - "Cloudflare Full (non-strict) SSL; Traefik serves self-signed cert from traefik/certs/"
+```
+
+```markpact:steps yaml
+extra_steps:
+  - id: flush_k3s_iptables
+```
