@@ -12,7 +12,7 @@ from redeploy.cli import cli
 
 
 def _runner() -> CliRunner:
-    return CliRunner(mix_stderr=False)
+    return CliRunner()
 
 
 def _write_version_workspace(base: Path, version: str = "1.0.0") -> None:
