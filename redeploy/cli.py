@@ -2109,13 +2109,20 @@ def version_verify(manifest):
 @click.option("--manifest", "-m", default=".redeploy/version.yaml",
               help="Path to version manifest")
 @click.option("--dry-run", is_flag=True, help="Preview changes without applying")
-def version_bump(type, manifest, dry_run):
+@click.option("--commit", is_flag=True, help="Create git commit with changes")
+@click.option("--tag", is_flag=True, help="Create git tag for new version")
+@click.option("--push", is_flag=True, help="Push commit and tags to origin")
+@click.option("--sign", is_flag=True, help="Sign tag with GPG")
+@click.option("--allow-dirty", is_flag=True, help="Allow bump with dirty working directory")
+def version_bump(type, manifest, dry_run, commit, tag, push, sign, allow_dirty):
     """Bump version across all sources atomically.
 
     Example: redeploy version bump patch
+    With git: redeploy version bump patch --commit --tag --push
     """
     from rich.console import Console
-    from .version import VersionManifest, bump_version
+    from .version import VersionManifest
+    from .version.bump import bump_version_with_git, GitIntegrationError
 
     console = Console()
     path = Path(manifest)
@@ -2128,31 +2135,50 @@ def version_bump(type, manifest, dry_run):
     m = VersionManifest.load(path)
     old = m.version
 
-    prefix = "[DRY RUN] " if dry_run else ""
-    console.print(f"\n{prefix}[bold]Bumping version: {old} → ?[/bold]")
-
+    # Dry run
     if dry_run:
-        # Just show what would happen
         from .version.bump import _calculate_bump
         new = _calculate_bump(old, type)
-        console.print(f"  Would bump to: [bold]{new}[/bold]")
-        console.print(f"  Sources to update: {len(m.sources)}")
+        console.print(f"[DRY RUN] Would bump: {old} → {new}")
+        console.print(f"  Sources: {len(m.sources)}")
+        if commit or tag or push:
+            console.print(f"  Git: commit={commit}, tag={tag}, push={push}, sign={sign}")
         for s in m.sources:
             console.print(f"    - {s.path} ({s.format})")
         return
 
+    # Real bump
     try:
-        result = bump_version(m, type)
-        # Save updated manifest
-        m.save(path)
+        if commit or tag or push:
+            # Use git integration
+            result = bump_version_with_git(
+                m, type,
+                repo_path=path.parent.parent,  # .redeploy/version.yaml -> repo root
+                commit=commit or push,
+                tag=tag or push,
+                push=push,
+                sign=sign,
+                allow_dirty=allow_dirty,
+            )
+            console.print(f"[green]✓ Bumped: {old} → {result.version}[/green]")
+            console.print(f"  Updated {result.files_updated} files")
+            if result.commit_hash:
+                console.print(f"  Commit: {result.commit_hash[:8]}")
+            if result.tag_name:
+                console.print(f"  Tag: {result.tag_name}")
+            if result.pushed:
+                console.print("  Pushed to origin")
+        else:
+            # Simple bump without git
+            from .version.bump import bump_version
+            result = bump_version(m, type)
+            m.save(path)
+            console.print(f"[green]✓ Bumped: {old} → {result['new_version']}[/green]")
+            console.print(f"  Updated {result['success']}/{result['total']} sources")
 
-        console.print(f"[green]✓ Bumped: {old} → {result['new_version']}[/green]")
-        console.print(f"  Updated {result['success']}/{result['total']} sources:")
-        for s in result["sources"]:
-            icon = "✓" if s["ok"] else "✗"
-            color = "green" if s["ok"] else "red"
-            console.print(f"    [{color}]{icon}[/{color}] {s['path']}: {s.get('old', '?')} → {s.get('new', '—')}")
-
+    except GitIntegrationError as e:
+        console.print(f"[red]✗ Git error: {e}[/red]")
+        sys.exit(1)
     except Exception as e:
         console.print(f"[red]✗ Bump failed: {e}[/red]")
         sys.exit(1)

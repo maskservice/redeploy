@@ -19,9 +19,11 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Optional
 
+from .git_integration import GitIntegration, GitIntegrationError
+from .git_transaction import GitVersionBumpTransaction, GitTransactionResult
 from .manifest import VersionManifest, SourceConfig, GitConfig, ChangelogConfig
 from .transaction import VersionBumpTransaction
-from .bump import bump_version, verify_sources
+from .bump import bump_version, bump_version_with_git, verify_sources
 from .sources import get_adapter
 
 
@@ -109,7 +111,12 @@ __all__ = [
     "GitConfig",
     "ChangelogConfig",
     "VersionBumpTransaction",
+    "GitIntegration",
+    "GitIntegrationError",
+    "GitVersionBumpTransaction",
+    "GitTransactionResult",
     "bump_version",
+    "bump_version_with_git",
     "verify_sources",
     "get_adapter",
     "read_local_version",
