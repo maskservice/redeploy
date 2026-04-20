@@ -192,17 +192,80 @@ class Planner:
         ))
 
     def _plan_podman_quadlet(self) -> None:
-        self._notes.append(
-            "Podman Quadlet deploy: copy .container/.network/.volume files to "
-            "/etc/containers/systemd/, then systemctl daemon-reload + restart units"
+        """Generate steps for Podman Quadlet (rootless systemd) deployment."""
+        remote_dir = self.target.remote_dir or f"~/{self.target.app}"
+        app = self.target.app
+        quadlet_src = f"{remote_dir}/quadlet"
+        rootless = not (self.target.stop_services or self.target.disable_services)
+        systemctl = "systemctl --user" if rootless else "sudo systemctl"
+        quadlet_dst = (
+            "~/.config/containers/systemd" if rootless
+            else "/etc/containers/systemd"
         )
+
+        if self.target.env_file:
+            self._add_step(MigrationStep(
+                id="sync_env",
+                action=StepAction.SCP,
+                description="Copy .env to remote",
+                src=self.target.env_file,
+                dst=f"{remote_dir}/.env",
+                risk=ConflictSeverity.LOW,
+            ))
+
+        self._add_step(MigrationStep(
+            id="install_quadlet_files",
+            action=StepAction.SSH_CMD,
+            description=f"Install Quadlet unit files to {quadlet_dst}/",
+            command=(
+                f"mkdir -p {quadlet_dst} && "
+                f"cp {quadlet_src}/*.container {quadlet_src}/*.network "
+                f"{quadlet_src}/*.volume {quadlet_dst}/ 2>/dev/null || true"
+            ),
+            risk=ConflictSeverity.LOW,
+            rollback_command=f"{systemctl} stop {app} || true",
+        ))
+
         self._add_step(MigrationStep(
             id="podman_daemon_reload",
             action=StepAction.SYSTEMCTL_START,
             description="Reload systemd to pick up Quadlet unit files",
-            command="systemctl daemon-reload",
+            command=f"{systemctl} daemon-reload",
             risk=ConflictSeverity.LOW,
         ))
+
+        # Stop existing units before restart
+        self._add_step(MigrationStep(
+            id=f"stop_{app}",
+            action=StepAction.SYSTEMCTL_STOP,
+            service=app,
+            description=f"Stop existing {app} units (ignore errors if not running)",
+            command=f"{systemctl} stop {app}.service 2>/dev/null || true",
+            risk=ConflictSeverity.LOW,
+        ))
+
+        self._add_step(MigrationStep(
+            id=f"start_{app}",
+            action=StepAction.SYSTEMCTL_START,
+            service=app,
+            description=f"Start {app} via Quadlet",
+            command=f"{systemctl} start {app}.service",
+            risk=ConflictSeverity.LOW,
+            rollback_command=f"{systemctl} stop {app}.service || true",
+        ))
+
+        self._add_step(MigrationStep(
+            id="wait_startup",
+            action=StepAction.WAIT,
+            description="Wait for Quadlet containers to start",
+            seconds=15,
+            risk=ConflictSeverity.LOW,
+        ))
+
+        self._notes.append(
+            f"Podman Quadlet deploy ({'rootless user' if rootless else 'system'}): "
+            f"unit files from {quadlet_src} → {quadlet_dst}"
+        )
 
     def _plan_systemd(self) -> None:
         self._notes.append("Systemd deploy: ensure unit files installed and enabled")
@@ -295,12 +358,17 @@ class Planner:
         return p
 
     def _append_extra_steps(self, spec: "MigrationSpec") -> None:  # type: ignore[name-defined]
-        """Append manually declared extra_steps from spec, with optional insert_before support."""
-        from ..models import MigrationStep, StepAction
+        """Append manually declared extra_steps from spec, with optional insert_before support.
+
+        If a step ``id`` matches a ``StepLibrary`` entry and no ``action`` is given,
+        the library template is used as base (fields can be overridden in YAML).
+        """
+        from ..steps import StepLibrary
         for raw in spec.extra_steps:
+            raw = dict(raw)
             insert_before = raw.pop("insert_before", None)
             try:
-                step = MigrationStep(**raw)
+                step = StepLibrary.resolve_from_spec(raw)
                 if any(s.id == step.id for s in self._steps):
                     continue
                 if insert_before:

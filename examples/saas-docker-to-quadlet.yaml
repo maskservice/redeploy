@@ -1,0 +1,83 @@
+# saas-docker-to-quadlet.yaml — migrate doql-generated SaaS app to Podman Quadlet
+# Inspired by doql examples: asset-management, calibration-lab, crm-contacts
+#
+# doql generates:
+#   build/infra/docker-compose.yml    (DEPLOY: target: docker-compose)
+#   build/infra/<app>.container       (DEPLOY: target: quadlet)
+#
+# redeploy handles migrating from docker-compose (dev) to Quadlet (prod VPS)
+#
+# Usage:
+#   redeploy run examples/saas-docker-to-quadlet.yaml --plan-only
+#   redeploy run examples/saas-docker-to-quadlet.yaml --dry-run
+#   redeploy run examples/saas-docker-to-quadlet.yaml
+
+name: "saas docker-compose → podman_quadlet (VPS)"
+description: "Migrate doql-generated SaaS app from Docker Compose dev to Podman Quadlet production"
+
+source:
+  strategy: docker_full
+  host: local
+  app: myapp               # replace with doql APP name slug
+  version: "1.0.0"
+  domain: localhost
+  remote_dir: "."
+  compose_files:
+    - build/infra/docker-compose.yml
+
+target:
+  strategy: podman_quadlet
+  host: root@VPS_IP        # replace with actual VPS
+  app: myapp
+  version: "1.0.0"
+  domain: myapp.example.com
+  remote_dir: /opt/myapp
+  env_file: .env
+  verify_url: https://myapp.example.com/api/health
+  verify_version: "1.0"
+
+extra_steps:
+  - id: doql_build
+    action: ssh_cmd
+    description: "Build doql artifacts on local before sync (run manually first)"
+    command: "echo 'Run: doql build  before this step'"
+    risk: low
+
+  - id: rsync_build_to_vps
+    action: rsync
+    description: "Sync doql build/ directory to VPS"
+    src: "./build/"
+    dst: "/opt/myapp/build/"
+    risk: low
+
+  - id: rsync_quadlet_units
+    action: rsync
+    description: "Sync Quadlet unit files from doql build/infra/"
+    src: "./build/infra/"
+    dst: "/opt/myapp/infra/"
+    risk: low
+
+  - id: install_quadlet_units
+    action: ssh_cmd
+    description: "Install Quadlet .container and .network files"
+    command: >
+      mkdir -p /etc/containers/systemd &&
+      cp /opt/myapp/infra/*.container /opt/myapp/infra/*.network
+         /opt/myapp/infra/*.volume /etc/containers/systemd/ 2>/dev/null || true
+    risk: medium
+
+  - id: setup_traefik_acme
+    action: ssh_cmd
+    description: "Prepare Traefik ACME cert file"
+    command: >
+      mkdir -p /opt/myapp/traefik &&
+      touch /opt/myapp/traefik/acme.json &&
+      chmod 600 /opt/myapp/traefik/acme.json
+    risk: low
+
+notes:
+  - "Run 'doql build' locally first to generate build/infra/ before deploying"
+  - "doql DEPLOY: target: quadlet — generates build/infra/<app>.container automatically"
+  - "doql DEPLOY: target: docker-compose — generates build/infra/docker-compose.yml"
+  - "This migration replaces docker-compose dev with Podman Quadlet systemd units"
+  - "Let's Encrypt cert issued on first request — may take up to 2 min"

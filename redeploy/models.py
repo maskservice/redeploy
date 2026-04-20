@@ -269,3 +269,53 @@ class MigrationPlan(BaseModel):
     steps: list[MigrationStep] = Field(default_factory=list)
 
     notes: list[str] = Field(default_factory=list)
+
+
+# ── ProjectManifest (redeploy.yaml — project-level config) ───────────────────
+
+class ProjectManifest(BaseModel):
+    """Per-project redeploy.yaml — replaces repetitive Makefile variables.
+
+    Place ``redeploy.yaml`` in the project root; then just run ``redeploy run``
+    with no arguments and it will pick up spec, host, app, domain automatically.
+
+    Example::
+
+        spec: migration.yaml
+        local_spec: migration-local.yaml
+        host: root@1.2.3.4
+        app: myapp
+        domain: myapp.example.com
+        ssh_key: ~/.ssh/id_ed25519
+    """
+    spec: str = "migration.yaml"
+    local_spec: str = "migration-local.yaml"
+    host: Optional[str] = None
+    app: str = "app"
+    domain: Optional[str] = None
+    ssh_key: Optional[str] = None
+    ssh_port: int = 22
+    remote_dir: Optional[str] = None
+    env_file: str = ".env"
+
+    @classmethod
+    def find_and_load(cls, start: "Path") -> "Optional[ProjectManifest]":  # type: ignore[name-defined]
+        """Walk up from *start* looking for redeploy.yaml."""
+        import yaml
+        from pathlib import Path
+        for d in [Path(start)] + list(Path(start).parents):
+            candidate = d / "redeploy.yaml"
+            if candidate.exists():
+                with candidate.open() as f:
+                    return cls(**yaml.safe_load(f))
+        return None
+
+    def apply_to_spec(self, spec: "MigrationSpec") -> None:
+        """Overlay manifest values onto a MigrationSpec (host/domain/ssh_key)."""
+        if self.host:
+            spec.source.host = self.host
+            spec.target.host = self.host
+        if self.domain and not spec.target.domain:
+            spec.target.domain = self.domain
+        if self.remote_dir and not spec.target.remote_dir:
+            spec.target.remote_dir = self.remote_dir

@@ -1,0 +1,73 @@
+# calibration-lab-compliance.yaml — deploy ISO 17025 calibration lab app
+# Inspired by doql calibration-lab example
+# DEPLOY: target: quadlet  (rootless Podman — bezpieczniej dla compliance)
+#
+# Cechy: immutable_logs, backup restic 10y, rootless Podman
+#
+# Usage:
+#   redeploy run examples/calibration-lab-compliance.yaml --dry-run
+#   redeploy run examples/calibration-lab-compliance.yaml
+
+name: "calibration-lab ISO 17025 deploy"
+description: "Deploy calibration lab system to compliance VPS (rootless Podman Quadlet, immutable logs)"
+
+source:
+  strategy: docker_full
+  host: local
+  app: cal-lab
+  version: "1.0.0"
+  domain: localhost
+
+target:
+  strategy: podman_quadlet
+  host: root@VPS_IP        # replace with lab server
+  app: cal-lab
+  version: "1.0.0"
+  domain: lab.example.com
+  remote_dir: /opt/cal-lab
+  env_file: .env
+  verify_url: https://lab.example.com/api/health
+  verify_version: "1.0"
+
+extra_steps:
+  - id: setup_immutable_log_dir
+    action: ssh_cmd
+    description: "Create append-only log directory (chattr +a for compliance)"
+    command: >
+      mkdir -p /var/log/cal-lab &&
+      chattr +a /var/log/cal-lab 2>/dev/null || echo 'chattr not available — set manually'
+    risk: low
+
+  - id: setup_backup_restic
+    action: ssh_cmd
+    description: "Initialize restic backup repo for 10y compliance retention"
+    command: >
+      which restic || apt-get install -y restic &&
+      restic -r $BACKUP_REPO init 2>/dev/null || echo 'repo already initialized'
+    risk: low
+
+  - id: install_backup_timer
+    action: scp
+    description: "Install daily backup systemd timer"
+    src: "./infra/cal-lab-backup.timer"
+    dst: "/etc/systemd/system/cal-lab-backup.timer"
+    risk: low
+
+  - id: enable_backup_timer
+    action: ssh_cmd
+    description: "Enable daily backup timer"
+    command: "systemctl enable --now cal-lab-backup.timer"
+    risk: low
+
+  - id: verify_data_integrity
+    action: ssh_cmd
+    description: "Verify SQLite DB integrity after deploy"
+    command: "sqlite3 /opt/cal-lab/data/cal-lab.db 'PRAGMA integrity_check;'"
+    risk: low
+
+notes:
+  - "ISO 17025: logs must be immutable — verify chattr +a on /var/log/cal-lab"
+  - "doql calibration-lab DEPLOY: target: quadlet — rootless for compliance"
+  - "Backup retention: 10y (restic) — configure BACKUP_REPO env var"
+  - "4-eyes verification built into doql model — redeploy only handles infra layer"
+  - "After deploy: test certificate generation at /documents/cert/new"
