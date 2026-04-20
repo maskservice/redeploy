@@ -215,7 +215,7 @@ class TestStatus:
 
 class TestInit:
     def test_init_creates_migration_yaml(self, tmp_path):
-        runner = CliRunner(mix_stderr=False)
+        runner = CliRunner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
             result = runner.invoke(cli, ["init", "--app", "myapp",
                                          "--host", "local", "--strategy", "docker_full"],
@@ -223,7 +223,7 @@ class TestInit:
         assert result.exit_code == 0
 
     def test_init_idempotent(self, tmp_path):
-        runner = CliRunner(mix_stderr=False)
+        runner = CliRunner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
             result1 = runner.invoke(cli, ["init", "--app", "test"])
             result2 = runner.invoke(cli, ["init", "--app", "test"])
