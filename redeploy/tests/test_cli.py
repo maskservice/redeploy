@@ -32,6 +32,64 @@ def _migration_yaml(strategy="docker_full", host="local") -> str:
     """)
 
 
+def _migration_markdown_supported() -> str:
+    return textwrap.dedent(
+        """\
+# Markdown migration
+
+```markpact:config yaml
+name: markdown migration
+description: migration loaded from markpact markdown
+source:
+  strategy: docker_full
+  host: local
+  app: myapp
+  version: "1.0.0"
+target:
+  strategy: docker_full
+  host: local
+  app: myapp
+  version: "1.0.1"
+  remote_dir: ~/myapp
+```
+
+```markpact:steps yaml
+extra_steps:
+  - id: sync_env
+    src: .env
+    dst: ~/myapp/.env
+```
+"""
+    )
+
+
+def _migration_markdown_with_unsupported_block() -> str:
+    return textwrap.dedent(
+        """\
+# Markdown migration
+
+```markpact:config yaml
+name: markdown migration
+source:
+  strategy: docker_full
+  host: local
+  app: myapp
+  version: "1.0.0"
+target:
+  strategy: docker_full
+  host: local
+  app: myapp
+  version: "1.0.1"
+  remote_dir: ~/myapp
+```
+
+```markpact:python
+print("unsupported in phase 1")
+```
+"""
+    )
+
+
 def _runner():
     return CliRunner(mix_stderr=False)
 
@@ -101,15 +159,23 @@ class TestRunPlanOnly:
             result = _runner().invoke(cli, ["run", str(spec), "--plan-only", "--env", "prod"])
         assert result.exit_code == 0
 
-    def test_run_plan_only_rejects_markdown_spec_with_clear_error(self, tmp_path):
+    def test_run_plan_only_supports_markdown_subset(self, tmp_path):
         spec = tmp_path / "migration.md"
-        spec.write_text("# markpact prototype\n", encoding="utf-8")
+        spec.write_text(_migration_markdown_supported(), encoding="utf-8")
+
+        result = _runner().invoke(cli, ["run", str(spec), "--plan-only"])
+
+        assert result.exit_code == 0, result.output
+        assert "markdown migration" in result.output
+
+    def test_run_plan_only_rejects_unsupported_markdown_block(self, tmp_path):
+        spec = tmp_path / "migration.md"
+        spec.write_text(_migration_markdown_with_unsupported_block(), encoding="utf-8")
 
         result = _runner().invoke(cli, ["run", str(spec), "--plan-only"])
 
         assert result.exit_code == 1
-        assert "Unsupported spec format '.md'" in result.output
-        assert "markdown/markpact specs are not implemented" in result.output
+        assert "unsupported block kind 'markpact:python'" in result.output
 
 
 # ── redeploy status ───────────────────────────────────────────────────────────
@@ -133,16 +199,15 @@ class TestStatus:
         assert result.exit_code == 0
         assert "myapp" in result.output
 
-    def test_status_rejects_markdown_spec_with_clear_error(self, tmp_path):
+    def test_status_supports_markdown_subset(self, tmp_path):
         spec = tmp_path / "migration.md"
-        spec.write_text("# markpact prototype\n", encoding="utf-8")
+        spec.write_text(_migration_markdown_supported(), encoding="utf-8")
 
         with patch("redeploy.models.ProjectManifest.find_and_load", return_value=None):
             result = _runner().invoke(cli, ["status", str(spec)])
 
-        assert result.exit_code == 1
-        assert "Unsupported spec format '.md'" in result.output
-        assert "markdown/markpact specs are not implemented" in result.output
+        assert result.exit_code == 0, result.output
+        assert "markdown migration" in result.output
 
 
 # ── redeploy init ─────────────────────────────────────────────────────────────
@@ -214,16 +279,15 @@ class TestDevices:
 
 
 class TestTarget:
-    def test_target_rejects_markdown_spec_with_clear_error(self, tmp_path):
+    def test_target_supports_markdown_subset(self, tmp_path):
         spec = tmp_path / "migration.md"
-        spec.write_text("# markpact prototype\n", encoding="utf-8")
+        spec.write_text(_migration_markdown_supported(), encoding="utf-8")
 
         with patch("redeploy.cli._resolve_device", return_value=(None, None)):
             result = _runner().invoke(cli, ["target", "pi@192.168.1.42", str(spec), "--plan-only"])
 
-        assert result.exit_code == 1
-        assert "Unsupported spec format '.md'" in result.output
-        assert "markdown/markpact specs are not implemented" in result.output
+        assert result.exit_code == 0, result.output
+        assert "target" in result.output.lower()
 
 
 # ── redeploy apply ────────────────────────────────────────────────────────────

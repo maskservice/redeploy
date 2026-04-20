@@ -3,6 +3,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .markpact import (
+    MarkpactCompileError,
+    MarkpactParseError,
+    compile_markpact_document,
+    parse_markpact_file,
+)
 from .models import MigrationSpec
 
 
@@ -21,8 +27,8 @@ def load_migration_spec(path: str | Path) -> MigrationSpec:
     - `.yaml`
     - `.yml`
 
-    Reserved for future support:
-    - `.md` markpact/markdown specs
+    Supported markdown subset today:
+    - `.md` with markpact:config and markpact:steps blocks only
     """
     spec_path = Path(path)
     suffix = spec_path.suffix.lower()
@@ -31,10 +37,10 @@ def load_migration_spec(path: str | Path) -> MigrationSpec:
         return MigrationSpec.from_file(spec_path)
 
     if suffix == ".md":
-        raise UnsupportedSpecFormatError(
-            "Unsupported spec format '.md': markdown/markpact specs are not implemented yet. "
-            "Use YAML (.yaml or .yml)."
-        )
+        try:
+            return compile_markpact_document(parse_markpact_file(spec_path))
+        except (MarkpactParseError, MarkpactCompileError) as exc:
+            raise SpecLoaderError(str(exc)) from exc
 
     raise UnsupportedSpecFormatError(
         f"Unsupported spec format '{suffix}': use YAML (.yaml or .yml)."
