@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Refactored
+- `cli.py`: Extracted 4 helper functions from `target()` to reduce cyclomatic complexity (CC: 16 → 9)
+  - `_resolve_device()` — device registry lookup + auto-probe fallback
+  - `_load_spec_with_manifest()` — spec loading with manifest overlay
+  - `_overlay_device_onto_spec()` — device values → spec target config
+  - `_run_detect_for_spec()` — conditional detect + planner creation
+
+## [0.1.4] - 2026-04-20
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update SUMD.md
+- Update SUMR.md
+
+### Other
+- Update redeploy/cli.py
+- Update redeploy/models.py
+- Update redeploy/tests/test_manifest.py
+- Update sumd.json
+
 ## [0.1.3] - 2026-04-20
 
 ### Docs

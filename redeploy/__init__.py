@@ -1,5 +1,5 @@
 """redeploy — Infrastructure migration toolkit: detect → plan → apply."""
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from .fleet import (  # noqa: F401
     DeviceArch,

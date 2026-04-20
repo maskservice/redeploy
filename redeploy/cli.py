@@ -60,6 +60,86 @@ def cli(ctx, verbose):
     ctx.obj["verbose"] = verbose
 
 
+def _run_detect_workflow(console, hosts, manifest, app, scan_subnet, deep, save_yaml):
+    """Run DetectionWorkflow and print rich report."""
+    from rich.table import Table
+    from .detect.workflow import DetectionWorkflow
+    from .models import DeviceRegistry
+
+    console.print(f"[bold]detect --workflow[/bold]  app={app}"
+                  + (f"  scan={scan_subnet}" if scan_subnet else ""))
+
+    wf = DetectionWorkflow(deep=deep, timeout=8)
+    result = wf.run(
+        hosts=hosts,
+        manifest=manifest,
+        registry=DeviceRegistry.load(),
+        scan_subnet=scan_subnet,
+        app=app,
+    )
+
+    # ── Summary table ─────────────────────────────────────────────────────────
+    console.print()
+    t = Table(show_header=True, box=None, padding=(0, 2))
+    t.add_column("Host", style="bold")
+    t.add_column("Env", style="cyan")
+    t.add_column("Strategy")
+    t.add_column("Template")
+    t.add_column("Conf", style="dim")
+    t.add_column("Arch", style="dim")
+    t.add_column("Conflicts", style="yellow")
+
+    for h in result.hosts:
+        if h.reachable:
+            conf_color = {"high": "green", "medium": "yellow", "low": "red"}.get(h.confidence, "dim")
+            conflicts = str(len(h.state.conflicts)) if h.state else "—"
+            t.add_row(
+                h.host, h.environment, h.strategy.value,
+                h.template_name[:30],
+                f"[{conf_color}]{h.confidence}[/{conf_color}]",
+                h.arch or "—",
+                conflicts,
+            )
+        else:
+            t.add_row(h.host, "—", "—", f"[red]✗ {h.error[:30]}[/red]", "—", "—", "—")
+    console.print(t)
+
+    console.print(f"\n  {len(result.reachable)}/{len(result.hosts)} reachable")
+
+    # ── Per-host details ──────────────────────────────────────────────────────
+    for h in result.reachable:
+        if not h.template_result:
+            continue
+        best = h.template_result.best
+        console.print(f"\n[bold]── {h.host} ──[/bold]  [cyan]{h.environment}[/cyan]  {h.strategy.value}")
+        console.print(f"  Template:   {best.template.name}")
+        console.print(f"  Confidence: {best.score:.1f}/{best.max_score:.1f}  ({best.confidence_label})")
+        if best.matched_conditions:
+            console.print(f"  [green]✓[/green] " + "  ".join(best.matched_conditions[:5]))
+        if best.failed_conditions:
+            console.print(f"  [dim]✗ " + "  ".join(best.failed_conditions[:4]) + "[/dim]")
+        if h.template_result.best.template.notes:
+            for note in h.template_result.best.template.notes[:2]:
+                console.print(f"  [dim]→ {note}[/dim]")
+
+        # Top 3 alternatives
+        alts = [m for m in h.template_result.ranked[1:4] if m.score > 0]
+        if alts:
+            console.print(f"  [dim]alternatives: "
+                          + " | ".join(f"{m.template.id} ({m.score:.1f})" for m in alts)
+                          + "[/dim]")
+
+    # ── Generated redeploy.yaml ───────────────────────────────────────────────
+    if result.reachable:
+        console.print(f"\n[bold]generated redeploy.yaml:[/bold]")
+        yaml_out = result.generated_redeploy_yaml()
+        console.print(yaml_out)
+
+        if save_yaml:
+            Path(save_yaml).write_text(yaml_out)
+            console.print(f"  [dim]saved → {save_yaml}[/dim]")
+
+
 # ── detect ────────────────────────────────────────────────────────────────────
 
 @cli.command()

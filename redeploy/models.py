@@ -447,7 +447,7 @@ class ProjectManifest(BaseModel):
 
 class DeployRecord(BaseModel):
     """Single deployment event recorded for a device."""
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     spec_name: str = ""
     from_strategy: str = ""
     to_strategy: str = ""
@@ -491,7 +491,7 @@ class KnownDevice(BaseModel):
     def is_reachable(self) -> bool:
         if self.last_seen is None:
             return False
-        return (datetime.utcnow() - self.last_seen).total_seconds() < 300
+        return (datetime.now(timezone.utc) - self.last_seen).total_seconds() < 300
 
     def record_deploy(self, record: DeployRecord) -> None:
         self.deploys.append(record)
