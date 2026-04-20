@@ -171,6 +171,7 @@ class Planner:
             action=StepAction.DOCKER_BUILD,
             description="Build Docker images on remote",
             command=f"cd {remote_dir} && {compose} build",
+            timeout=1800,
             risk=ConflictSeverity.LOW,
         ))
 
@@ -186,10 +187,20 @@ class Planner:
         ))
 
         self._add_step(MigrationStep(
-            id="wait_startup",
-            action=StepAction.WAIT,
-            description="Wait for services to start",
-            seconds=30,
+            id="wait_healthy",
+            action=StepAction.DOCKER_HEALTH_WAIT,
+            description="Wait until all containers are healthy/running",
+            command=f"cd {remote_dir} && {compose} ps --format 'table {{{{.Name}}}}\t{{{{.Status}}}}'",
+            timeout=120,
+            risk=ConflictSeverity.LOW,
+        ))
+
+        self._add_step(MigrationStep(
+            id="container_logs",
+            action=StepAction.CONTAINER_LOG_TAIL,
+            description="Tail container logs after startup",
+            command=f"cd {remote_dir} && {compose} logs --tail 15 --no-color 2>&1",
+            log_lines=15,
             risk=ConflictSeverity.LOW,
         ))
 

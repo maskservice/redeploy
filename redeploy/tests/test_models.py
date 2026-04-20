@@ -81,11 +81,20 @@ def test_plan_risk_elevated_when_stop_steps():
     assert migration.risk in (ConflictSeverity.MEDIUM, ConflictSeverity.HIGH)
 
 
-def test_plan_downtime_includes_wait():
+def test_plan_downtime_rolling_when_same_strategy():
     state = _make_state(k3s=False, docker=True, strategy=DeployStrategy.DOCKER_FULL)
     target = TargetConfig(strategy=DeployStrategy.DOCKER_FULL, domain="x.example.com")
     migration = Planner(state, target).run()
-    # wait step contributes to downtime estimate
+    # same strategy + no compose_down → rolling update
+    assert "rolling" in migration.estimated_downtime or "s" in migration.estimated_downtime
+
+
+def test_plan_downtime_includes_seconds_for_cross_strategy():
+    # docker→podman_quadlet triggers compose_down → real downtime
+    state = _make_state(k3s=False, docker=True, strategy=DeployStrategy.DOCKER_FULL)
+    target = TargetConfig(strategy=DeployStrategy.PODMAN_QUADLET, domain="x.example.com")
+    migration = Planner(state, target).run()
+    # compose_down present → downtime in seconds
     assert "s" in migration.estimated_downtime
 
 

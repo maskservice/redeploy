@@ -476,3 +476,143 @@ class TestExecutorFromFile:
         assert out.exists()
         content = out.read_text()
         assert "testapp" in content
+
+
+# ── docker_build progress ─────────────────────────────────────────────────────
+
+
+class TestRunDockerBuild:
+    def test_success_logs_progress(self):
+        step = _make_step("build", action=StepAction.DOCKER_BUILD, command="docker compose build")
+        plan = _make_plan([step])
+        exc = _executor(plan)
+
+        # probe.run: first call = build (blocks), subsequent = df snapshots
+        build_result = MagicMock(ok=True, out="built", stderr="", exit_code=0)
+        df_result = MagicMock(ok=True, out="Images  0  1.2GB\nBuild Cache  30  500MB", stderr="", exit_code=0)
+
+        call_count = [0]
+        def side_effect(cmd, timeout=300):
+            call_count[0] += 1
+            if "docker compose build" in cmd:
+                return build_result
+            return df_result
+
+        exc.probe.run.side_effect = side_effect
+        result = exc.run()
+        assert result is True
+        assert step.status == StepStatus.DONE
+
+    def test_build_failure_raises(self):
+        step = _make_step("build", action=StepAction.DOCKER_BUILD, command="docker compose build")
+        plan = _make_plan([step])
+        exc = _executor(plan)
+
+        fail = MagicMock(ok=False, out="", stderr="npm ERR! ENOENT", exit_code=1)
+        exc.probe.run.return_value = fail
+        result = exc.run()
+        assert result is False
+        assert step.status == StepStatus.FAILED
+
+    def test_no_command_raises(self):
+        step = MigrationStep(id="build", action=StepAction.DOCKER_BUILD,
+                             description="build", command=None)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        result = exc.run()
+        assert result is False
+
+
+# ── docker_health_wait ────────────────────────────────────────────────────────
+
+
+class TestRunDockerHealthWait:
+    def test_all_healthy_immediately(self):
+        step = _make_step("wait", action=StepAction.DOCKER_HEALTH_WAIT,
+                          command="docker compose ps --format table")
+        plan = _make_plan([step])
+        exc = _executor(plan)
+
+        healthy_out = "NAME\tSTATUS\nc2004-backend\tUp (healthy)\nc2004-frontend\tUp (healthy)"
+        exc.probe.run.return_value = MagicMock(ok=True, out=healthy_out, stderr="", exit_code=0)
+        result = exc.run()
+        assert result is True
+        assert step.status == StepStatus.DONE
+        assert "healthy" in step.result
+
+    def test_timeout_does_not_fail(self):
+        """docker_health_wait should not fail hard — http_check will catch it."""
+        step = MigrationStep(id="wait", action=StepAction.DOCKER_HEALTH_WAIT,
+                             description="wait", command="docker compose ps",
+                             timeout=1)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+
+        starting_out = "c2004-backend\tStarting"
+        exc.probe.run.return_value = MagicMock(ok=True, out=starting_out, stderr="", exit_code=0)
+        result = exc.run()
+        assert result is True  # timeout is a warning, not failure
+        assert step.status == StepStatus.DONE
+        assert "timeout" in step.result
+
+    def test_no_command_raises(self):
+        step = MigrationStep(id="wait", action=StepAction.DOCKER_HEALTH_WAIT,
+                             description="wait", command=None)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        result = exc.run()
+        assert result is False
+
+
+# ── container_log_tail ────────────────────────────────────────────────────────
+
+
+class TestRunContainerLogTail:
+    def test_logs_fetched_and_stored(self):
+        step = _make_step("logs", action=StepAction.CONTAINER_LOG_TAIL,
+                          command="docker compose logs --tail 15")
+        plan = _make_plan([step])
+        exc = _executor(plan)
+
+        log_output = "\n".join(f"backend | line {i}" for i in range(15))
+        exc.probe.run.return_value = MagicMock(ok=True, out=log_output, stderr="", exit_code=0)
+        result = exc.run()
+        assert result is True
+        assert step.status == StepStatus.DONE
+        assert "15" in step.result
+
+    def test_empty_output_handled(self):
+        step = _make_step("logs", action=StepAction.CONTAINER_LOG_TAIL,
+                          command="docker compose logs --tail 15")
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        exc.probe.run.return_value = MagicMock(ok=False, out="", stderr="", exit_code=0)
+        result = exc.run()
+        assert result is True  # not fatal
+        assert "no log output" in step.result
+
+
+# ── wait progress ticker ──────────────────────────────────────────────────────
+
+
+class TestRunWait:
+    def test_zero_seconds(self):
+        step = MigrationStep(id="w", action=StepAction.WAIT, description="w", seconds=0)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        exc.probe.run.return_value = MagicMock(ok=True, out="ok", stderr="", exit_code=0)
+        result = exc.run()
+        assert result is True
+        assert step.result == "waited 0s"
+
+    def test_positive_seconds(self):
+        import redeploy.apply.executor as ex_mod
+        step = MigrationStep(id="w", action=StepAction.WAIT, description="w", seconds=15)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        exc.probe.run.return_value = MagicMock(ok=True, out="ok", stderr="", exit_code=0)
+        with patch("redeploy.apply.executor.time") as mock_time:
+            mock_time.sleep = MagicMock()
+            result = exc.run()
+        assert result is True
+        assert step.result == "waited 15s"
