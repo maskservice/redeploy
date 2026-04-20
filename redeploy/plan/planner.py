@@ -180,7 +180,7 @@ class Planner:
             flags=["--build", "-d"],
             command=f"cd {remote_dir} && {compose} up -d --build",
             risk=ConflictSeverity.LOW,
-            rollback_command=f"cd {remote_dir} && {compose} down",
+            rollback_command=f"cd {remote_dir} && {compose} up -d",
         ))
 
         self._add_step(MigrationStep(
@@ -220,7 +220,7 @@ class Planner:
                 action=StepAction.HTTP_CHECK,
                 description="Verify backend health endpoint",
                 url=url,
-                expect='"healthy"',
+                expect="healthy",
                 risk=ConflictSeverity.LOW,
             ))
 
@@ -295,12 +295,20 @@ class Planner:
         return p
 
     def _append_extra_steps(self, spec: "MigrationSpec") -> None:  # type: ignore[name-defined]
-        """Append manually declared extra_steps from spec after auto-generated ones."""
+        """Append manually declared extra_steps from spec, with optional insert_before support."""
         from ..models import MigrationStep, StepAction
         for raw in spec.extra_steps:
+            insert_before = raw.pop("insert_before", None)
             try:
                 step = MigrationStep(**raw)
-                self._add_step(step)
+                if any(s.id == step.id for s in self._steps):
+                    continue
+                if insert_before:
+                    idx = next((i for i, s in enumerate(self._steps) if s.id == insert_before), None)
+                    if idx is not None:
+                        self._steps.insert(idx, step)
+                        continue
+                self._steps.append(step)
             except Exception as e:
                 self._notes.append(f"extra_step ignored ({raw.get('id', '?')}): {e}")
 

@@ -12,6 +12,36 @@ from . import __version__
 from .models import DeployStrategy, TargetConfig
 
 
+def _print_plan_table(console, migration) -> None:
+    from rich.table import Table
+
+    t = Table(show_header=True, box=None, padding=(0, 2))
+    t.add_column("#", style="dim", width=3)
+    t.add_column("ID")
+    t.add_column("Action", style="cyan")
+    t.add_column("Description")
+    t.add_column("Risk", style="dim")
+    for i, step in enumerate(migration.steps, 1):
+        t.add_row(str(i), step.id, step.action.value, step.description, step.risk.value)
+    console.print(t)
+    console.print(f"  risk={migration.risk.value}  downtime={migration.estimated_downtime}")
+    for note in (migration.notes or []):
+        console.print(f"  [yellow]⚠ {note}[/yellow]")
+
+
+def _run_apply(console, migration, dry_run, output) -> bool:
+    from .apply import Executor
+
+    prefix = "[DRY RUN] " if dry_run else ""
+    console.print(f"\n[bold]{prefix}apply[/bold]")
+    executor = Executor(migration, dry_run=dry_run)
+    ok = executor.run()
+    console.print(f"\n{executor.summary()}")
+    if output:
+        executor.save_results(Path(output))
+    return ok
+
+
 def _setup_logging(verbose: bool) -> None:
     logger.remove()
     level = "DEBUG" if verbose else "INFO"
@@ -305,10 +335,8 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output):
         redeploy run migration.yaml --detect --plan-out plan.yaml
     """
     from rich.console import Console
-    from rich.table import Table
     from .models import MigrationSpec
     from .plan import Planner
-    from .apply import Executor
 
     console = Console()
     spec = MigrationSpec.from_file(spec_file)
@@ -345,34 +373,11 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output):
         planner.save(migration, Path(plan_out))
         console.print(f"  [dim]plan saved → {plan_out}[/dim]")
 
-    t = Table(show_header=True, box=None, padding=(0, 2))
-    t.add_column("#", style="dim", width=3)
-    t.add_column("ID")
-    t.add_column("Action", style="cyan")
-    t.add_column("Description")
-    t.add_column("Risk", style="dim")
-    for i, step in enumerate(migration.steps, 1):
-        t.add_row(str(i), step.id, step.action.value, step.description, step.risk.value)
-    console.print(t)
-    console.print(f"  risk={migration.risk.value}  downtime={migration.estimated_downtime}")
-
-    if migration.notes:
-        for note in migration.notes:
-            console.print(f"  [yellow]⚠ {note}[/yellow]")
+    _print_plan_table(console, migration)
 
     if plan_only:
         console.print("\n[dim]--plan-only: stopping before apply[/dim]")
         return
 
-    # ── apply ─────────────────────────────────────────────────────────────────
-    prefix = "[DRY RUN] " if dry_run else ""
-    console.print(f"\n[bold]{prefix}apply[/bold]")
-    executor = Executor(migration, dry_run=dry_run)
-    ok = executor.run()
-    console.print(f"\n{executor.summary()}")
-
-    if output:
-        executor.save_results(Path(output))
-
-    if not ok:
+    if not _run_apply(console, migration, dry_run, output):
         sys.exit(1)

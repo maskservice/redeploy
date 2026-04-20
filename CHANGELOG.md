@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-04-20
+
+### Docs
+- Update README.md
+
+### Other
+- Update project/duplication.toon.yaml
+- Update project/validation.toon.yaml
+- Update redeploy/cli.py
+- Update redeploy/plan/planner.py
+
 ## [0.1.1] - 2026-04-20
 
 ### Docs
