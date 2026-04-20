@@ -3177,18 +3177,53 @@ def _print_version_scan_review(console, root_sources, packages):
         console.print("  No version sources detected")
 
 
-def _print_version_scan_group(console, label: str, sources, *, default_version: str):
+def _classify_version_scan_source_confidence(source, *, actual: str) -> str:
+    if actual == "(unreadable)":
+        return "unreadable"
+    if source.format == "regex":
+        return "heuristic"
+    return "certain"
+
+
+def _format_version_scan_source_status(confidence: str, *, conflict: bool) -> str:
+    parts = [f"confidence={confidence}"]
+    if conflict:
+        parts.append("conflict=yes")
+    return " ".join(parts)
+
+
+def _default_keep_scanned_source(confidence: str, *, conflict: bool) -> bool:
+    return confidence == "certain" and not conflict
+
+
+def _summarize_version_scan_group(sources, *, default_version: str):
     detected = _read_detected_source_versions(sources)
     detected_map = {str(source.path): version for source, version in detected}
     unique_versions = {version for _, version in detected}
     chosen_version = detected[0][1] if detected else default_version
-    suffix = " (conflict)" if len(unique_versions) > 1 else ""
+    has_conflict = len(unique_versions) > 1
+    reviewed_sources = []
 
-    console.print(f"  {label}: chosen version {chosen_version}{suffix}")
     for source in sources:
         actual = detected_map.get(str(source.path), "(unreadable)")
-        marker = " (conflict)" if len(unique_versions) > 1 and actual != chosen_version else ""
-        console.print(f"    - {source.path} ({source.format}) current: {actual}{marker}")
+        confidence = _classify_version_scan_source_confidence(source, actual=actual)
+        is_conflict = has_conflict and actual not in {"(unreadable)", chosen_version}
+        reviewed_sources.append((source, actual, confidence, is_conflict))
+
+    return chosen_version, has_conflict, reviewed_sources
+
+
+def _print_version_scan_group(console, label: str, sources, *, default_version: str):
+    chosen_version, has_conflict, reviewed_sources = _summarize_version_scan_group(
+        sources,
+        default_version=default_version,
+    )
+    suffix = " (conflict)" if has_conflict else ""
+
+    console.print(f"  {label}: chosen version {chosen_version}{suffix}")
+    for source, actual, confidence, is_conflict in reviewed_sources:
+        status = _format_version_scan_source_status(confidence, conflict=is_conflict)
+        console.print(f"    - {source.path} ({source.format}) current: {actual} {status}")
 
 
 def _iter_version_scan_groups(root_sources, packages):
@@ -3205,18 +3240,18 @@ def _review_detected_sources_interactively(console, root_sources, packages) -> s
     console.print("[bold]Interactive scan review[/bold]")
 
     for label, sources, default_version in _iter_version_scan_groups(root_sources, packages):
-        detected = _read_detected_source_versions(sources)
-        detected_map = {str(source.path): version for source, version in detected}
-        unique_versions = {version for _, version in detected}
-        chosen_version = detected[0][1] if detected else default_version
-        suffix = " (conflict)" if len(unique_versions) > 1 else ""
+        chosen_version, has_conflict, reviewed_sources = _summarize_version_scan_group(
+            sources,
+            default_version=default_version,
+        )
+        suffix = " (conflict)" if has_conflict else ""
 
         console.print(f"\n[bold]{label}[/bold]: chosen version {chosen_version}{suffix}")
-        for source in sources:
-            actual = detected_map.get(str(source.path), "(unreadable)")
+        for source, actual, confidence, is_conflict in reviewed_sources:
+            status = _format_version_scan_source_status(confidence, conflict=is_conflict)
             keep = click.confirm(
-                f"Keep {source.path} ({source.format}) current={actual}?",
-                default=True,
+                f"Keep {source.path} ({source.format}) current={actual} {status}?",
+                default=_default_keep_scanned_source(confidence, conflict=is_conflict),
             )
             if not keep:
                 rejected.add(source.path.as_posix())

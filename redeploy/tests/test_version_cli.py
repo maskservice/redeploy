@@ -361,8 +361,9 @@ class TestVersionInit:
             assert result.exit_code == 0, result.output
             assert "Scan review" in result.output
             assert "backend: chosen version 1.0.0 (conflict)" in result.output
-            assert "backend/VERSION (plain) current: 1.0.0" in result.output
-            assert "backend/src/version.ts (regex) current: 1.1.0 (conflict)" in result.output
+            assert "backend/VERSION (plain) current: 1.0.0 confidence=certain" in result.output
+            assert "backend/src/version.ts (regex) current: 1.1.0 confidence=heuristic" in result.output
+            assert "conflict=yes" in result.output
             assert "Review only - manifest not written" in result.output
             assert not Path(".redeploy/version.yaml").exists()
 
@@ -385,8 +386,8 @@ class TestVersionInit:
 
             assert result.exit_code == 0, result.output
             assert "Interactive scan review" in result.output
-            assert "Keep backend/VERSION (plain) current=1.0.0?" in result.output
-            assert "Keep backend/src/version.ts (regex) current=1.1.0?" in result.output
+            assert "Keep backend/VERSION (plain) current=1.0.0 confidence=certain? [Y/n]:" in result.output
+            assert "Keep backend/src/version.ts (regex) current=1.1.0 confidence=heuristic conflict=yes? [y/N]:" in result.output
             assert "Write manifest to .redeploy/version.yaml?" in result.output
 
             manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
@@ -394,6 +395,27 @@ class TestVersionInit:
             assert manifest["version"]["packages"]["backend"]["sources"] == [
                 {"path": "backend/VERSION", "format": "plain", "optional": False}
             ]
+
+    def test_init_scan_interactive_rejects_heuristic_source_by_default(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            Path("packages/frontend/src").mkdir(parents=True, exist_ok=True)
+            Path("packages/frontend/src/version.ts").write_text(
+                'export const VERSION = "2.1.0"\n',
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                ["version", "init", "--scan", "--interactive"],
+                input="\n",
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "Keep packages/frontend/src/version.ts (regex) current=2.1.0 confidence=heuristic? [y/N]:" in result.output
+            assert "No sources selected - manifest not written" in result.output
+            assert not Path(".redeploy/version.yaml").exists()
 
     def test_init_interactive_requires_scan(self, tmp_path):
         runner = _runner()

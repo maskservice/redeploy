@@ -1,5 +1,9 @@
 # Markpact v3: State Reconciliation Example
 
+> Status: concept only. This file describes future idempotency/state features
+> such as `check_cmd`; those features are not implemented in the current
+> `redeploy` runtime.
+
 This example demonstrates **true idempotency** using `check_cmd` (v3 feature).
 
 Unlike v2 (which only tracked execution history), v3 checks **current state** on the target host.

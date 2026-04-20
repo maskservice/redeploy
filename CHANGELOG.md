@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-04-20
+
+### Docs
+- Update README.md
+- Update docs/markpact-audit.md
+- Update docs/markpact-implementation-plan.md
+- Update examples/README.md
+- Update examples/md/01-rpi5-deploy/migration.md
+- Update examples/md/02-multi-language/migration.md
+- Update examples/md/03-all-actions/migration.md
+- Update examples/md/04-v3-state-reconciliation/migration.md
+- Update examples/md/README.md
+
+### Other
+- Update redeploy/cli.py
+- Update redeploy/tests/test_version_cli.py
+
 ## [0.2.8] - 2026-04-20
 
 ### Docs
