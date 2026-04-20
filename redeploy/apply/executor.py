@@ -15,6 +15,7 @@ from loguru import logger
 from ..detect.remote import RemoteProbe
 from ..models import MigrationPlan, MigrationStep, StepAction, StepStatus
 from ..plugins import PluginContext, registry as _plugin_registry
+from .state import ResumeState, default_state_path
 
 
 class ProgressEmitter:
@@ -124,7 +125,11 @@ class Executor:
                  progress_yaml: bool = False,
                  progress_stream: IO[str] = None,
                  audit_log: bool = True,
-                 audit_path: Optional["Path"] = None):
+                 audit_path: Optional["Path"] = None,
+                 resume: bool = False,
+                 from_step: Optional[str] = None,
+                 state_path: Optional["Path"] = None,
+                 spec_path: Optional[str] = None):
         self.plan = plan
         self.dry_run = dry_run
         self.probe = RemoteProbe(plan.host)
@@ -138,9 +143,38 @@ class Executor:
         self._audit_path = audit_path
         self._t0: float = 0.0
 
+        # ── resume / checkpoint ──────────────────────────────────────────────
+        self._resume = resume
+        self._from_step = from_step
+        spec_id = spec_path or plan.target_file or plan.infra_file or plan.app
+        if state_path is None and not dry_run:
+            state_path = default_state_path(spec_id, plan.host)
+        self._state_path: Optional[Path] = (
+            Path(state_path) if state_path is not None else None
+        )
+        self._state: Optional[ResumeState] = None
+        if self._state_path is not None and not dry_run:
+            self._state = ResumeState.load_or_new(
+                self._state_path,
+                spec_path=str(spec_id),
+                host=plan.host,
+                total_steps=len(plan.steps),
+            )
+            # Keep total_steps in sync if the spec changed between runs.
+            self._state.total_steps = len(plan.steps)
+
     @property
     def completed_steps(self) -> list[MigrationStep]:
         return list(self._completed)
+
+    @property
+    def state(self) -> Optional[ResumeState]:
+        """Current ResumeState (None when dry_run or disabled)."""
+        return self._state
+
+    @property
+    def state_path(self) -> Optional[Path]:
+        return self._state_path
 
     def run(self) -> bool:
         """Execute all steps. Returns True if all passed."""
@@ -151,19 +185,34 @@ class Executor:
         if self._emitter:
             self._emitter.start(self.plan)
 
+        skip_ids = self._compute_skip_set()
+        if skip_ids:
+            logger.info(f"resume: skipping {len(skip_ids)} already-completed step(s): "
+                        f"{', '.join(sorted(skip_ids))}")
+
         ok = True
         for i, step in enumerate(self.plan.steps, 1):
+            if step.id in skip_ids:
+                step.status = StepStatus.SKIPPED
+                step.result = "resumed: previously completed"
+                if self._emitter:
+                    self._emitter.step_done(i, step)
+                continue
             try:
                 if self._emitter:
                     self._emitter.step_start(i, step)
                 self._execute_step(step)
                 self._completed.append(step)
+                if self._state is not None:
+                    self._state.mark_done(step.id)
                 if self._emitter:
                     self._emitter.step_done(i, step)
             except StepError as e:
                 logger.error(f"Step failed: {e}")
                 step.status = StepStatus.FAILED
                 step.error = str(e)
+                if self._state is not None:
+                    self._state.mark_failed(step.id, str(e))
                 if self._emitter:
                     self._emitter.step_fail(i, step, str(e))
                     self._emitter.failed(len(self._completed), len(self.plan.steps), str(e))
@@ -177,8 +226,39 @@ class Executor:
             logger.info(f"{'[DRY RUN] ' if self.dry_run else ''}All {len(self.plan.steps)} steps completed")
             if self._emitter:
                 self._emitter.done(len(self.plan.steps))
+            # Plan finished cleanly — drop the checkpoint.
+            if self._state is not None:
+                self._state.remove()
+        else:
+            if self._state is not None and self._state_path is not None:
+                logger.info(f"resume: checkpoint saved → {self._state_path} "
+                            f"({self._state.completed_count}/{self._state.total_steps} done)")
         self._write_audit(ok=ok, elapsed_s=elapsed)
         return ok
+
+    def _compute_skip_set(self) -> set[str]:
+        """Determine which step ids should be skipped this run.
+
+        Sources (in priority order):
+          1. ``--from-step <id>``: skip every step BEFORE that id.
+          2. ``--resume`` + persisted state: skip every previously completed id.
+        """
+        skip: set[str] = set()
+        ids = [s.id for s in self.plan.steps]
+
+        if self._from_step:
+            if self._from_step not in ids:
+                logger.warning(
+                    f"--from-step '{self._from_step}' not found in plan; running full plan"
+                )
+            else:
+                idx = ids.index(self._from_step)
+                skip.update(ids[:idx])
+
+        if self._resume and self._state is not None:
+            skip.update(self._state.completed_step_ids)
+
+        return skip
 
     def _write_audit(self, *, ok: bool, elapsed_s: float) -> None:
         if not self._audit_log:
@@ -219,6 +299,7 @@ class Executor:
             StepAction.VERSION_CHECK:       self._run_version_check,
             StepAction.WAIT:                self._run_wait,
             StepAction.PLUGIN:              self._run_plugin,
+            StepAction.INLINE_SCRIPT:       self._run_inline_script,
         }
 
         handler = dispatch.get(step.action)
@@ -456,16 +537,95 @@ class Executor:
         step.status = StepStatus.DONE
         step.result = f"waited {total}s"
 
+    def _run_inline_script(self, step: MigrationStep) -> None:
+        """Execute multiline bash script via SSH using base64 encoding."""
+        import base64
+        from pathlib import Path
+
+        script = step.command
+        
+        # If command_ref is set, extract script from markdown file
+        if step.command_ref:
+            script = self._resolve_command_ref(step.command_ref, step)
+        
+        if not script:
+            raise StepError(step, "inline_script requires command field or command_ref with script content")
+
+        # Base64 encode the script to safely pass it through SSH
+        encoded = base64.b64encode(script.encode()).decode()
+        timeout = step.timeout or 300
+
+        # Create temp file, decode script, run it, then clean up
+        cmd = (
+            f"tmpfile=$(mktemp) && "
+            f"echo '{encoded}' | base64 -d > \"$tmpfile\" && "
+            f"chmod +x \"$tmpfile\" && "
+            f"\"$tmpfile\"; "
+            f"rc=$?; "
+            f"rm -f \"$tmpfile\"; "
+            f"exit $rc"
+        )
+
+        r = self.probe.run(cmd, timeout=timeout)
+        step.result = r.out[:500] if r.out else "script executed"
+        if not r.ok:
+            raise StepError(step, f"script failed with exit={r.exit_code}: {r.stderr[:200]}")
+        step.status = StepStatus.DONE
+
+    def _resolve_command_ref(self, command_ref: str, step: MigrationStep) -> str:
+        """Resolve command_ref to script content from markdown file.
+        
+        command_ref formats:
+        - "./file.md#section-id" - script from section in specific file
+        - "#section-id" - script from section in current spec file
+        """
+        from pathlib import Path
+        from ..markpact.parser import extract_script_from_markdown
+        
+        # Parse command_ref
+        if "#" in command_ref:
+            file_part, section_id = command_ref.split("#", 1)
+            file_path = file_part if file_part else getattr(self.plan, 'spec_path', None)
+        else:
+            section_id = command_ref
+            file_path = getattr(self.plan, 'spec_path', None)
+        
+        if not file_path:
+            raise StepError(step, f"Cannot resolve command_ref '{command_ref}': no file path available")
+        
+        file_path = Path(file_path)
+        if not file_path.exists():
+            raise StepError(step, f"Command ref file not found: {file_path}")
+        
+        # Extract script from markdown
+        markdown_content = file_path.read_text(encoding="utf-8")
+        script = extract_script_from_markdown(markdown_content, section_id, language="bash")
+        
+        if script is None:
+            raise StepError(step, f"Could not find bash script in section '{section_id}' of {file_path}")
+        
+        return script
+
     # ── rollback ──────────────────────────────────────────────────────────────
 
     def _rollback(self) -> None:
         logger.warning("Rolling back completed steps...")
+        rolled_back: list[str] = []
         for step in reversed(self._completed):
             if step.rollback_command:
                 logger.info(f"  ↩ rollback [{step.id}]: {step.rollback_command}")
                 r = self.probe.run(step.rollback_command, timeout=120)
                 if not r.ok:
                     logger.warning(f"    rollback failed: {r.stderr[:100]}")
+                else:
+                    rolled_back.append(step.id)
+        # Forget rolled-back steps so a subsequent --resume re-executes them.
+        if rolled_back and self._state is not None:
+            self._state.completed_step_ids = [
+                sid for sid in self._state.completed_step_ids
+                if sid not in set(rolled_back)
+            ]
+            self._state.save()
 
     # ── summary ───────────────────────────────────────────────────────────────
 

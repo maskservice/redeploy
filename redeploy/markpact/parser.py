@@ -70,3 +70,79 @@ def _parse_markpact_fence_info(info: str) -> tuple[str, str | None] | None:
         format_name = "yaml"
 
     return kind, format_name
+
+
+def extract_script_from_markdown(
+    text: str,
+    section_id: str,
+    language: str = "bash"
+) -> str | None:
+    """Extract script content from a markdown code block by section heading.
+    
+    Args:
+        text: Full markdown content
+        section_id: Section heading to find (e.g., "kiosk-browser-configuration-script")
+        language: Code block language to extract (default: "bash")
+    
+    Returns:
+        Script content or None if not found
+    
+    Example:
+        ## Kiosk Browser Configuration Script
+        ```bash
+        #!/bin/bash
+        echo "hello"
+        ```
+        
+        extract_script_from_markdown(text, "kiosk-browser-configuration-script")
+        # Returns: "#!/bin/bash\necho \"hello\"\n"
+    """
+    import re
+    
+    # Normalize section_id for comparison
+    normalized_id = section_id.lower().replace("-", " ").replace("_", " ")
+    
+    lines = text.splitlines()
+    in_target_section = False
+    code_block_lang = None
+    script_lines: list[str] = []
+    
+    for line in lines:
+        # Check for heading that matches section_id
+        heading_match = re.match(r'^#{1,6}\s+(.+)$', line, re.IGNORECASE)
+        if heading_match:
+            heading_text = heading_match.group(1).strip().lower()
+            # Check if heading matches (exact or normalized)
+            if heading_text == normalized_id or heading_text == section_id.lower():
+                in_target_section = True
+                script_lines = []
+                continue
+            elif in_target_section:
+                # We found another heading after our target section
+                break
+        
+        # Look for code block start in target section
+        if in_target_section:
+            fence_match = re.match(r'^```(\w+)?\s*$', line)
+            if fence_match:
+                if code_block_lang is None:
+                    # Opening fence
+                    code_block_lang = fence_match.group(1) or ""
+                    if code_block_lang.lower() == language.lower():
+                        script_lines = []
+                else:
+                    # Closing fence - check if we captured our target language
+                    if code_block_lang.lower() == language.lower() and script_lines:
+                        return "\n".join(script_lines)
+                    code_block_lang = None
+                continue
+            
+            # Collect lines if we're inside our target code block
+            if code_block_lang and code_block_lang.lower() == language.lower():
+                script_lines.append(line)
+    
+    # Check if we have script at end of file (no closing fence)
+    if code_block_lang and code_block_lang.lower() == language.lower() and script_lines:
+        return "\n".join(script_lines)
+    
+    return None

@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.16-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$5.25-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-11.3h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.17-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$5.40-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-11.3h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $5.2500 (35 commits)
-- 👤 **Human dev:** ~$1128 (11.3h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $5.4000 (36 commits)
+- 👤 **Human dev:** ~$1130 (11.3h @ $100/h, 30min dedup)
 
-Generated on 2026-04-20 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
+Generated on 2026-04-21 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.16-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.17-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -376,6 +376,33 @@ def notify_slack(ctx: PluginContext) -> None:
 | `emitter` | `ProgressEmitter?` | Emit mid-step progress: `emitter.progress(step.id, msg)` |
 | `params` | `dict` | Shortcut for `step.plugin_params` |
 | `dry_run` | `bool` | Skip side-effects if True |
+
+## Inline Scripts
+
+Execute multiline bash scripts directly from YAML without external files:
+
+```yaml
+extra_steps:
+  - id: configure_kiosk
+    action: inline_script
+    description: "Deploy kiosk launch script"
+    command: |
+      #!/bin/bash
+      mkdir -p ~/c2004/config
+      cat > ~/c2004/config/kiosk-launch.sh << 'EOF'
+      #!/bin/bash
+      if command -v chromium-browser >/dev/null 2>&1; then
+        chromium-browser --kiosk http://localhost:8100
+      elif command -v firefox >/dev/null 2>&1; then
+        firefox --kiosk http://localhost:8100
+      fi
+      EOF
+      chmod +x ~/c2004/config/kiosk-launch.sh
+    risk: medium
+    timeout: 60
+```
+
+The script is base64-encoded and executed via SSH with automatic temp file cleanup. Use `command` field for multiline script content (YAML `|` preserves newlines).
 
 
 

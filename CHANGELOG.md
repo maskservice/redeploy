@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add `action: inline_script` for executing multiline bash scripts directly from YAML without external files
+- Script is base64-encoded and executed via SSH with automatic temp file cleanup
+- Use `command` field with YAML `|` for multiline script content
+
+### Changed
+- Migration specs can now use inline_script for cleaner deployment scripts (no base64 encoding in YAML)
+
+## [0.2.17] - 2026-04-21
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+
+### Other
+- Update redeploy/apply/__init__.py
+- Update redeploy/apply/executor.py
+- Update redeploy/apply/state.py
+- Update redeploy/audit.py
+- Update redeploy/checkpoint.py
+- Update redeploy/cli.py
+- Update redeploy/markpact/parser.py
+- Update redeploy/models.py
+- Update redeploy/tests/test_audit.py
+- Update redeploy/tests/test_executor.py
+
 ## [0.2.16] - 2026-04-20
 
 ### Docs

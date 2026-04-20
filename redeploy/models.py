@@ -35,6 +35,7 @@ class StepAction(str, Enum):
     VERSION_CHECK = "version_check"
     WAIT = "wait"
     PLUGIN = "plugin"              # custom plugin action
+    INLINE_SCRIPT = "inline_script"  # multiline bash script from YAML
 
 
 class StepStatus(str, Enum):
@@ -182,7 +183,8 @@ class MigrationStep(BaseModel):
 
     # action-specific params
     service: Optional[str] = None        # systemctl service name
-    command: Optional[str] = None        # raw SSH command
+    command: Optional[str] = None        # raw SSH command or inline script
+    command_ref: Optional[str] = None    # reference to script in markdown: "./file.md#section-id" or "#section-id"
     compose: Optional[str] = None        # compose file path
     flags: list[str] = Field(default_factory=list)
     url: Optional[str] = None            # HTTP check URL

@@ -623,3 +623,54 @@ class TestRunWait:
             result = exc.run()
         assert result is True
         assert step.result == "waited 15s"
+
+
+# ── inline_script ───────────────────────────────────────────────────────────────
+
+
+class TestRunInlineScript:
+    def test_multiline_script_success(self):
+        script = """#!/bin/bash
+echo "Line 1"
+echo "Line 2"
+exit 0
+"""
+        step = _make_step("script1", action=StepAction.INLINE_SCRIPT, command=script)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        exc.probe.run.return_value = MagicMock(ok=True, out="Line 1\nLine 2", stderr="", exit_code=0)
+        result = exc.run()
+        assert result is True
+        assert step.status == StepStatus.DONE
+        assert "Line 1" in step.result
+
+    def test_script_failure_raises(self):
+        script = """#!/bin/bash
+echo "Error"
+exit 1
+"""
+        step = _make_step("script_fail", action=StepAction.INLINE_SCRIPT, command=script)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        exc.probe.run.return_value = MagicMock(ok=False, out="", stderr="Error", exit_code=1)
+        result = exc.run()
+        assert result is False
+        assert step.status == StepStatus.FAILED
+
+    def test_no_command_raises(self):
+        step = _make_step("script_no_cmd", action=StepAction.INLINE_SCRIPT, command="")
+        step.command = None
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        result = exc.run()
+        assert result is False
+        assert step.status == StepStatus.FAILED
+
+    def test_uses_step_timeout(self):
+        script = "#!/bin/bash\necho test"
+        step = _make_step("script_timeout", action=StepAction.INLINE_SCRIPT, command=script, timeout=456)
+        plan = _make_plan([step])
+        exc = _executor(plan)
+        exc.probe.run.return_value = MagicMock(ok=True, out="test", stderr="", exit_code=0)
+        exc.run()
+        assert exc.probe.run.call_args.kwargs["timeout"] == 456
