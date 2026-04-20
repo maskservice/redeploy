@@ -33,8 +33,23 @@ extra_steps:
   - id: rsync_c2004_app
     action: rsync
     description: "Sync c2004 application source to RPi5"
-    src: "/home/tom/github/maskservice/c2004/c2004/"
+    src: "/home/tom/github/maskservice/c2004/"
     dst: "/home/pi/c2004/c2004/"
+    excludes:
+      - "db/"
+      - "venv/"
+      - ".venv/"
+      - "node_modules/"
+      - ".git/"
+      - "__pycache__/"
+      - "*.pyc"
+      - ".pytest_cache/"
+      - "dist/"
+      - "build/"
+      - "logs/"
+      - "backups/"
+      - "screenshots/"
+      - "site/"
     risk: low
 
   - id: restart_c2004_services

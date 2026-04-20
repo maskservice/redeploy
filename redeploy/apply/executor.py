@@ -114,8 +114,11 @@ class Executor:
             dst = step.dst
         else:
             dst = f"{self.plan.host}:{step.dst}"
-        cmd = ["rsync", "-az", "--delete", step.src, dst]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        cmd = ["rsync", "-az", "--delete"]
+        for exc in step.excludes:
+            cmd += ["--exclude", exc]
+        cmd += [step.src, dst]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         if result.returncode != 0:
             raise StepError(step, f"rsync failed: {result.stderr[:200]}")
         step.status = StepStatus.DONE

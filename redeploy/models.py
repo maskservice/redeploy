@@ -159,6 +159,7 @@ class MigrationStep(BaseModel):
     expect: Optional[str] = None         # expected string in response
     src: Optional[str] = None            # rsync/scp source
     dst: Optional[str] = None            # rsync/scp destination
+    excludes: list[str] = Field(default_factory=list)  # rsync --exclude patterns
     seconds: int = 0                     # wait duration
     namespace: Optional[str] = None      # k3s namespace
 
