@@ -1,0 +1,72 @@
+# 11-traefik-tls/migration.yaml
+# Add Traefik TLS termination to existing Docker stack
+# Usage: redeploy run examples/11-traefik-tls/migration.yaml --detect
+
+name: "add Traefik TLS — plain HTTP → HTTPS via Cloudflare Full"
+description: "Mount traefik/certs/ and traefik/dynamic/tls.yml; force-recreate Traefik"
+
+source:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.20"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+
+target:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.20"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+  compose_files:
+    - docker-compose.vps.yml
+  env_file: envs/vps.env
+  verify_url: https://c2004.mask.services/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps:
+  - id: create_certs_dir
+    action: ssh_cmd
+    description: "Create traefik/certs/ and traefik/dynamic/ directories"
+    command: "mkdir -p ~/c2004/traefik/certs ~/c2004/traefik/dynamic"
+    risk: low
+
+  - id: upload_tls_config
+    action: scp
+    description: "Upload traefik/dynamic/tls.yml (cert references)"
+    src: traefik/dynamic/tls.yml
+    dst: ~/c2004/traefik/dynamic/tls.yml
+    risk: low
+
+  - id: upload_cert
+    action: scp
+    description: "Upload TLS certificate (Cloudflare Origin Cert or self-signed)"
+    src: traefik/certs/cert.pem
+    dst: ~/c2004/traefik/certs/cert.pem
+    risk: low
+
+  - id: upload_key
+    action: scp
+    description: "Upload TLS private key"
+    src: traefik/certs/key.pem
+    dst: ~/c2004/traefik/certs/key.pem
+    risk: low
+
+  - id: recreate_traefik
+    action: ssh_cmd
+    description: "Force-recreate Traefik container to pick up new volume mounts"
+    command: >-
+      cd ~/c2004 &&
+      docker compose -f docker-compose.vps.yml --env-file .env
+      up -d --force-recreate traefik
+    risk: low
+
+  - id: flush_k3s_iptables
+
+notes:
+  - "Cloudflare SSL mode: Full (not strict) — self-signed cert accepted"
+  - "traefik/dynamic/tls.yml must reference /certs/cert.pem and /certs/key.pem"
+  - "docker-compose.vps.yml must mount ./traefik/certs:/certs:ro and ./traefik/dynamic:/traefik/dynamic:ro"
+  - "For Let's Encrypt ACME: use --certificatesresolvers.le.acme.* Traefik flags instead"

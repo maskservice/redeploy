@@ -1,0 +1,43 @@
+# 12-ci-pipeline/migration.yaml
+# CI-triggered deploy: version injected from $CI_VERSION env var
+# Usage (CI): redeploy run examples/12-ci-pipeline/migration.yaml --detect
+# Note: source.version and target.version are overridden by redeploy.yaml or env
+
+name: "ci deploy — ${CI_VERSION}"
+description: "Automated deploy triggered by CI after image push"
+
+source:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "latest"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+
+target:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "latest"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+  compose_files:
+    - docker-compose.vps.yml
+  env_file: .env
+  verify_url: https://c2004.mask.services/api/v1/health
+
+extra_steps:
+  - id: flush_k3s_iptables
+
+  - id: tag_ci_deploy
+    action: ssh_cmd
+    description: "Write CI deploy marker to audit log"
+    command: >-
+      echo "ci-deploy at $(date -u +%Y-%m-%dT%H:%M:%SZ) job=${CI_JOB_ID:-unknown}"
+      >> ~/c2004/deploy.log
+    risk: low
+
+notes:
+  - "CI passes .env via scp or secret injection before running redeploy"
+  - "SSH key stored in CI secrets: SSH_PRIVATE_KEY"
+  - "For GitHub Actions: see .github/workflows/deploy.yml in this example"

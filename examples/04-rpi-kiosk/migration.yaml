@@ -25,22 +25,9 @@ target:
   verify_version: "1.0.20"
 
 extra_steps:
-  - id: stop_kiosk_browser
-    action: ssh_cmd
-    description: "Gracefully stop Chromium kiosk browser"
-    command: "pkill -f 'chromium-browser --kiosk' 2>/dev/null || true"
-    risk: low
-
-  - id: rsync_app
-    action: rsync
-    description: "Sync updated app files"
-    src: "./c2004/"
-    dst: "/home/pi/c2004/c2004/"
-    risk: low
-
   - id: restart_backend
     action: ssh_cmd
-    description: "Restart backend systemd service"
+    description: "Restart backend systemd service after kiosk installer"
     command: "systemctl restart c2004-backend.service"
     risk: low
     rollback_command: "systemctl start c2004-backend.service"
@@ -53,7 +40,7 @@ extra_steps:
 
   - id: restart_kiosk_browser
     action: ssh_cmd
-    description: "Relaunch Chromium in kiosk mode"
+    description: "Relaunch Chromium in kiosk mode after deploy"
     command: >-
       DISPLAY=:0 chromium-browser --kiosk --noerrdialogs
       --disable-infobars --app=http://localhost:8100 &

@@ -1,0 +1,38 @@
+name: Deploy to VPS
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install redeploy
+        run: pip install redeploy
+
+      - name: Write SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 87.106.87.183 >> ~/.ssh/known_hosts
+
+      - name: Write .env
+        run: |
+          echo "${{ secrets.VPS_ENV }}" > .env
+          echo "SERVICE_VERSION=${GITHUB_REF_NAME#v}" >> .env
+
+      - name: Deploy
+        env:
+          CI_JOB_ID: ${{ github.run_id }}
+        run: |
+          redeploy run examples/12-ci-pipeline/migration.yaml --detect

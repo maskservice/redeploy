@@ -1,0 +1,62 @@
+# 13-multi-app-monorepo/migration.yaml
+# Monorepo: multiple apps deployed together (c2004 + fleet)
+# Usage: redeploy run examples/13-multi-app-monorepo/migration.yaml --detect
+
+name: "monorepo deploy — c2004 + fleet 1.0.20"
+description: "Deploy multiple apps from monorepo to single VPS in one operation"
+
+source:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.19"
+  domain: c2004.mask.services
+  remote_dir: ~/apps
+
+target:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.20"
+  domain: c2004.mask.services
+  remote_dir: ~/apps
+  compose_files:
+    - docker-compose.vps.yml
+  env_file: envs/vps.env
+  verify_url: https://c2004.mask.services/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps:
+  - id: rsync_fleet_app
+    action: rsync
+    description: "Sync fleet app directory to remote"
+    src: ./fleet/
+    dst: ~/apps/fleet/
+    risk: low
+
+  - id: rsync_c2004_app
+    action: rsync
+    description: "Sync c2004 app directory to remote"
+    src: ./c2004/
+    dst: ~/apps/c2004/
+    risk: low
+
+  - id: promote_compose
+    action: ssh_cmd
+    description: "Promote docker-compose.vps.yml to apps root (build context)"
+    command: "cp ~/apps/c2004/docker-compose.vps.yml ~/apps/docker-compose.vps.yml"
+    risk: low
+    insert_before: docker_build_pull
+
+  - id: flush_k3s_iptables
+
+  - id: verify_fleet_health
+    action: ssh_cmd
+    description: "Verify fleet backend health"
+    command: "curl -skf --max-time 10 https://c2004.mask.services/fleet/health | grep -q ok && echo fleet-ok || echo fleet-warn"
+    risk: low
+
+notes:
+  - "remote_dir: ~/apps — parent of all app subdirs"
+  - "docker-compose.vps.yml uses build context relative to ~/apps/"
+  - "rsync steps use insert_before: docker_build_pull to sync before build"

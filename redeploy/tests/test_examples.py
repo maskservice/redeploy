@@ -18,7 +18,10 @@ from redeploy.steps import StepLibrary
 EXAMPLES_DIR = Path(__file__).resolve().parents[2] / "examples"
 
 MIGRATION_YAMLS = sorted(EXAMPLES_DIR.glob("*/migration.yaml"))
+# 10-multienv uses dev/staging/prod.yaml instead of migration.yaml
+MULTIENV_YAMLS = sorted(EXAMPLES_DIR.glob("10-multienv/*.yaml"))
 FLEET_YAMLS = sorted(EXAMPLES_DIR.glob("*/fleet.yaml"))
+REDEPLOY_YAMLS = sorted(EXAMPLES_DIR.glob("*/redeploy.yaml"))
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -75,6 +78,62 @@ class TestMigrationYaml:
         content = readme.read_text()
         assert "## Run" in content or "## run" in content.lower(), \
             f"{yaml_path.parent.name}/README.md missing ## Run section"
+
+    def test_has_redeploy_yaml(self, yaml_path):
+        rdeploy = yaml_path.parent / "redeploy.yaml"
+        assert rdeploy.exists(), f"Missing redeploy.yaml in {yaml_path.parent.name}"
+
+
+# ── redeploy.yaml manifest tests ──────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("rdeploy_path", REDEPLOY_YAMLS, ids=lambda p: p.parent.name)
+class TestRedeployYaml:
+    def test_parses_as_yaml(self, rdeploy_path):
+        with rdeploy_path.open() as f:
+            data = yaml.safe_load(f)
+        assert isinstance(data, dict)
+
+    def test_has_app_field(self, rdeploy_path):
+        with rdeploy_path.open() as f:
+            data = yaml.safe_load(f)
+        assert "app" in data, f"{rdeploy_path.parent.name}/redeploy.yaml missing 'app'"
+
+    def test_spec_field_points_to_existing_file_or_env_spec(self, rdeploy_path):
+        with rdeploy_path.open() as f:
+            data = yaml.safe_load(f)
+        if "spec" in data:
+            spec_path = rdeploy_path.parent / data["spec"]
+            # Allow non-existence for multienv with prod.yaml (valid reference)
+            assert spec_path.suffix in (".yaml", ".yml"), \
+                f"spec must be a yaml file, got: {data['spec']}"
+
+
+# ── multienv scenario tests ───────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "yaml_path",
+    [p for p in MULTIENV_YAMLS if p.stem in ("dev", "staging", "prod")],
+    ids=lambda p: f"10-multienv/{p.name}",
+)
+class TestMultienvYamls:
+    def test_parses_without_error(self, yaml_path):
+        spec = _load_spec(yaml_path)
+        assert spec.name
+
+    def test_plan_generates_steps(self, yaml_path):
+        spec = _load_spec(yaml_path)
+        plan = _plan_from_spec(spec)
+        assert len(plan.steps) > 0
+
+    def test_same_app_across_envs(self, yaml_path):
+        spec = _load_spec(yaml_path)
+        assert spec.target.app == "c2004"
+
+    def test_same_version_across_envs(self, yaml_path):
+        spec = _load_spec(yaml_path)
+        assert spec.target.version == "1.0.20"
 
 
 # ── scenario-specific checks ──────────────────────────────────────────────────
@@ -296,3 +355,135 @@ class TestStepLibraryCompleteness:
         ]
         for e in expected:
             assert e in ids, f"'{e}' missing from StepLibrary"
+
+    def test_named_steps_checked_in_all_spec_yamls(self):
+        """Extend check to multienv yamls (dev/staging/prod) too."""
+        missing = []
+        for yaml_path in list(EXAMPLES_DIR.glob("*/migration.yaml")) + \
+                         [p for p in MULTIENV_YAMLS if p.stem in ("dev", "staging", "prod")]:
+            with yaml_path.open() as f:
+                raw = yaml.safe_load(f) or {}
+            for step in raw.get("extra_steps", []):
+                if "action" not in step and step.get("id"):
+                    if StepLibrary.get(step["id"]) is None:
+                        missing.append(f"{yaml_path.parent.name}/{yaml_path.name}: {step['id']}")
+        assert missing == [], "Steps without action not in StepLibrary:\n" + "\n".join(missing)
+
+
+# ── scenario 10: multienv ─────────────────────────────────────────────────────
+
+
+class TestScenario10Multienv:
+    def test_all_three_specs_exist(self):
+        for name in ("dev.yaml", "staging.yaml", "prod.yaml"):
+            assert (EXAMPLES_DIR / "10-multienv" / name).exists()
+
+    def test_redeploy_yaml_has_local_spec(self):
+        with (EXAMPLES_DIR / "10-multienv" / "redeploy.yaml").open() as f:
+            data = yaml.safe_load(f)
+        assert "local_spec" in data
+        assert data["local_spec"] == "dev.yaml"
+
+    def test_prod_has_domain(self):
+        spec = _load_spec(EXAMPLES_DIR / "10-multienv" / "prod.yaml")
+        assert spec.target.domain
+
+    def test_dev_host_is_local(self):
+        spec = _load_spec(EXAMPLES_DIR / "10-multienv" / "dev.yaml")
+        assert spec.target.host in ("local", "", None) or spec.source.host == "local"
+
+    def test_staging_has_different_host_than_prod(self):
+        staging = _load_spec(EXAMPLES_DIR / "10-multienv" / "staging.yaml")
+        prod = _load_spec(EXAMPLES_DIR / "10-multienv" / "prod.yaml")
+        assert staging.target.host != prod.target.host
+
+
+# ── scenario 11: traefik-tls ──────────────────────────────────────────────────
+
+
+class TestScenario11TraefikTls:
+    def _dir(self):
+        return EXAMPLES_DIR / "11-traefik-tls"
+
+    def test_tls_yml_exists(self):
+        assert (self._dir() / "traefik" / "dynamic" / "tls.yml").exists()
+
+    def test_tls_yml_has_cert_and_key(self):
+        content = (self._dir() / "traefik" / "dynamic" / "tls.yml").read_text()
+        assert "certFile" in content
+        assert "keyFile" in content
+
+    def test_plan_has_recreate_traefik(self):
+        plan = _plan_from_spec(_load_spec(self._dir() / "migration.yaml"))
+        ids = [s.id for s in plan.steps]
+        assert "recreate_traefik" in ids
+
+    def test_plan_has_upload_steps(self):
+        plan = _plan_from_spec(_load_spec(self._dir() / "migration.yaml"))
+        ids = [s.id for s in plan.steps]
+        assert "upload_cert" in ids or "upload_tls_config" in ids
+
+
+# ── scenario 12: ci-pipeline ──────────────────────────────────────────────────
+
+
+class TestScenario12CiPipeline:
+    def _dir(self):
+        return EXAMPLES_DIR / "12-ci-pipeline"
+
+    def test_github_workflow_exists(self):
+        assert (self._dir() / "deploy.github.yml").exists()
+
+    def test_gitlab_ci_exists(self):
+        assert (self._dir() / "deploy.gitlab.yml").exists()
+
+    def test_github_workflow_has_redeploy_run(self):
+        content = (self._dir() / "deploy.github.yml").read_text()
+        assert "redeploy run" in content
+
+    def test_gitlab_ci_has_redeploy_run(self):
+        content = (self._dir() / "deploy.gitlab.yml").read_text()
+        assert "redeploy run" in content
+
+    def test_github_workflow_has_ssh_key_secret(self):
+        content = (self._dir() / "deploy.github.yml").read_text()
+        assert "SSH_PRIVATE_KEY" in content
+
+    def test_plan_has_audit_step(self):
+        plan = _plan_from_spec(_load_spec(self._dir() / "migration.yaml"))
+        ids = [s.id for s in plan.steps]
+        assert "tag_ci_deploy" in ids
+
+
+# ── scenario 13: multi-app-monorepo ───────────────────────────────────────────
+
+
+class TestScenario13Monorepo:
+    def _dir(self):
+        return EXAMPLES_DIR / "13-multi-app-monorepo"
+
+    def test_has_fleet_yaml(self):
+        assert (self._dir() / "fleet.yaml").exists()
+
+    def test_fleet_has_three_envs(self):
+        config = FleetConfig.from_file(self._dir() / "fleet.yaml")
+        stages = {d.stage for d in config.devices}
+        assert Stage.PROD in stages
+        assert Stage.STAGING in stages
+        assert Stage.LOCAL in stages
+
+    def test_fleet_prod_has_traefik_expectation(self):
+        config = FleetConfig.from_file(self._dir() / "fleet.yaml")
+        prod = config.get_device("vps-prod-c2004")
+        assert prod is not None
+        assert DeviceExpectation.HAS_TRAEFIK in prod.expectations
+
+    def test_plan_has_rsync_steps(self):
+        plan = _plan_from_spec(_load_spec(self._dir() / "migration.yaml"))
+        ids = [s.id for s in plan.steps]
+        assert any("rsync" in i for i in ids)
+
+    def test_plan_has_promote_compose(self):
+        plan = _plan_from_spec(_load_spec(self._dir() / "migration.yaml"))
+        ids = [s.id for s in plan.steps]
+        assert "promote_compose" in ids

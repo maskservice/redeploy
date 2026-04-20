@@ -1,0 +1,62 @@
+# 13-multi-app-monorepo/fleet.yaml
+# Monorepo fleet: multiple apps on same VPS, separate staging devices per app
+
+devices:
+  - id: vps-prod-c2004
+    name: "VPS Prod — c2004 (identification)"
+    arch: amd64
+    strategy: docker_full
+    ssh_host: "root@87.106.87.183"
+    remote_dir: "~/apps"
+    version: "1.0.20"
+    env_file: "envs/vps.env"
+    domain: "c2004.mask.services"
+    compose_files: ["docker-compose.vps.yml"]
+    apps: [c2004, fleet]
+    stage: prod
+    tags: [prod, vps, docker, monorepo]
+    expectations:
+      - has_docker
+      - has_docker_compose
+      - has_traefik
+      - ssh_reachable
+      - https_reachable
+      - no_k3s
+    color: "#f59e0b"
+
+  - id: vps-staging-c2004
+    name: "VPS Staging — c2004"
+    arch: amd64
+    strategy: docker_full
+    ssh_host: "root@10.0.0.10"
+    remote_dir: "~/apps"
+    version: "1.0.20"
+    env_file: "envs/staging.env"
+    domain: "staging.c2004.example.com"
+    compose_files: ["docker-compose.vps.yml"]
+    apps: [c2004, fleet]
+    stage: staging
+    tags: [staging, vps, docker, monorepo]
+    expectations:
+      - has_docker
+      - has_docker_compose
+      - ssh_reachable
+      - no_k3s
+    color: "#3b82f6"
+
+  - id: docker-local
+    name: "Local dev"
+    arch: amd64
+    strategy: docker_full
+    ssh_host: ""
+    remote_dir: ""
+    version: "latest"
+    env_file: "envs/local.env"
+    apps: [c2004, fleet]
+    stage: local
+    tags: [dev, docker, monorepo]
+    expectations:
+      - has_docker
+      - has_docker_compose
+    debug: true
+    color: "#10b981"

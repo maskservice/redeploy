@@ -65,3 +65,17 @@ cd myproject
 redeploy run          # reads spec/host/domain from redeploy.yaml
 redeploy run --detect # live probe + plan + apply
 ```
+
+## Run
+
+```bash
+# Parse fleet.yaml and check expectations
+redeploy devices
+
+# Discover new devices on local network
+redeploy scan
+
+# Deploy to a specific device from fleet
+redeploy target vps-prod examples/09-fleet-yaml/migration.yaml --plan-only
+redeploy target vps-prod examples/09-fleet-yaml/migration.yaml --detect
+```

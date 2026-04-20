@@ -1,36 +1,66 @@
 # redeploy — Examples
 
-Each subdirectory is a self-contained scenario with a `migration.yaml` (or `fleet.yaml`) and a `README.md`.
+Each subdirectory is a self-contained scenario with `migration.yaml` + `redeploy.yaml` + `README.md`.
 
 ```
 examples/
 ├── 01-vps-version-bump/          # Bump Docker version on VPS (same strategy)
 │   ├── migration.yaml
+│   ├── redeploy.yaml
 │   └── README.md
 ├── 02-k3s-to-docker/             # Migrate from k3s + ingress-nginx → Docker + Traefik
 │   ├── migration.yaml
+│   ├── redeploy.yaml
 │   └── README.md
 ├── 03-docker-to-podman-quadlet/  # Docker Compose → Podman Quadlet (rootless systemd)
 │   ├── migration.yaml
+│   ├── redeploy.yaml
 │   └── README.md
 ├── 04-rpi-kiosk/                 # Raspberry Pi native kiosk (systemd + Chromium)
 │   ├── migration.yaml
+│   ├── redeploy.yaml
 │   └── README.md
 ├── 05-iot-fleet-ota/             # IoT edge node OTA via Docker
 │   ├── migration.yaml
+│   ├── redeploy.yaml
 │   └── README.md
-├── 06-local-dev/                 # Local Docker Compose dev iteration
+├── 06-local-dev/                 # Local Docker Compose dev iteration (no SSH)
 │   ├── migration.yaml
+│   ├── redeploy.yaml
 │   └── README.md
-├── 07-staging-to-prod/           # Promote staging image to prod with webhook notify
+├── 07-staging-to-prod/           # Promote staging image to prod with webhooks
 │   ├── migration.yaml
+│   ├── redeploy.yaml
 │   └── README.md
 ├── 08-rollback/                  # Emergency rollback to previous version
 │   ├── migration.yaml
+│   ├── redeploy.yaml
 │   └── README.md
-└── 09-fleet-yaml/                # fleet.yaml with stages/tags/expectations + redeploy.yaml
-    ├── fleet.yaml
+├── 09-fleet-yaml/                # fleet.yaml with stages/tags/expectations
+│   ├── fleet.yaml
+│   ├── redeploy.yaml
+│   └── README.md
+├── 10-multienv/                  # dev/staging/prod specs in one directory
+│   ├── dev.yaml
+│   ├── staging.yaml
+│   ├── prod.yaml
+│   ├── redeploy.yaml
+│   └── README.md
+├── 11-traefik-tls/               # Add TLS termination to Traefik via cert files
+│   ├── migration.yaml
+│   ├── redeploy.yaml
+│   ├── traefik/dynamic/tls.yml
+│   └── README.md
+├── 12-ci-pipeline/               # GitHub Actions / GitLab CI automated deploy
+│   ├── migration.yaml
+│   ├── redeploy.yaml
+│   ├── deploy.github.yml
+│   ├── deploy.gitlab.yml
+│   └── README.md
+└── 13-multi-app-monorepo/        # Multiple apps from one monorepo to single VPS
+    ├── migration.yaml
     ├── redeploy.yaml
+    ├── fleet.yaml
     └── README.md
 ```
 
@@ -45,8 +75,12 @@ examples/
 | 05 | IoT OTA | docker_full → docker_full | DB backup, image prune, VERSION file |
 | 06 | Local dev | docker_full (local) | `host: local` — no SSH |
 | 07 | Staging → Prod | docker_full → docker_full | smoke test, `insert_before`, webhooks |
-| 08 | Rollback | docker_full → docker_full | Source/target swapped, audit log |
-| 09 | Fleet YAML | all strategies | `Stage`, `DeviceExpectation`, `redeploy.yaml` |
+| 08 | Rollback | docker_full → docker_full | source/target swapped, audit log |
+| 09 | Fleet YAML | all strategies | `Stage`, `DeviceExpectation` |
+| 10 | Multi-env | docker_full | `dev.yaml` / `staging.yaml` / `prod.yaml` |
+| 11 | Traefik TLS | docker_full | cert upload, force-recreate Traefik |
+| 12 | CI Pipeline | docker_full | GitHub Actions + GitLab CI workflows |
+| 13 | Monorepo | docker_full | multiple apps, rsync + promote compose |
 
 ## Run any example
 
