@@ -1,23 +1,23 @@
-# redup/duplication | 5 groups | 60f 14353L | 2026-04-20
+# redup/duplication | 6 groups | 66f 16708L | 2026-04-20
 
 SUMMARY:
-  files_scanned: 60
-  total_lines:   14353
-  dup_groups:    5
-  dup_fragments: 13
-  saved_lines:   79
-  scan_ms:       11614
+  files_scanned: 66
+  total_lines:   16708
+  dup_groups:    6
+  dup_fragments: 15
+  saved_lines:   83
+  scan_ms:       4241
 
 HOTSPOTS[7] (files with most duplication):
   redeploy/version.py  dup=77L  groups=4  frags=4  (0.5%)
-  redeploy/version/__init__.py  dup=67L  groups=4  frags=4  (0.5%)
+  redeploy/version/__init__.py  dup=67L  groups=4  frags=4  (0.4%)
+  redeploy/apply/executor.py  dup=8L  groups=1  frags=2  (0.0%)
   redeploy/version/sources/json_.py  dup=3L  groups=1  frags=1  (0.0%)
   redeploy/version/sources/plain.py  dup=3L  groups=1  frags=1  (0.0%)
   redeploy/version/sources/regex.py  dup=3L  groups=1  frags=1  (0.0%)
   redeploy/version/sources/toml_.py  dup=3L  groups=1  frags=1  (0.0%)
-  redeploy/version/sources/yaml_.py  dup=3L  groups=1  frags=1  (0.0%)
 
-DUPLICATES[5] (ranked by impact):
+DUPLICATES[6] (ranked by impact):
   [2260446c0ed30fbb] ! STRU  check_version_http  L=40 N=2 saved=40 sim=1.00
       redeploy/version/__init__.py:69-108  (check_version_http)
       redeploy/version.py:52-96  (check_version_http)
@@ -36,8 +36,11 @@ DUPLICATES[5] (ranked by impact):
   [f269e2bd5ad747d0]   STRU  read_remote_version  L=7 N=2 saved=7 sim=1.00
       redeploy/version/__init__.py:49-55  (read_remote_version)
       redeploy/version.py:27-38  (read_remote_version)
+  [77bcb9e3c572a8f9]   EXAC  _ssh_build  L=4 N=2 saved=4 sim=1.00
+      redeploy/apply/executor.py:370-373  (_ssh_build)
+      redeploy/apply/executor.py:418-421  (_ssh_build)
 
-REFACTOR[5] (ranked by priority):
+REFACTOR[6] (ranked by priority):
   [1] ◐ extract_function   → redeploy/utils/check_version_http.py
       WHY: 2 occurrences of 40-line block across 2 files — saves 40 lines
       FILES: redeploy/version.py, redeploy/version/__init__.py
@@ -53,6 +56,9 @@ REFACTOR[5] (ranked by priority):
   [5] ○ extract_function   → redeploy/utils/read_remote_version.py
       WHY: 2 occurrences of 7-line block across 2 files — saves 7 lines
       FILES: redeploy/version.py, redeploy/version/__init__.py
+  [6] ○ extract_function   → redeploy/apply/utils/_ssh_build.py
+      WHY: 2 occurrences of 4-line block across 1 files — saves 4 lines
+      FILES: redeploy/apply/executor.py
 
 QUICK_WINS[4] (low risk, high savings — do first):
   [2] extract_function   saved=12L  → redeploy/version/sources/utils/write.py
@@ -64,13 +70,14 @@ QUICK_WINS[4] (low risk, high savings — do first):
   [5] extract_function   saved=7L  → redeploy/utils/read_remote_version.py
       FILES: version.py, __init__.py
 
-EFFORT_ESTIMATE (total ≈ 3.3h):
+EFFORT_ESTIMATE (total ≈ 3.4h):
   hard   check_version_http                  saved=40L  ~120min
   easy   write                               saved=12L  ~24min
   easy   read_local_version                  saved=11L  ~22min
   easy   check_version                       saved=9L  ~18min
   easy   read_remote_version                 saved=7L  ~14min
+  easy   _ssh_build                          saved=4L  ~8min
 
 METRICS-TARGET:
-  dup_groups:  5 → 0
-  saved_lines: 79 lines recoverable
+  dup_groups:  6 → 0
+  saved_lines: 83 lines recoverable

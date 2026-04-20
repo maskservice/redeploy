@@ -1,0 +1,161 @@
+# code2llm | 66f 16582L | python:66 | 2026-04-21
+# CC̄=5.3 | critical:35/551 | dups:0 | cycles:0
+
+HEALTH[20]:
+  🔴 GOD   audit.py = 556L, 6 classes, 24m, max CC=18
+  🔴 GOD   models.py = 636L, 20 classes, 21m, max CC=19
+  🟡 CC    parse_diagnostics CC=16 (limit:15)
+  🟡 CC    browser_reload CC=16 (limit:15)
+  🟡 CC    run_file CC=15 (limit:15)
+  🟡 CC    _probe_one CC=18 (limit:15)
+  🟡 CC    _detect_strategy_remote CC=26 (limit:15)
+  🟡 CC    auto_probe CC=20 (limit:15)
+  🟡 CC    extract_script_from_markdown CC=18 (limit:15)
+  🟡 CC    _format_release_content CC=17 (limit:15)
+  🟡 CC    run CC=20 (limit:15)
+  🟡 CC    _run_docker_health_wait CC=19 (limit:15)
+  🟡 CC    _run_detect_workflow CC=26 (limit:15)
+  🟡 CC    inspect CC=38 (limit:15)
+  🟡 CC    workflow_cmd CC=18 (limit:15)
+  🟡 CC    export_cmd CC=19 (limit:15)
+  🟡 CC    exec_multi_cmd CC=16 (limit:15)
+  🟡 CC    run CC=17 (limit:15)
+  🟡 CC    state_cmd CC=17 (limit:15)
+  🟡 CC    devices CC=18 (limit:15)
+
+REFACTOR[3]:
+  1. split audit.py  (god module)
+  2. split models.py  (god module)
+  3. split 18 high-CC methods  (CC>15)
+
+PIPELINES[347]:
+  [1] Src [get]: get
+      PURITY: 100% pure
+  [2] Src [resolve_from_spec]: resolve_from_spec
+      PURITY: 100% pure
+  [3] Src [read_local_version]: read_local_version
+      PURITY: 100% pure
+  [4] Src [check_version_http]: check_version_http
+      PURITY: 100% pure
+  [5] Src [parse_docker_ps]: parse_docker_ps
+      PURITY: 100% pure
+
+LAYERS:
+  markpact/                       CC̄=8.2    ←in:9  →out:1
+  │ !! parser                     255L  1C    6m  CC=18     ←3
+  │ compiler                   177L  1C    6m  CC=11     ←2
+  │ models                      26L  2C    0m  CC=0.0    ←0
+  │ __init__                    24L  0C    0m  CC=0.0    ←0
+  │
+  detect/                         CC̄=6.5    ←in:0  →out:7
+  │ !! templates                  460L  5C   10m  CC=36     ←0
+  │ !! workflow                   418L  3C   12m  CC=18     ←0
+  │ probes                     277L  0C    9m  CC=13     ←1
+  │ detector                    96L  1C    3m  CC=9      ←0
+  │ __init__                     4L  0C    0m  CC=0.0    ←0
+  │ remote                       4L  0C    0m  CC=0.0    ←0
+  │
+  iac/                            CC̄=6.5    ←in:2  →out:3
+  │ !! docker_compose             418L  1C   11m  CC=37     ←0
+  │ !! compose                    287L  1C   13m  CC=21     ←0
+  │ base                       275L  7C   13m  CC=7      ←0
+  │ __init__                    47L  0C    0m  CC=0.0    ←0
+  │ registry                    37L  0C    2m  CC=1      ←1
+  │ __init__                     1L  0C    0m  CC=0.0    ←0
+  │
+  ./                              CC̄=6.0    ←in:0  →out:0
+  │ !! cli                       3832L  0C   89m  CC=38     ←1
+  │ !! discovery                  714L  2C   16m  CC=26     ←2
+  │ !! models                     636L  20C   21m  CC=19     ←5
+  │ !! audit                      556L  6C   24m  CC=18     ←1
+  │ patterns                   407L  4C   11m  CC=5      ←1
+  │ !! fleet                      396L  6C   23m  CC=25     ←0
+  │ observe                    313L  3C   14m  CC=12     ←0
+  │ ssh                        299L  4C   17m  CC=7      ←0
+  │ steps                      294L  1C    5m  CC=4      ←17
+  │ !! parse                      169L  0C    6m  CC=16     ←0
+  │ __init__                   149L  0C    0m  CC=0.0    ←0
+  │ verify                      92L  1C    7m  CC=8      ←0
+  │ spec_loader                 47L  2C    1m  CC=4      ←2
+  │ data_sync                   45L  0C    2m  CC=7      ←0
+  │
+  dsl/                            CC̄=5.8    ←in:9  →out:1
+  │ !! loader                     403L  3C   12m  CC=25     ←2
+  │ parser                     261L  2C    8m  CC=8      ←0
+  │ __init__                    30L  0C    0m  CC=0.0    ←0
+  │
+  plan/                           CC̄=4.7    ←in:4  →out:2
+  │ !! planner                    620L  1C   21m  CC=10     ←1
+  │ __init__                     4L  0C    0m  CC=0.0    ←0
+  │
+  apply/                          CC̄=4.3    ←in:4  →out:2
+  │ !! executor                   711L  3C   34m  CC=20     ←1
+  │ state                      161L  1C   13m  CC=5      ←2
+  │ __init__                    16L  0C    0m  CC=0.0    ←0
+  │
+  plugins/                        CC̄=3.9    ←in:5  →out:1
+  │ __init__                   180L  2C   10m  CC=7      ←4
+  │ notify                     168L  0C    7m  CC=6      ←0
+  │ !! browser_reload             120L  0C    3m  CC=16     ←0
+  │ systemd_reload              98L  0C    2m  CC=12     ←0
+  │ __init__                     1L  0C    0m  CC=0.0    ←0
+  │
+  version/                        CC̄=3.8    ←in:23  →out:1
+  │ bump                       284L  0C    6m  CC=13     ←1
+  │ !! commits                    218L  2C    3m  CC=18     ←2
+  │ !! changelog                  195L  1C   10m  CC=17     ←1
+  │ manifest                   169L  8C   10m  CC=6      ←2
+  │ transaction                162L  2C    6m  CC=12     ←0
+  │ __init__                   148L  0C    4m  CC=8      ←1
+  │ git_integration            142L  2C   13m  CC=4      ←0
+  │ diff                       118L  1C    3m  CC=8      ←1
+  │ toml_                      108L  1C    4m  CC=10     ←0
+  │ git_transaction            105L  2C    5m  CC=9      ←0
+  │ yaml_                       98L  1C    4m  CC=10     ←0
+  │ json_                       94L  1C    4m  CC=9      ←0
+  │ regex                       69L  1C    3m  CC=5      ←0
+  │ __init__                    65L  1C    5m  CC=2      ←3
+  │ base                        44L  1C    4m  CC=3      ←0
+  │ plain                       28L  1C    3m  CC=2      ←0
+  │
+  dsl_python/                     CC̄=3.2    ←in:0  →out:5
+  │ steps                      294L  0C    7m  CC=7      ←0
+  │ docker_steps               211L  2C    6m  CC=7      ←0
+  │ !! runner                     205L  1C    5m  CC=15     ←0
+  │ decorators                 137L  4C    8m  CC=3      ←0
+  │ __init__                    77L  0C    0m  CC=0.0    ←0
+  │ exceptions                  44L  6C    4m  CC=1      ←0
+  │ context                     39L  1C    3m  CC=1      ←0
+  │
+
+COUPLING:
+                     cli       steps      models     version    patterns   discovery         dsl    markpact      detect       apply        plan     plugins  dsl_python       fleet         iac
+         cli          ──          11          20          22                       5           8           4                       4           4           2          ←1                       2  !! fan-out
+       steps         ←11          ──          ←2          ←1         ←18          ←3          ←1          ←1          ←4                      ←1          ←1          ←3          ←3          ←2  hub
+      models         ←20           2          ──                                  ←2           1                      ←1                                                          ←2              hub
+     version         ←22           1                      ──                                                                                                          ←1                          hub
+    patterns                      18                                  ──                                                                      ←1                                                  !! fan-out
+   discovery          ←5           3           2                                  ──                                  ←2                                                                          hub
+         dsl          ←8           1          ←1                                              ──                                                                                                  hub
+    markpact          ←4           1                                                                      ──                      ←2                                                          ←1  hub
+      detect                       4           1                                   2                                  ──                                                                        
+       apply          ←4                                                                                   2                      ──                                                            
+        plan          ←4           1                                   1                                                                      ──                                                
+     plugins          ←2           1                                                                                                                      ──                                      hub
+  dsl_python           1           3                       1                                                                                                          ──                        
+       fleet                       3           2                                                                                                                                  ──            
+         iac          ←2           2                                                                       1                                                                                  ──
+  CYCLES: none
+  HUB: dsl/ (fan-in=9)
+  HUB: plugins/ (fan-in=5)
+  HUB: version/ (fan-in=23)
+  HUB: discovery/ (fan-in=7)
+  HUB: models/ (fan-in=26)
+  HUB: markpact/ (fan-in=9)
+  HUB: steps/ (fan-in=54)
+  SMELL: cli/ fan-out=84 → split needed
+  SMELL: patterns/ fan-out=18 → split needed
+
+EXTERNAL:
+  validation: run `vallm batch .` → validation.toon
+  duplication: run `redup scan .` → duplication.toon

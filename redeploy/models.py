@@ -28,6 +28,7 @@ class StepAction(str, Enum):
     DOCKER_BUILD = "docker_build"
     DOCKER_HEALTH_WAIT = "docker_health_wait"   # wait until all containers healthy
     CONTAINER_LOG_TAIL = "container_log_tail"   # tail container logs after start
+    PODMAN_BUILD = "podman_build"               # podman build with progress polling
     RSYNC = "rsync"
     SCP = "scp"
     SSH_CMD = "ssh_cmd"

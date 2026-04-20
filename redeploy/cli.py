@@ -29,6 +29,464 @@ def _print_plan_table(console, migration) -> None:
         console.print(f"  [yellow]⚠ {note}[/yellow]")
 
 
+def _print_infrastructure_summary(console, state, host) -> None:
+    from rich.table import Table
+
+    console.print(f"\n[bold]Infrastructure: {host}[/bold]")
+    t = Table(show_header=False, box=None, padding=(0, 2))
+    t.add_column("key", style="dim")
+    t.add_column("value")
+    t.add_row("App", state.app)
+    t.add_row("Strategy (detected)", state.detected_strategy.value)
+    t.add_row("Version", state.current_version or "unknown")
+    t.add_row("Docker", state.runtime.docker or "—")
+    t.add_row("k3s", state.runtime.k3s or "—")
+    t.add_row("Podman", state.runtime.podman or "—")
+    t.add_row("Open ports", ", ".join(str(p) for p in sorted(state.ports.keys())))
+    console.print(t)
+
+
+def _print_docker_services(console, state) -> None:
+    if state.services.get("docker"):
+        console.print("\n[bold]Docker containers:[/bold]")
+        for s in state.services["docker"]:
+            icon = "✅" if s.status == "healthy" else "⚪"
+            console.print(f"  {icon} {s.name}  ({s.status})")
+
+
+def _print_k3s_pods(console, state) -> None:
+    if state.services.get("k3s"):
+        console.print(f"\n[bold]k3s pods ({len(state.services['k3s'])}):[/bold]")
+        for s in state.services["k3s"]:
+            icon = "✅" if s.status == "running" else "⚪"
+            console.print(f"  {icon} {s.namespace}/{s.name}  ({s.status})")
+
+
+def _print_conflicts(console, state) -> None:
+    if state.conflicts:
+        console.print(f"\n[bold yellow]Conflicts ({len(state.conflicts)}):[/bold yellow]")
+        for c in state.conflicts:
+            color = {"critical": "red", "high": "yellow", "medium": "blue", "low": "dim"}[c.severity.value]
+            console.print(f"  [{color}][{c.severity.upper()}][/{color}] {c.type}: {c.description}")
+            if c.fix_hint:
+                console.print(f"    [dim]hint: {c.fix_hint}[/dim]")
+    else:
+        console.print("\n[green]No conflicts detected.[/green]")
+
+
+def _find_css_path(css_file, console) -> Path | None:
+    from .models import ProjectManifest
+
+    if css_file:
+        return Path(css_file)
+    css_path = ProjectManifest.find_css(Path.cwd())
+    if css_path and css_path.exists():
+        return css_path
+    return None
+
+
+def _print_inspect_app_metadata(console, result) -> None:
+    if result.manifest:
+        m = result.manifest
+        console.print(f"[bold cyan]app[/bold cyan]  {m.app}  spec={m.spec}"
+                      + (f"  domain={m.domain}" if m.domain else ""))
+
+
+def _print_inspect_environments(console, result) -> None:
+    from rich.table import Table
+
+    if result.manifest and result.manifest.environments:
+        console.print(f"\n[bold]Environments ({len(result.manifest.environments)})[/bold]")
+        t = Table(show_header=True, box=None, padding=(0, 2))
+        t.add_column("Name", style="cyan")
+        t.add_column("Host")
+        t.add_column("Strategy")
+        t.add_column("Env file", style="dim")
+        t.add_column("Verify URL", style="dim")
+        for env_name, cfg in result.manifest.environments.items():
+            t.add_row(
+                env_name,
+                cfg.host or "—",
+                cfg.strategy or "—",
+                cfg.env_file or "—",
+                cfg.verify_url or "—",
+            )
+        console.print(t)
+
+
+def _print_inspect_templates(console, result) -> None:
+    if result.templates:
+        console.print(f"\n[bold]Detection Templates ({len(result.templates)})[/bold]")
+        for tpl in result.templates:
+            console.print(f"  [cyan]{tpl.id}[/cyan]  env=[yellow]{tpl.environment}[/yellow]"
+                          f"  strategy={tpl.strategy.value}  max_score={tpl.max_score:.1f}")
+            console.print(f"    conditions: "
+                          + "  ".join(f"[dim]{c.description}[/dim]×{c.weight}" for c in tpl.conditions[:5]))
+            if tpl.required:
+                console.print(f"    required:   "
+                              + "  ".join(f"[red]{r.description}[/red]" for r in tpl.required))
+            if tpl.notes:
+                for note in tpl.notes[:2]:
+                    console.print(f"    [dim]→ {note}[/dim]")
+
+
+def _print_inspect_workflows(console, result) -> None:
+    if result.workflows:
+        console.print(f"\n[bold]Workflows ({len(result.workflows)})[/bold]")
+        for wf in result.workflows:
+            plugin_steps = [s for s in wf.steps if s.plugin_type]
+            plugin_hint = (f"  [dim](plugins: "
+                           + ", ".join(s.plugin_type for s in plugin_steps)
+                           + ")[/dim]") if plugin_steps else ""
+            console.print(f"  [cyan]{wf.name}[/cyan]  "
+                          f"[dim]{wf.trigger}[/dim]  "
+                          f"{len(wf.steps)} steps"
+                          + (f"  [dim]{wf.description}[/dim]" if wf.description else "")
+                          + plugin_hint)
+            for step in wf.steps:
+                if step.plugin_type:
+                    params_str = "  ".join(f"{k}={v}" for k, v in step.plugin_params.items())
+                    console.print(f"    step-{step.index}: [yellow]plugin[/yellow] "
+                                  f"[cyan]{step.plugin_type}[/cyan]"
+                                  + (f"  [dim]{params_str}[/dim]" if params_str else ""))
+                else:
+                    console.print(f"    step-{step.index}: [dim]{step.command[:80]}[/dim]")
+
+
+def _print_inspect_devices(console, result) -> None:
+    from rich.table import Table
+
+    devices = [n for n in result.raw_nodes if n.selector_type == "device"]
+    if devices:
+        console.print(f"\n[bold]Devices ({len(devices)})[/bold]")
+        t3 = Table(show_header=True, box=None, padding=(0, 2))
+        t3.add_column("Name", style="cyan")
+        t3.add_column("Host")
+        t3.add_column("Arch", style="dim")
+        t3.add_column("Strategy", style="dim")
+        t3.add_column("Description")
+        for d in devices:
+            t3.add_row(
+                d.name,
+                d.get("host", "—"),
+                d.get("arch", "—"),
+                d.get("expected_strategy", "—"),
+                d.get("description", "—"),
+            )
+        console.print(t3)
+
+
+def _print_inspect_raw_nodes_summary(console, result) -> None:
+    by_type: dict[str, int] = {}
+    for n in result.raw_nodes:
+        by_type[n.selector_type] = by_type.get(n.selector_type, 0) + 1
+    console.print(f"\n[dim]nodes: "
+                  + "  ".join(f"{t}×{c}" for t, c in sorted(by_type.items()))
+                  + "[/dim]")
+    console.print(f"[dim]export: redeploy export --format css  |  redeploy export --format yaml[/dim]")
+
+
+def _print_workflow_summary_table(console, result) -> None:
+    from rich.table import Table
+
+    console.print()
+    t = Table(show_header=True, box=None, padding=(0, 2))
+    t.add_column("Host", style="bold")
+    t.add_column("Env", style="cyan")
+    t.add_column("Strategy")
+    t.add_column("Template")
+    t.add_column("Conf", style="dim")
+    t.add_column("Arch", style="dim")
+    t.add_column("Conflicts", style="yellow")
+
+    for h in result.hosts:
+        if h.reachable:
+            conf_color = {"high": "green", "medium": "yellow", "low": "red"}.get(h.confidence, "dim")
+            conflicts = str(len(h.state.conflicts)) if h.state else "—"
+            t.add_row(
+                h.host, h.environment, h.strategy.value,
+                h.template_name[:30],
+                f"[{conf_color}]{h.confidence}[/{conf_color}]",
+                h.arch or "—",
+                conflicts,
+            )
+        else:
+            t.add_row(h.host, "—", "—", f"[red]✗ {h.error[:30]}[/red]", "—", "—", "—")
+    console.print(t)
+    console.print(f"\n  {len(result.reachable)}/{len(result.hosts)} reachable")
+
+
+def _print_workflow_host_details(console, result) -> None:
+    for h in result.reachable:
+        if not h.template_result:
+            continue
+        best = h.template_result.best
+        console.print(f"\n[bold]── {h.host} ──[/bold]  [cyan]{h.environment}[/cyan]  {h.strategy.value}")
+        console.print(f"  Template:   {best.template.name}")
+        console.print(f"  Confidence: {best.score:.1f}/{best.max_score:.1f}  ({best.confidence_label})")
+        if best.matched_conditions:
+            console.print(f"  [green]✓[/green] " + "  ".join(best.matched_conditions[:5]))
+        if best.failed_conditions:
+            console.print(f"  [dim]✗ " + "  ".join(best.failed_conditions[:4]) + "[/dim]")
+        if h.template_result.best.template.notes:
+            for note in h.template_result.best.template.notes[:2]:
+                console.print(f"  [dim]→ {note}[/dim]")
+
+        # Top 3 alternatives
+        alts = [m for m in h.template_result.ranked[1:4] if m.score > 0]
+        if alts:
+            console.print(f"  [dim]alternatives: "
+                          + " | ".join(f"{m.template.id} ({m.score:.1f})" for m in alts)
+                          + "[/dim]")
+
+
+def _generate_workflow_output_css(console, result, app, save_yaml) -> None:
+    from .dsl.loader import manifest_to_css, templates_to_css
+    from .models import ProjectManifest, EnvironmentConfig
+
+    gen_manifest = result.reachable[0].template_result  # use detected info
+    envs = {}
+    for h in result.reachable:
+        cfg = EnvironmentConfig(
+            host=h.host,
+            strategy=h.strategy.value,
+            verify_url=(h.state.health[0].url if h.state and h.state.health else None),
+            ssh_key=h.ssh_key or None,
+        )
+        envs[h.environment] = cfg
+    tmp_manifest = ProjectManifest(app=app, environments=envs)
+    css_out = manifest_to_css(tmp_manifest, app=app)
+    css_out += "\n\n" + templates_to_css(
+        [h.template_result.best.template for h in result.reachable if h.template_result]
+    )
+    console.print(f"\n[bold]generated redeploy.css:[/bold]")
+    console.print(css_out)
+    if save_yaml:
+        Path(save_yaml).write_text(css_out)
+        console.print(f"  [dim]saved → {save_yaml}[/dim]")
+
+
+def _generate_workflow_output_yaml(console, result, save_yaml) -> None:
+    yaml_out = result.generated_redeploy_yaml()
+    console.print(f"\n[bold]generated redeploy.yaml:[/bold]")
+    console.print(yaml_out)
+    if save_yaml:
+        Path(save_yaml).write_text(yaml_out)
+        console.print(f"  [dim]saved → {save_yaml}[/dim]")
+
+
+def _find_export_source(src_file, console) -> Path | None:
+    from .models import ProjectManifest
+
+    if src_file:
+        return Path(src_file)
+    src = ProjectManifest.find_css(Path.cwd())
+    if not src:
+        src = next((Path.cwd() / f for f in ("redeploy.yaml",) if (Path.cwd() / f).exists()), None)
+    if not src:
+        for d in list(Path.cwd().parents)[:3]:
+            for f in ("redeploy.css", "redeploy.less", "redeploy.yaml"):
+                if (d / f).exists():
+                    return d / f
+    return src
+
+
+def _load_manifest_from_css(src):
+    from .dsl.loader import load_css
+
+    result = load_css(src)
+    return result.manifest, result.templates
+
+
+def _load_manifest_from_yaml(src):
+    from .models import ProjectManifest
+    import yaml as _yaml
+
+    with src.open() as f:
+        manifest = ProjectManifest(**_yaml.safe_load(f))
+    return manifest, []
+
+
+def _export_to_css(manifest, templates) -> str:
+    from .dsl.loader import manifest_to_css, templates_to_css
+
+    out = manifest_to_css(manifest)
+    if templates:
+        out += "\n\n" + templates_to_css(templates)
+    return out
+
+
+def _export_to_yaml(manifest) -> str:
+    import yaml as _yaml
+
+    return _yaml.dump(manifest.model_dump(exclude_none=True, exclude_defaults=True),
+                     default_flow_style=False, allow_unicode=True)
+
+
+def _list_workflows(console, css_path, result) -> None:
+    console.print(f"[bold]Workflows in {css_path.name}:[/bold]")
+    for wf in result.workflows:
+        console.print(f"  [cyan]{wf.name}[/cyan]"
+                      + (f"  [dim]{wf.description}[/dim]" if wf.description else ""))
+        for step in wf.steps:
+            console.print(f"    step-{step.index}: [dim]{step.command[:70]}[/dim]")
+
+
+def _execute_workflow(console, wf, dry_run, css_path) -> None:
+    import subprocess as _sp
+
+    console.print(f"[bold]workflow[/bold] [cyan]{wf.name}[/cyan]"
+                  + (f"  [dim]{wf.description}[/dim]" if wf.description else ""))
+
+    for step in wf.steps:
+        console.print(f"\n  [dim]step-{step.index}[/dim]  {step.command}")
+        if dry_run:
+            continue
+        ret = _sp.run(step.command, shell=True, cwd=str(css_path.parent))
+        if ret.returncode != 0:
+            console.print(f"  [red]✗ step-{step.index} failed (exit {ret.returncode})[/red]")
+            sys.exit(ret.returncode)
+        console.print(f"  [green]✓[/green]")
+
+    if not dry_run:
+        console.print(f"\n[green]✓ workflow '{wf.name}' complete[/green]")
+
+
+def _extract_script_for_ref(md_content, ref_id) -> tuple[str, str] | None:
+    from .markpact.parser import extract_script_from_markdown, extract_script_by_ref
+
+    # Try markpact:ref first
+    script = extract_script_by_ref(md_content, ref_id, language="bash")
+    lookup_method = "markpact:ref"
+
+    if script is None and ref_id.startswith("#"):
+        # Try section lookup
+        script = extract_script_from_markdown(md_content, ref_id[1:], language="bash")
+        lookup_method = "section"
+
+    if script is None:
+        return None
+    return script, lookup_method
+
+
+def _extract_all_scripts(md_path, ref_list, console) -> list[tuple[str, str, str]]:
+    from .markpact.parser import extract_script_from_markdown, extract_script_by_ref
+
+    md_content = md_path.read_text(encoding="utf-8")
+    scripts: list[tuple[str, str, str]] = []  # (ref_id, script, lookup_method)
+
+    for ref_id in ref_list:
+        result = _extract_script_for_ref(md_content, ref_id)
+        if result is None:
+            console.print(f"[red]✗ Could not find script: {ref_id}[/red]")
+            sys.exit(1)
+        script, lookup_method = result
+        scripts.append((ref_id, script, lookup_method))
+        console.print(f"  [green]✓[/green] {ref_id} ({len(script)} chars, {lookup_method})")
+
+    return scripts
+
+
+def _execute_single_script(ref_id, script, host, timeout) -> bool:
+    from .apply.executor import Executor, MigrationPlan, MigrationStep, StepAction
+
+    step = MigrationStep(
+        id=f"exec_{ref_id}",
+        action=StepAction.INLINE_SCRIPT,
+        description=f"Execute script from {ref_id}",
+        command=script,
+        timeout=timeout,
+    )
+    plan = MigrationPlan(
+        host=host,
+        app="exec-multi",
+        from_strategy="unknown",
+        to_strategy="unknown",
+        steps=[step],
+    )
+
+    executor = Executor(plan, dry_run=False)
+    return executor.run()
+
+
+def _print_execution_results(console, results) -> None:
+    from rich.table import Table
+
+    console.print(f"\n[bold]Results:[/bold]")
+    t = Table(show_header=True, box=None)
+    t.add_column("Script")
+    t.add_column("Status")
+    for ref_id, ok in results:
+        status = "[green]✓ OK[/green]" if ok else "[red]✗ Failed[/red]"
+        t.add_row(ref_id, status)
+    console.print(t)
+
+
+def _list_checkpoints(console) -> None:
+    from rich.table import Table
+    from .apply.state import DEFAULT_STATE_DIR, ResumeState
+
+    base = DEFAULT_STATE_DIR
+    if not base.exists():
+        console.print(f"[dim]no checkpoints under {base}/[/dim]")
+        return
+    files = sorted(base.glob("*.yaml"))
+    if not files:
+        console.print(f"[dim]no checkpoints under {base}/[/dim]")
+        return
+    t = Table(show_header=True, box=None, padding=(0, 2))
+    t.add_column("File", style="bold")
+    t.add_column("Spec")
+    t.add_column("Host", style="cyan")
+    t.add_column("Done")
+    t.add_column("Failed", style="red")
+    t.add_column("Updated", style="dim")
+    for f in files:
+        try:
+            st = ResumeState.load(f)
+            t.add_row(
+                f.name, st.spec_path or "?", st.host,
+                f"{st.completed_count}/{st.total_steps}",
+                st.failed_step_id or "—",
+                st.updated_at,
+            )
+        except Exception as e:
+            t.add_row(f.name, "[red]parse error[/red]", "—", "—", "—", str(e)[:40])
+    console.print(t)
+
+
+def _get_state_path(spec_file, host, state_file, console) -> Path:
+    from .apply.state import default_state_path
+
+    if state_file:
+        return Path(state_file)
+    if not spec_file:
+        console.print("[red]✗ provide SPEC or --state-file[/red]")
+        sys.exit(2)
+    spec = _load_spec_or_exit(console, spec_file)
+    target_host = host or spec.source.host or "local"
+    return default_state_path(spec_file, target_host)
+
+
+def _show_checkpoint(console, path) -> None:
+    from .apply.state import ResumeState
+
+    st = ResumeState.load(path)
+    console.print(f"[bold]checkpoint[/bold] {path}")
+    console.print(f"  spec:        {st.spec_path}")
+    console.print(f"  host:        {st.host}")
+    console.print(f"  progress:    {st.completed_count}/{st.total_steps} "
+                  f"({st.remaining} pending)")
+    console.print(f"  started:     {st.started_at}")
+    console.print(f"  updated:     {st.updated_at}")
+    if st.failed_step_id:
+        console.print(f"  [red]failed:      {st.failed_step_id}[/red]")
+        if st.failed_error:
+            console.print(f"  [red]error:       {st.failed_error[:200]}[/red]")
+    if st.completed_step_ids:
+        console.print(f"  done:        {', '.join(st.completed_step_ids)}")
+
+
 def _run_apply(console, migration, dry_run, output, ssh_key: str = "",
                progress_yaml: bool = False,
                resume: bool = False,
@@ -96,7 +554,6 @@ def cli(ctx, verbose):
 
 def _run_detect_workflow(console, hosts, manifest, app, scan_subnet, deep, save_yaml, fmt="yaml"):
     """Run DetectionWorkflow and print rich report."""
-    from rich.table import Table
     from .detect.workflow import DetectionWorkflow
     from .models import DeviceRegistry
 
@@ -112,91 +569,15 @@ def _run_detect_workflow(console, hosts, manifest, app, scan_subnet, deep, save_
         app=app,
     )
 
-    # ── Summary table ─────────────────────────────────────────────────────────
-    console.print()
-    t = Table(show_header=True, box=None, padding=(0, 2))
-    t.add_column("Host", style="bold")
-    t.add_column("Env", style="cyan")
-    t.add_column("Strategy")
-    t.add_column("Template")
-    t.add_column("Conf", style="dim")
-    t.add_column("Arch", style="dim")
-    t.add_column("Conflicts", style="yellow")
-
-    for h in result.hosts:
-        if h.reachable:
-            conf_color = {"high": "green", "medium": "yellow", "low": "red"}.get(h.confidence, "dim")
-            conflicts = str(len(h.state.conflicts)) if h.state else "—"
-            t.add_row(
-                h.host, h.environment, h.strategy.value,
-                h.template_name[:30],
-                f"[{conf_color}]{h.confidence}[/{conf_color}]",
-                h.arch or "—",
-                conflicts,
-            )
-        else:
-            t.add_row(h.host, "—", "—", f"[red]✗ {h.error[:30]}[/red]", "—", "—", "—")
-    console.print(t)
-
-    console.print(f"\n  {len(result.reachable)}/{len(result.hosts)} reachable")
-
-    # ── Per-host details ──────────────────────────────────────────────────────
-    for h in result.reachable:
-        if not h.template_result:
-            continue
-        best = h.template_result.best
-        console.print(f"\n[bold]── {h.host} ──[/bold]  [cyan]{h.environment}[/cyan]  {h.strategy.value}")
-        console.print(f"  Template:   {best.template.name}")
-        console.print(f"  Confidence: {best.score:.1f}/{best.max_score:.1f}  ({best.confidence_label})")
-        if best.matched_conditions:
-            console.print(f"  [green]✓[/green] " + "  ".join(best.matched_conditions[:5]))
-        if best.failed_conditions:
-            console.print(f"  [dim]✗ " + "  ".join(best.failed_conditions[:4]) + "[/dim]")
-        if h.template_result.best.template.notes:
-            for note in h.template_result.best.template.notes[:2]:
-                console.print(f"  [dim]→ {note}[/dim]")
-
-        # Top 3 alternatives
-        alts = [m for m in h.template_result.ranked[1:4] if m.score > 0]
-        if alts:
-            console.print(f"  [dim]alternatives: "
-                          + " | ".join(f"{m.template.id} ({m.score:.1f})" for m in alts)
-                          + "[/dim]")
+    _print_workflow_summary_table(console, result)
+    _print_workflow_host_details(console, result)
 
     # ── Generated output (yaml or css) ───────────────────────────────────────
     if result.reachable:
         if fmt == "css":
-            from .dsl.loader import manifest_to_css, templates_to_css
-            from .detect.templates import TEMPLATES
-            gen_manifest = result.reachable[0].template_result  # use detected info
-            # Build a manifest from WorkflowResult
-            from .models import ProjectManifest, EnvironmentConfig
-            envs = {}
-            for h in result.reachable:
-                cfg = EnvironmentConfig(
-                    host=h.host,
-                    strategy=h.strategy.value,
-                    verify_url=(h.state.health[0].url if h.state and h.state.health else None),
-                    ssh_key=h.ssh_key or None,
-                )
-                envs[h.environment] = cfg
-            tmp_manifest = ProjectManifest(app=app, environments=envs)
-            css_out = manifest_to_css(tmp_manifest, app=app)
-            css_out += "\n\n" + templates_to_css(
-                [h.template_result.best.template for h in result.reachable if h.template_result]
-            )
-            console.print(f"\n[bold]generated redeploy.css:[/bold]")
-            console.print(css_out)
-            if save_yaml:
-                Path(save_yaml).write_text(css_out)
-                console.print(f"  [dim]saved → {save_yaml}[/dim]")
+            _generate_workflow_output_css(console, result, app, save_yaml)
         else:
-            yaml_out = result.generated_redeploy_yaml()
-            console.print(f"\n[bold]generated redeploy.yaml:[/bold]")
-            console.print(yaml_out)
-            if save_yaml:
-                Path(save_yaml).write_text(yaml_out)
-                console.print(f"  [dim]saved → {save_yaml}[/dim]")
+            _generate_workflow_output_yaml(console, result, save_yaml)
 
 
 # ── detect ────────────────────────────────────────────────────────────────────
@@ -270,46 +651,11 @@ def detect(ctx, host, app, domain, output, run_workflow, scan_subnet, no_deep, s
         console.print(f"[red]✗ {e}[/red]")
         sys.exit(1)
 
-    # Print summary
-    console.print(f"\n[bold]Infrastructure: {host}[/bold]")
-
-    t = Table(show_header=False, box=None, padding=(0, 2))
-    t.add_column("key", style="dim")
-    t.add_column("value")
-    t.add_row("App", state.app)
-    t.add_row("Strategy (detected)", state.detected_strategy.value)
-    t.add_row("Version", state.current_version or "unknown")
-    t.add_row("Docker", state.runtime.docker or "—")
-    t.add_row("k3s", state.runtime.k3s or "—")
-    t.add_row("Podman", state.runtime.podman or "—")
-    t.add_row("Open ports", ", ".join(str(p) for p in sorted(state.ports.keys())))
-    console.print(t)
-
-    # Docker services
-    if state.services.get("docker"):
-        console.print("\n[bold]Docker containers:[/bold]")
-        for s in state.services["docker"]:
-            icon = "✅" if s.status == "healthy" else "⚪"
-            console.print(f"  {icon} {s.name}  ({s.status})")
-
-    # k3s pods
-    if state.services.get("k3s"):
-        console.print(f"\n[bold]k3s pods ({len(state.services['k3s'])}):[/bold]")
-        for s in state.services["k3s"]:
-            icon = "✅" if s.status == "running" else "⚪"
-            console.print(f"  {icon} {s.namespace}/{s.name}  ({s.status})")
-
-    # Conflicts
-    if state.conflicts:
-        console.print(f"\n[bold yellow]Conflicts ({len(state.conflicts)}):[/bold yellow]")
-        for c in state.conflicts:
-            color = {"critical": "red", "high": "yellow", "medium": "blue", "low": "dim"}[c.severity.value]
-            console.print(f"  [{color}][{c.severity.upper()}][/{color}] {c.type}: {c.description}")
-            if c.fix_hint:
-                console.print(f"    [dim]hint: {c.fix_hint}[/dim]")
-    else:
-        console.print("\n[green]No conflicts detected.[/green]")
-
+    # Print summary using helper functions
+    _print_infrastructure_summary(console, state, host)
+    _print_docker_services(console, state)
+    _print_k3s_pods(console, state)
+    _print_conflicts(console, state)
     console.print(f"\n[dim]Saved to {out_path}[/dim]")
 
 
@@ -408,15 +754,11 @@ def inspect(ctx, css_file):
         redeploy inspect --file redeploy.css
     """
     from rich.console import Console
-    from rich.table import Table
     from .models import ProjectManifest
 
     console = Console()
 
-    if css_file:
-        css_path = Path(css_file)
-    else:
-        css_path = ProjectManifest.find_css(Path.cwd())
+    css_path = _find_css_path(css_file, console)
 
     if not css_path or not css_path.exists():
         console.print("[yellow]No redeploy.css found — falling back to redeploy.yaml[/yellow]")
@@ -431,96 +773,12 @@ def inspect(ctx, css_file):
     result = load_css(css_path)
     console.print(f"\n[bold]redeploy inspect[/bold]  [dim]{css_path}[/dim]\n")
 
-    # ── App metadata ──────────────────────────────────────────────────────────
-    if result.manifest:
-        m = result.manifest
-        console.print(f"[bold cyan]app[/bold cyan]  {m.app}  spec={m.spec}"
-                      + (f"  domain={m.domain}" if m.domain else ""))
-
-    # ── Environments ──────────────────────────────────────────────────────────
-    if result.manifest and result.manifest.environments:
-        console.print(f"\n[bold]Environments ({len(result.manifest.environments)})[/bold]")
-        t = Table(show_header=True, box=None, padding=(0, 2))
-        t.add_column("Name", style="cyan")
-        t.add_column("Host")
-        t.add_column("Strategy")
-        t.add_column("Env file", style="dim")
-        t.add_column("Verify URL", style="dim")
-        for env_name, cfg in result.manifest.environments.items():
-            t.add_row(
-                env_name,
-                cfg.host or "—",
-                cfg.strategy or "—",
-                cfg.env_file or "—",
-                cfg.verify_url or "—",
-            )
-        console.print(t)
-
-    # ── Templates ─────────────────────────────────────────────────────────────
-    if result.templates:
-        console.print(f"\n[bold]Detection Templates ({len(result.templates)})[/bold]")
-        for tpl in result.templates:
-            console.print(f"  [cyan]{tpl.id}[/cyan]  env=[yellow]{tpl.environment}[/yellow]"
-                          f"  strategy={tpl.strategy.value}  max_score={tpl.max_score:.1f}")
-            console.print(f"    conditions: "
-                          + "  ".join(f"[dim]{c.description}[/dim]×{c.weight}" for c in tpl.conditions[:5]))
-            if tpl.required:
-                console.print(f"    required:   "
-                              + "  ".join(f"[red]{r.description}[/red]" for r in tpl.required))
-            if tpl.notes:
-                for note in tpl.notes[:2]:
-                    console.print(f"    [dim]→ {note}[/dim]")
-
-    # ── Workflows ─────────────────────────────────────────────────────────────
-    if result.workflows:
-        console.print(f"\n[bold]Workflows ({len(result.workflows)})[/bold]")
-        for wf in result.workflows:
-            plugin_steps = [s for s in wf.steps if s.plugin_type]
-            plugin_hint = (f"  [dim](plugins: "
-                           + ", ".join(s.plugin_type for s in plugin_steps)
-                           + ")[/dim]") if plugin_steps else ""
-            console.print(f"  [cyan]{wf.name}[/cyan]  "
-                          f"[dim]{wf.trigger}[/dim]  "
-                          f"{len(wf.steps)} steps"
-                          + (f"  [dim]{wf.description}[/dim]" if wf.description else "")
-                          + plugin_hint)
-            for step in wf.steps:
-                if step.plugin_type:
-                    params_str = "  ".join(f"{k}={v}" for k, v in step.plugin_params.items())
-                    console.print(f"    step-{step.index}: [yellow]plugin[/yellow] "
-                                  f"[cyan]{step.plugin_type}[/cyan]"
-                                  + (f"  [dim]{params_str}[/dim]" if params_str else ""))
-                else:
-                    console.print(f"    step-{step.index}: [dim]{step.command[:80]}[/dim]")
-
-    # ── Devices ───────────────────────────────────────────────────────────────
-    devices = [n for n in result.raw_nodes if n.selector_type == "device"]
-    if devices:
-        console.print(f"\n[bold]Devices ({len(devices)})[/bold]")
-        t3 = Table(show_header=True, box=None, padding=(0, 2))
-        t3.add_column("Name", style="cyan")
-        t3.add_column("Host")
-        t3.add_column("Arch", style="dim")
-        t3.add_column("Strategy", style="dim")
-        t3.add_column("Description")
-        for d in devices:
-            t3.add_row(
-                d.name,
-                d.get("host", "—"),
-                d.get("arch", "—"),
-                d.get("expected_strategy", "—"),
-                d.get("description", "—"),
-            )
-        console.print(t3)
-
-    # ── Raw nodes summary ─────────────────────────────────────────────────────
-    by_type: dict[str, int] = {}
-    for n in result.raw_nodes:
-        by_type[n.selector_type] = by_type.get(n.selector_type, 0) + 1
-    console.print(f"\n[dim]nodes: "
-                  + "  ".join(f"{t}×{c}" for t, c in sorted(by_type.items()))
-                  + "[/dim]")
-    console.print(f"[dim]export: redeploy export --format css  |  redeploy export --format yaml[/dim]")
+    _print_inspect_app_metadata(console, result)
+    _print_inspect_environments(console, result)
+    _print_inspect_templates(console, result)
+    _print_inspect_workflows(console, result)
+    _print_inspect_devices(console, result)
+    _print_inspect_raw_nodes_summary(console, result)
 
 
 # ── workflow (run named workflow from redeploy.css) ───────────────────────────
@@ -542,7 +800,6 @@ def workflow_cmd(ctx, name, css_file, dry_run, list_only):
         redeploy workflow deploy:rpi5 --dry-run
         redeploy workflow release
     """
-    import subprocess as _sp
     from rich.console import Console
     from .models import ProjectManifest
 
@@ -557,12 +814,7 @@ def workflow_cmd(ctx, name, css_file, dry_run, list_only):
     result = load_css(css_path)
 
     if list_only or not name:
-        console.print(f"[bold]Workflows in {css_path.name}:[/bold]")
-        for wf in result.workflows:
-            console.print(f"  [cyan]{wf.name}[/cyan]"
-                          + (f"  [dim]{wf.description}[/dim]" if wf.description else ""))
-            for step in wf.steps:
-                console.print(f"    step-{step.index}: [dim]{step.command[:70]}[/dim]")
+        _list_workflows(console, css_path, result)
         return
 
     wf = next((w for w in result.workflows if w.name == name), None)
@@ -572,21 +824,7 @@ def workflow_cmd(ctx, name, css_file, dry_run, list_only):
         console.print(f"  Available: {', '.join(available)}")
         sys.exit(1)
 
-    console.print(f"[bold]workflow[/bold] [cyan]{wf.name}[/cyan]"
-                  + (f"  [dim]{wf.description}[/dim]" if wf.description else ""))
-
-    for step in wf.steps:
-        console.print(f"\n  [dim]step-{step.index}[/dim]  {step.command}")
-        if dry_run:
-            continue
-        ret = _sp.run(step.command, shell=True, cwd=str(css_path.parent))
-        if ret.returncode != 0:
-            console.print(f"  [red]✗ step-{step.index} failed (exit {ret.returncode})[/red]")
-            sys.exit(ret.returncode)
-        console.print(f"  [green]✓[/green]")
-
-    if not dry_run:
-        console.print(f"\n[green]✓ workflow '{wf.name}' complete[/green]")
+    _execute_workflow(console, wf, dry_run, css_path)
 
 
 # ── plugin ────────────────────────────────────────────────────────────────────
@@ -614,25 +852,10 @@ def export_cmd(ctx, fmt, output, src_file):
         redeploy export --format yaml --file redeploy.css
     """
     from rich.console import Console
-    from .models import ProjectManifest
-    from .dsl.loader import load_css, manifest_to_css, templates_to_css
 
     console = Console(stderr=True)
 
-    if src_file:
-        src = Path(src_file)
-    else:
-        src = ProjectManifest.find_css(Path.cwd())
-        if not src:
-            src = next((Path.cwd() / f for f in ("redeploy.yaml",) if (Path.cwd() / f).exists()), None)
-        if not src:
-            for d in list(Path.cwd().parents)[:3]:
-                for f in ("redeploy.css", "redeploy.less", "redeploy.yaml"):
-                    if (d / f).exists():
-                        src = d / f
-                        break
-                if src:
-                    break
+    src = _find_export_source(src_file, console)
 
     if not src or not src.exists():
         console.print("[red]✗ No redeploy.css or redeploy.yaml found[/red]")
@@ -640,42 +863,21 @@ def export_cmd(ctx, fmt, output, src_file):
 
     console.print(f"[dim]source: {src}[/dim]")
 
+    # Load manifest based on source type
+    if src.suffix in (".css", ".less"):
+        manifest, templates = _load_manifest_from_css(src)
+    else:
+        manifest, templates = _load_manifest_from_yaml(src)
+
+    if not manifest:
+        console.print("[red]✗ Could not parse manifest[/red]")
+        sys.exit(1)
+
+    # Export to requested format
     if fmt == "css":
-        # Load from yaml or css → emit css
-        if src.suffix in (".css", ".less"):
-            result = load_css(src)
-            manifest = result.manifest
-            templates = result.templates
-        else:
-            import yaml as _yaml
-            with src.open() as f:
-                manifest = ProjectManifest(**_yaml.safe_load(f))
-            templates = []
-
-        if not manifest:
-            console.print("[red]✗ Could not parse manifest[/red]")
-            sys.exit(1)
-
-        out = manifest_to_css(manifest)
-        if templates:
-            out += "\n\n" + templates_to_css(templates)
-
-    else:  # yaml
-        if src.suffix in (".css", ".less"):
-            result = load_css(src)
-            manifest = result.manifest
-        else:
-            import yaml as _yaml
-            with src.open() as f:
-                manifest = ProjectManifest(**_yaml.safe_load(f))
-
-        if not manifest:
-            console.print("[red]✗ Could not parse manifest[/red]")
-            sys.exit(1)
-
-        import yaml as _yaml
-        out = _yaml.dump(manifest.model_dump(exclude_none=True, exclude_defaults=True),
-                         default_flow_style=False, allow_unicode=True)
+        out = _export_to_css(manifest, templates)
+    else:
+        out = _export_to_yaml(manifest)
 
     if output:
         Path(output).write_text(out)
@@ -881,10 +1083,7 @@ def exec_multi_cmd(ctx, refs, host, markdown_file, dry_run, timeout, parallel):
             --host root@server.com --file deploy.md --dry-run
     """
     from rich.console import Console
-    from rich.table import Table
     from pathlib import Path
-    from .markpact.parser import extract_script_from_markdown, extract_script_by_ref
-    from .apply.executor import Executor, MigrationPlan, MigrationStep, StepAction, StepStatus
 
     console = Console()
     md_path = Path(markdown_file)
@@ -897,26 +1096,8 @@ def exec_multi_cmd(ctx, refs, host, markdown_file, dry_run, timeout, parallel):
     ref_list = [r.strip() for r in refs.split(",")]
     console.print(f"[bold]Loading {len(ref_list)} scripts from {md_path}...[/bold]")
 
-    md_content = md_path.read_text(encoding="utf-8")
-
     # Extract all scripts
-    scripts: list[tuple[str, str, str]] = []  # (ref_id, script, lookup_method)
-    for ref_id in ref_list:
-        # Try markpact:ref first
-        script = extract_script_by_ref(md_content, ref_id, language="bash")
-        lookup_method = "markpact:ref"
-
-        if script is None and ref_id.startswith("#"):
-            # Try section lookup
-            script = extract_script_from_markdown(md_content, ref_id[1:], language="bash")
-            lookup_method = "section"
-
-        if script is None:
-            console.print(f"[red]✗ Could not find script: {ref_id}[/red]")
-            sys.exit(1)
-
-        scripts.append((ref_id, script, lookup_method))
-        console.print(f"  [green]✓[/green] {ref_id} ({len(script)} chars, {lookup_method})")
+    scripts = _extract_all_scripts(md_path, ref_list, console)
 
     if dry_run:
         console.print(f"\n[bold]Scripts (dry-run):[/bold]")
@@ -933,24 +1114,7 @@ def exec_multi_cmd(ctx, refs, host, markdown_file, dry_run, timeout, parallel):
     results = []
     for ref_id, script, _ in scripts:
         console.print(f"  Running {ref_id}...", end=" ")
-
-        step = MigrationStep(
-            id=f"exec_{ref_id}",
-            action=StepAction.INLINE_SCRIPT,
-            description=f"Execute script from {ref_id}",
-            command=script,
-            timeout=timeout,
-        )
-        plan = MigrationPlan(
-            host=host,
-            app="exec-multi",
-            from_strategy="unknown",
-            to_strategy="unknown",
-            steps=[step],
-        )
-
-        executor = Executor(plan, dry_run=False)
-        ok = executor.run()
+        ok = _execute_single_script(ref_id, script, host, timeout)
         results.append((ref_id, ok))
 
         if ok:
@@ -959,14 +1123,7 @@ def exec_multi_cmd(ctx, refs, host, markdown_file, dry_run, timeout, parallel):
             console.print("[red]✗[/red]")
 
     # Summary table
-    console.print(f"\n[bold]Results:[/bold]")
-    t = Table(show_header=True, box=None)
-    t.add_column("Script")
-    t.add_column("Status")
-    for ref_id, ok in results:
-        status = "[green]✓ OK[/green]" if ok else "[red]✗ Failed[/red]"
-        t.add_row(ref_id, status)
-    console.print(t)
+    _print_execution_results(console, results)
 
     if not all(ok for _, ok in results):
         sys.exit(1)
@@ -1298,51 +1455,15 @@ def state_cmd(ctx, action, spec_file, host, state_file):
         redeploy state ls                       # list all checkpoints in CWD
     """
     from rich.console import Console
-    from rich.table import Table
-    from .apply.state import DEFAULT_STATE_DIR, ResumeState, default_state_path
 
     console = Console()
 
     if action == "ls":
-        base = DEFAULT_STATE_DIR
-        if not base.exists():
-            console.print(f"[dim]no checkpoints under {base}/[/dim]")
-            return
-        files = sorted(base.glob("*.yaml"))
-        if not files:
-            console.print(f"[dim]no checkpoints under {base}/[/dim]")
-            return
-        t = Table(show_header=True, box=None, padding=(0, 2))
-        t.add_column("File", style="bold")
-        t.add_column("Spec")
-        t.add_column("Host", style="cyan")
-        t.add_column("Done")
-        t.add_column("Failed", style="red")
-        t.add_column("Updated", style="dim")
-        for f in files:
-            try:
-                st = ResumeState.load(f)
-                t.add_row(
-                    f.name, st.spec_path or "?", st.host,
-                    f"{st.completed_count}/{st.total_steps}",
-                    st.failed_step_id or "—",
-                    st.updated_at,
-                )
-            except Exception as e:
-                t.add_row(f.name, "[red]parse error[/red]", "—", "—", "—", str(e)[:40])
-        console.print(t)
+        _list_checkpoints(console)
         return
 
     # show / clear need a path
-    if state_file:
-        path = Path(state_file)
-    else:
-        if not spec_file:
-            console.print("[red]✗ provide SPEC or --state-file[/red]")
-            sys.exit(2)
-        spec = _load_spec_or_exit(console, spec_file)
-        target_host = host or spec.source.host or "local"
-        path = default_state_path(spec_file, target_host)
+    path = _get_state_path(spec_file, host, state_file, console)
 
     if not path.exists():
         console.print(f"[dim]no checkpoint at {path}[/dim]")
@@ -1354,20 +1475,7 @@ def state_cmd(ctx, action, spec_file, host, state_file):
         return
 
     # show
-    st = ResumeState.load(path)
-    console.print(f"[bold]checkpoint[/bold] {path}")
-    console.print(f"  spec:        {st.spec_path}")
-    console.print(f"  host:        {st.host}")
-    console.print(f"  progress:    {st.completed_count}/{st.total_steps} "
-                  f"({st.remaining} pending)")
-    console.print(f"  started:     {st.started_at}")
-    console.print(f"  updated:     {st.updated_at}")
-    if st.failed_step_id:
-        console.print(f"  [red]failed:      {st.failed_step_id}[/red]")
-        if st.failed_error:
-            console.print(f"  [red]error:       {st.failed_error[:200]}[/red]")
-    if st.completed_step_ids:
-        console.print(f"  done:        {', '.join(st.completed_step_ids)}")
+    _show_checkpoint(console, path)
 
 
 # ── helper ────────────────────────────────────────────────────────────────────
