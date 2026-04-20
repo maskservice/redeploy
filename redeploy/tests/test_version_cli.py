@@ -291,6 +291,152 @@ class TestVersionInit:
             assert "Policy: independent" in result.output
             assert "Packages: 2" in result.output
 
+    def test_init_scan_detects_regex_source_in_nested_package(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            Path("packages/frontend/src").mkdir(parents=True, exist_ok=True)
+            Path("packages/frontend/src/version.ts").write_text(
+                'export const VERSION = "2.1.0"\n',
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                ["version", "init", "--scan"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["policy"] == "independent"
+            assert manifest["version"]["packages"]["frontend"]["version"] == "2.1.0"
+            source = manifest["version"]["packages"]["frontend"]["sources"][0]
+            assert source["path"] == "packages/frontend/src/version.ts"
+            assert source["format"] == "regex"
+            assert source["optional"] is False
+            assert "VERSION" in source["pattern"]
+            assert "const|let|var" in source["pattern"]
+
+    def test_init_scan_reports_conflict_between_scanned_sources(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            Path("backend/src").mkdir(parents=True, exist_ok=True)
+            Path("backend/VERSION").write_text("1.0.0\n", encoding="utf-8")
+            Path("backend/src/version.ts").write_text(
+                'export const VERSION = "1.1.0"\n',
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                ["version", "init", "--scan"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "Version conflict in backend" in result.output
+            assert "backend/VERSION=1.0.0" in result.output
+            assert "backend/src/version.ts=1.1.0" in result.output
+            assert "using 1.0.0" in result.output
+
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["packages"]["backend"]["version"] == "1.0.0"
+
+    def test_init_scan_review_lists_detected_sources_without_writing_manifest(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            Path("backend/src").mkdir(parents=True, exist_ok=True)
+            Path("backend/VERSION").write_text("1.0.0\n", encoding="utf-8")
+            Path("backend/src/version.ts").write_text(
+                'export const VERSION = "1.1.0"\n',
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                ["version", "init", "--scan", "--review"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "Scan review" in result.output
+            assert "backend: chosen version 1.0.0 (conflict)" in result.output
+            assert "backend/VERSION (plain) current: 1.0.0" in result.output
+            assert "backend/src/version.ts (regex) current: 1.1.0 (conflict)" in result.output
+            assert "Review only - manifest not written" in result.output
+            assert not Path(".redeploy/version.yaml").exists()
+
+    def test_init_scan_interactive_can_reject_source_and_write_manifest(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            Path("backend/src").mkdir(parents=True, exist_ok=True)
+            Path("backend/VERSION").write_text("1.0.0\n", encoding="utf-8")
+            Path("backend/src/version.ts").write_text(
+                'export const VERSION = "1.1.0"\n',
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                ["version", "init", "--scan", "--interactive"],
+                input="\nn\n\n",
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            assert "Interactive scan review" in result.output
+            assert "Keep backend/VERSION (plain) current=1.0.0?" in result.output
+            assert "Keep backend/src/version.ts (regex) current=1.1.0?" in result.output
+            assert "Write manifest to .redeploy/version.yaml?" in result.output
+
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["packages"]["backend"]["version"] == "1.0.0"
+            assert manifest["version"]["packages"]["backend"]["sources"] == [
+                {"path": "backend/VERSION", "format": "plain", "optional": False}
+            ]
+
+    def test_init_interactive_requires_scan(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            result = runner.invoke(
+                cli,
+                ["version", "init", "--interactive"],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 1, result.output
+            assert "--review, --interactive and --exclude require --scan" in result.output
+
+    def test_init_scan_exclude_omits_detected_source_from_manifest(self, tmp_path):
+        runner = _runner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            Path("backend/src").mkdir(parents=True, exist_ok=True)
+            Path("backend/VERSION").write_text("1.0.0\n", encoding="utf-8")
+            Path("backend/src/version.ts").write_text(
+                'export const VERSION = "1.1.0"\n',
+                encoding="utf-8",
+            )
+
+            result = runner.invoke(
+                cli,
+                [
+                    "version",
+                    "init",
+                    "--scan",
+                    "--exclude",
+                    "backend/src/version.ts",
+                ],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code == 0, result.output
+            manifest = yaml.safe_load(Path(".redeploy/version.yaml").read_text(encoding="utf-8"))
+            assert manifest["version"]["packages"]["backend"]["version"] == "1.0.0"
+            assert manifest["version"]["packages"]["backend"]["sources"] == [
+                {"path": "backend/VERSION", "format": "plain", "optional": False}
+            ]
+            assert "Version conflict in backend" not in result.output
+
 
 class TestVersionVerify:
     def test_verify_all_packages_succeeds_when_in_sync(self, tmp_path):

@@ -2953,8 +2953,13 @@ def version_set(version, manifest_path_str, package_name, all_packages, dry_run,
 
 @version_cmd.command(name="init")
 @click.option("--scan", is_flag=True, help="Auto-detect version sources")
+@click.option("--review", is_flag=True, help="Review detected sources without writing manifest")
+@click.option("--interactive", is_flag=True,
+              help="Interactively accept or reject detected sources before writing manifest")
+@click.option("--exclude", "excluded_paths", multiple=True,
+              help="Exclude a detected source path from scan results (repeatable)")
 @click.option("--force", is_flag=True, help="Overwrite existing manifest")
-def version_init(scan, force):
+def version_init(scan, review, interactive, excluded_paths, force):
     """Initialize .redeploy/version.yaml manifest."""
     from rich.console import Console
     from .version.manifest import VersionManifest, SourceConfig, GitConfig
@@ -2972,10 +2977,36 @@ def version_init(scan, force):
     root = Path.cwd()
     root_sources = []
     packages = None
+    excluded = _normalize_scan_exclusions(excluded_paths)
+
+    if (review or interactive or excluded) and not scan:
+        console.print("[red]✗ --review, --interactive and --exclude require --scan[/red]")
+        sys.exit(1)
 
     if scan:
-        root_sources = _detect_version_sources_in_dir(root, root)
-        packages = _scan_package_version_manifests(root)
+        root_sources = _detect_version_sources_in_dir(root, root, excluded_paths=excluded)
+        packages = _scan_package_version_manifests(root, excluded_paths=excluded)
+
+        if interactive:
+            excluded.update(
+                _review_detected_sources_interactively(console, root_sources, packages)
+            )
+            root_sources = _detect_version_sources_in_dir(root, root, excluded_paths=excluded)
+            packages = _scan_package_version_manifests(root, excluded_paths=excluded)
+
+            if not root_sources and not packages:
+                console.print("[yellow]⚠ No sources selected - manifest not written[/yellow]")
+                return
+
+            _print_version_scan_review(console, root_sources, packages)
+            if not click.confirm("Write manifest to .redeploy/version.yaml?", default=True):
+                console.print("[yellow]Review complete - manifest not written[/yellow]")
+                return
+
+        if review and not interactive:
+            _print_version_scan_review(console, root_sources, packages)
+            console.print("[yellow]Review only - manifest not written[/yellow]")
+            return
 
     if packages:
         current = _detect_source_version(root_sources, default="0.0.0") if root_sources else "0.0.0"
@@ -3017,6 +3048,14 @@ def version_init(scan, force):
             package = m.get_package(package_name)
             console.print(f"    - {package_name}: {package.version} ({len(package.sources)} sources)")
 
+    if scan:
+        if m.sources:
+            _report_version_scan_conflict(console, "root", m.sources, m.version)
+        if m.is_monorepo():
+            for package_name in m.list_packages():
+                package = m.get_package(package_name)
+                _report_version_scan_conflict(console, package_name, package.sources, package.version)
+
 
 def _version_scan_specs():
     return [
@@ -3026,14 +3065,35 @@ def _version_scan_specs():
     ]
 
 
+def _regex_version_scan_specs():
+    return [
+        ("__init__.py", r'__version__\s*=\s*["\']([^"\']+)["\']'),
+        ("src/__init__.py", r'__version__\s*=\s*["\']([^"\']+)["\']'),
+        ("version.ts", r'(?:export\s+)?(?:const|let|var)\s+VERSION\s*=\s*["\']([^"\']+)["\']'),
+        ("src/version.ts", r'(?:export\s+)?(?:const|let|var)\s+VERSION\s*=\s*["\']([^"\']+)["\']'),
+        ("version.h", r'#define\s+[A-Z0-9_]*VERSION\s+"([^"]+)"'),
+        ("src/version.h", r'#define\s+[A-Z0-9_]*VERSION\s+"([^"]+)"'),
+        ("include/version.h", r'#define\s+[A-Z0-9_]*VERSION\s+"([^"]+)"'),
+    ]
+
+
 def _is_scannable_version_path(path: Path) -> bool:
     ignored = {".git", ".venv", ".redeploy", "node_modules", "__pycache__", "dist", "build"}
     return not any(part in ignored for part in path.parts)
 
 
-def _detect_version_sources_in_dir(directory: Path, workspace_root: Path):
+def _normalize_scan_exclusions(excluded_paths) -> set[str]:
+    return {
+        str(Path(path)).replace("\\", "/")
+        for path in excluded_paths
+        if str(path).strip()
+    }
+
+
+def _detect_version_sources_in_dir(directory: Path, workspace_root: Path, *, excluded_paths: set[str] | None = None):
     from .version.manifest import SourceConfig
 
+    excluded_paths = excluded_paths or set()
     sources = []
     for filename, format_name, key in _version_scan_specs():
         candidate = directory / filename
@@ -3042,6 +3102,8 @@ def _detect_version_sources_in_dir(directory: Path, workspace_root: Path):
 
         relative_path = candidate.relative_to(workspace_root)
         if not _is_scannable_version_path(relative_path):
+            continue
+        if relative_path.as_posix() in excluded_paths:
             continue
 
         source_kwargs = {
@@ -3052,18 +3114,114 @@ def _detect_version_sources_in_dir(directory: Path, workspace_root: Path):
             source_kwargs["key"] = key
         sources.append(SourceConfig(**source_kwargs))
 
+    for relative_filename, pattern in _regex_version_scan_specs():
+        candidate = directory / relative_filename
+        if not candidate.exists() or not candidate.is_file():
+            continue
+
+        relative_path = candidate.relative_to(workspace_root)
+        if not _is_scannable_version_path(relative_path):
+            continue
+        if relative_path.as_posix() in excluded_paths:
+            continue
+
+        sources.append(SourceConfig(
+            path=relative_path,
+            format="regex",
+            pattern=pattern,
+        ))
+
     return sources
 
 
 def _detect_source_version(sources, *, default: str):
+    detected = _read_detected_source_versions(sources)
+    return detected[0][1] if detected else default
+
+
+def _read_detected_source_versions(sources):
     from .version.sources import get_adapter
 
+    detected = []
     for source in sources:
         try:
-            return get_adapter(source.format).read(source.path, source)
+            detected.append((source, get_adapter(source.format).read(source.path, source)))
         except Exception:
             continue
-    return default
+    return detected
+
+
+def _report_version_scan_conflict(console, label: str, sources, chosen_version: str):
+    detected = _read_detected_source_versions(sources)
+    unique_versions = {version for _, version in detected}
+    if len(unique_versions) <= 1:
+        return
+
+    details = ", ".join(f"{source.path}={version}" for source, version in detected)
+    console.print(
+        f"[yellow]⚠ Version conflict in {label}: {details}; using {chosen_version}[/yellow]"
+    )
+
+
+def _print_version_scan_review(console, root_sources, packages):
+    console.print("[bold]Scan review[/bold]")
+
+    if root_sources:
+        _print_version_scan_group(console, "root", root_sources, default_version="0.0.0")
+
+    if packages:
+        for package_name, package in packages.items():
+            _print_version_scan_group(console, package_name, package.sources, default_version=package.version)
+
+    if not root_sources and not packages:
+        console.print("  No version sources detected")
+
+
+def _print_version_scan_group(console, label: str, sources, *, default_version: str):
+    detected = _read_detected_source_versions(sources)
+    detected_map = {str(source.path): version for source, version in detected}
+    unique_versions = {version for _, version in detected}
+    chosen_version = detected[0][1] if detected else default_version
+    suffix = " (conflict)" if len(unique_versions) > 1 else ""
+
+    console.print(f"  {label}: chosen version {chosen_version}{suffix}")
+    for source in sources:
+        actual = detected_map.get(str(source.path), "(unreadable)")
+        marker = " (conflict)" if len(unique_versions) > 1 and actual != chosen_version else ""
+        console.print(f"    - {source.path} ({source.format}) current: {actual}{marker}")
+
+
+def _iter_version_scan_groups(root_sources, packages):
+    if root_sources:
+        yield "root", root_sources, "0.0.0"
+
+    if packages:
+        for package_name, package in packages.items():
+            yield package_name, package.sources, package.version
+
+
+def _review_detected_sources_interactively(console, root_sources, packages) -> set[str]:
+    rejected = set()
+    console.print("[bold]Interactive scan review[/bold]")
+
+    for label, sources, default_version in _iter_version_scan_groups(root_sources, packages):
+        detected = _read_detected_source_versions(sources)
+        detected_map = {str(source.path): version for source, version in detected}
+        unique_versions = {version for _, version in detected}
+        chosen_version = detected[0][1] if detected else default_version
+        suffix = " (conflict)" if len(unique_versions) > 1 else ""
+
+        console.print(f"\n[bold]{label}[/bold]: chosen version {chosen_version}{suffix}")
+        for source in sources:
+            actual = detected_map.get(str(source.path), "(unreadable)")
+            keep = click.confirm(
+                f"Keep {source.path} ({source.format}) current={actual}?",
+                default=True,
+            )
+            if not keep:
+                rejected.add(source.path.as_posix())
+
+    return rejected
 
 
 def _derive_scanned_package_name(package_dir: Path, workspace_root: Path, used_names: set[str]) -> str:
@@ -3079,25 +3237,28 @@ def _derive_scanned_package_name(package_dir: Path, workspace_root: Path, used_n
     return candidate
 
 
-def _scan_package_version_manifests(workspace_root: Path):
+def _scan_package_version_manifests(workspace_root: Path, *, excluded_paths: set[str] | None = None):
     from .version.manifest import PackageConfig
 
-    package_dirs = set()
-    for filename, _, _ in _version_scan_specs():
-        for candidate in workspace_root.rglob(filename):
-            if not candidate.is_file():
-                continue
-            relative_path = candidate.relative_to(workspace_root)
-            if not _is_scannable_version_path(relative_path):
-                continue
-            if candidate.parent == workspace_root:
-                continue
-            package_dirs.add(candidate.parent)
+    excluded_paths = excluded_paths or set()
+    package_dirs = []
+    for candidate in sorted(workspace_root.rglob("*")):
+        if not candidate.is_dir() or candidate == workspace_root:
+            continue
+
+        relative_path = candidate.relative_to(workspace_root)
+        if not _is_scannable_version_path(relative_path):
+            continue
+        if candidate.name in {"src", "include"}:
+            continue
+
+        if _detect_version_sources_in_dir(candidate, workspace_root, excluded_paths=excluded_paths):
+            package_dirs.append(candidate)
 
     packages = {}
     used_names = set()
-    for package_dir in sorted(package_dirs, key=lambda item: item.as_posix()):
-        sources = _detect_version_sources_in_dir(package_dir, workspace_root)
+    for package_dir in package_dirs:
+        sources = _detect_version_sources_in_dir(package_dir, workspace_root, excluded_paths=excluded_paths)
         if not sources:
             continue
 
