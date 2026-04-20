@@ -500,36 +500,23 @@ class Auditor:
     def _probe_one(self, exp: _Expect) -> AuditCheck:
         cat = exp.category
         if cat == "binary":
-            ok, detail = self.probe.has_binary(exp.name)
+            return self._probe_binary(exp)
         elif cat == "directory":
-            ok, detail = self.probe.has_path(exp.name, kind="dir")
+            return self._probe_directory(exp)
         elif cat == "file":
-            ok, detail = self.probe.has_path(exp.name, kind="file")
+            return self._probe_file(exp)
         elif cat == "local_file":
-            local_ok = Path(exp.name).expanduser().exists()
-            return AuditCheck(
-                category=cat, name=exp.name,
-                status="pass" if local_ok else "fail",
-                detail="present" if local_ok else "missing on controller",
-                fix_hint=exp.fix_hint, source_step=exp.source_step,
-            )
+            return self._probe_local_file(exp)
         elif cat == "port_listening":
-            ok, detail = self.probe.port_listening(int(exp.name))
+            return self._probe_port_listening(exp)
         elif cat == "container_image":
-            ok, detail = self.probe.has_image(exp.name)
-            # built-by-spec images: missing = "warn" not "fail"
-            return AuditCheck(
-                category=cat, name=exp.name,
-                status="pass" if ok else "warn",
-                detail=detail or ("present" if ok else "will be built by step"),
-                fix_hint=exp.fix_hint, source_step=exp.source_step,
-            )
+            return self._probe_container_image(exp)
         elif cat == "systemd_unit":
-            ok, detail = self.probe.has_systemd_unit(exp.name, user=False)
+            return self._probe_systemd_unit(exp, user=False)
         elif cat == "systemd_user_unit":
-            ok, detail = self.probe.has_systemd_unit(exp.name, user=True)
+            return self._probe_systemd_unit(exp, user=True)
         elif cat == "apt_package":
-            ok, detail = self.probe.apt_package(exp.name)
+            return self._probe_apt_package(exp)
         else:
             return AuditCheck(
                 category=cat, name=exp.name,
@@ -537,8 +524,74 @@ class Auditor:
                 source_step=exp.source_step,
             )
 
+    def _probe_binary(self, exp: _Expect) -> AuditCheck:
+        ok, detail = self.probe.has_binary(exp.name)
         return AuditCheck(
-            category=cat, name=exp.name,
+            category=exp.category, name=exp.name,
+            status="pass" if ok else "fail",
+            detail=detail or ("present" if ok else "missing"),
+            fix_hint=exp.fix_hint, source_step=exp.source_step,
+        )
+
+    def _probe_directory(self, exp: _Expect) -> AuditCheck:
+        ok, detail = self.probe.has_path(exp.name, kind="dir")
+        return AuditCheck(
+            category=exp.category, name=exp.name,
+            status="pass" if ok else "fail",
+            detail=detail or ("present" if ok else "missing"),
+            fix_hint=exp.fix_hint, source_step=exp.source_step,
+        )
+
+    def _probe_file(self, exp: _Expect) -> AuditCheck:
+        ok, detail = self.probe.has_path(exp.name, kind="file")
+        return AuditCheck(
+            category=exp.category, name=exp.name,
+            status="pass" if ok else "fail",
+            detail=detail or ("present" if ok else "missing"),
+            fix_hint=exp.fix_hint, source_step=exp.source_step,
+        )
+
+    def _probe_local_file(self, exp: _Expect) -> AuditCheck:
+        local_ok = Path(exp.name).expanduser().exists()
+        return AuditCheck(
+            category=exp.category, name=exp.name,
+            status="pass" if local_ok else "fail",
+            detail="present" if local_ok else "missing on controller",
+            fix_hint=exp.fix_hint, source_step=exp.source_step,
+        )
+
+    def _probe_port_listening(self, exp: _Expect) -> AuditCheck:
+        ok, detail = self.probe.port_listening(int(exp.name))
+        return AuditCheck(
+            category=exp.category, name=exp.name,
+            status="pass" if ok else "fail",
+            detail=detail or ("present" if ok else "missing"),
+            fix_hint=exp.fix_hint, source_step=exp.source_step,
+        )
+
+    def _probe_container_image(self, exp: _Expect) -> AuditCheck:
+        ok, detail = self.probe.has_image(exp.name)
+        # built-by-spec images: missing = "warn" not "fail"
+        return AuditCheck(
+            category=exp.category, name=exp.name,
+            status="pass" if ok else "warn",
+            detail=detail or ("present" if ok else "will be built by step"),
+            fix_hint=exp.fix_hint, source_step=exp.source_step,
+        )
+
+    def _probe_systemd_unit(self, exp: _Expect, user: bool) -> AuditCheck:
+        ok, detail = self.probe.has_systemd_unit(exp.name, user=user)
+        return AuditCheck(
+            category=exp.category, name=exp.name,
+            status="pass" if ok else "fail",
+            detail=detail or ("present" if ok else "missing"),
+            fix_hint=exp.fix_hint, source_step=exp.source_step,
+        )
+
+    def _probe_apt_package(self, exp: _Expect) -> AuditCheck:
+        ok, detail = self.probe.apt_package(exp.name)
+        return AuditCheck(
+            category=exp.category, name=exp.name,
             status="pass" if ok else "fail",
             detail=detail or ("present" if ok else "missing"),
             fix_hint=exp.fix_hint, source_step=exp.source_step,

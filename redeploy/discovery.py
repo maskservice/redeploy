@@ -527,7 +527,22 @@ def _detect_strategy_remote(
 ) -> dict:
     """Run a single SSH session to detect strategy, app, version, etc."""
     key_opts = ["-i", key] if key else []
-    probe_cmd = (
+    probe_cmd = _build_probe_command()
+    cmd = _build_ssh_command(host, port, timeout, key_opts, probe_cmd)
+
+    out = _run_ssh_probe(cmd, timeout)
+    if out is None:
+        return {}
+
+    info, services = _parse_probe_output(out)
+    info["running_services"] = services
+    info["strategy"] = _infer_strategy(info, services)
+
+    return info
+
+
+def _build_probe_command() -> str:
+    return (
         "echo __arch__=$(uname -m); "
         "echo __os__=$(. /etc/os-release 2>/dev/null && echo $PRETTY_NAME || uname -s); "
         "echo __hostname__=$(hostname); "
@@ -538,20 +553,28 @@ def _detect_strategy_remote(
         "systemctl list-units --type=service --state=running --no-pager --no-legend 2>/dev/null | awk '{print $1}' | head -30; "
         "echo __end_services__"
     )
-    cmd = ["ssh"] + [
+
+
+def _build_ssh_command(host: str, port: int, timeout: int, key_opts: list[str], probe_cmd: str) -> list[str]:
+    return ["ssh"] + [
         "-o", f"ConnectTimeout={timeout}",
         "-o", "StrictHostKeyChecking=no",
         "-o", "BatchMode=yes",
         "-p", str(port),
     ] + key_opts + [host, probe_cmd]
+
+
+def _run_ssh_probe(cmd: list[str], timeout: int) -> str | None:
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 5)
         if r.returncode != 0:
-            return {}
-        out = r.stdout
+            return None
+        return r.stdout
     except Exception:
-        return {}
+        return None
 
+
+def _parse_probe_output(out: str) -> tuple[dict, list[str]]:
     info: dict = {}
     services: list[str] = []
     in_services = False
@@ -582,19 +605,72 @@ def _detect_strategy_remote(
             if line.endswith(".service"):
                 services.append(line)
 
-    info["running_services"] = services
+    return info, services
 
-    # Infer strategy
+
+def _infer_strategy(info: dict, services: list[str]) -> str:
     if info.get("docker_active") or info.get("has_docker"):
-        info["strategy"] = "docker_full"
+        return "docker_full"
     elif info.get("has_podman"):
-        info["strategy"] = "podman_quadlet"
+        return "podman_quadlet"
     elif info.get("has_chromium") and any("kiosk" in s or "chromium" in s for s in services):
-        info["strategy"] = "native_kiosk"
+        return "native_kiosk"
     else:
-        info["strategy"] = "systemd"
+        return "systemd"
 
-    return info
+
+def _parse_probe_input(ip_or_host: str, users: Optional[list[str]]) -> tuple[str, list[str]]:
+    if "@" in ip_or_host:
+        forced_user, ip = ip_or_host.split("@", 1)
+        return ip, [forced_user] + (users or _DEFAULT_USERS)
+    else:
+        return ip_or_host, users or _DEFAULT_USERS
+
+
+def _detect_app_from_services(services: list[str], app_hint: str) -> str:
+    if app_hint:
+        return app_hint
+    for svc in services:
+        for candidate in ("c2004", "app", "backend", "kiosk", "api"):
+            if candidate in svc.lower():
+                return candidate
+    return ""
+
+
+def _update_existing_device(existing, result, ssh_user, ssh_key, ip, host_str, port, now) -> None:
+    existing.host = host_str
+    existing.ip = ip
+    existing.ssh_user = ssh_user
+    if ssh_key:
+        existing.ssh_key = ssh_key
+    existing.ssh_port = port
+    existing.strategy = result.strategy
+    existing.hostname = result.hostname or existing.hostname
+    existing.last_seen = now
+    existing.last_ssh_ok = now
+    if result.app and not existing.app:
+        existing.app = result.app
+
+
+def _create_new_device(result, ssh_user, ssh_key, ip, host_str, port, now) -> "KnownDevice":
+    from .models import KnownDevice
+
+    return KnownDevice(
+        id=host_str,
+        host=host_str,
+        ip=ip,
+        mac="",
+        hostname=result.hostname,
+        ssh_user=ssh_user,
+        ssh_key=ssh_key if ssh_key else None,
+        ssh_port=port,
+        strategy=result.strategy,
+        app=result.app,
+        last_seen=now,
+        last_ssh_ok=now,
+        source="probe",
+        tags=["discovered"],
+    )
 
 
 def auto_probe(
@@ -622,12 +698,7 @@ def auto_probe(
         ProbeResult with all discovered fields.
     """
     # Normalise input
-    if "@" in ip_or_host:
-        forced_user, ip = ip_or_host.split("@", 1)
-        users = [forced_user] + (users or _DEFAULT_USERS)
-    else:
-        ip = ip_or_host
-        users = users or _DEFAULT_USERS
+    ip, users = _parse_probe_input(ip_or_host, users)
 
     result = ProbeResult(ip=ip, ssh_port=port)
 
@@ -659,18 +730,7 @@ def auto_probe(
         result.has_podman = bool(info.get("has_podman"))
         result.has_chromium = bool(info.get("has_chromium"))
         result.running_services = info.get("running_services", [])
-
-        # Try to detect app + version
-        app = app_hint
-        if not app:
-            for svc in result.running_services:
-                for candidate in ("c2004", "app", "backend", "kiosk", "api"):
-                    if candidate in svc.lower():
-                        app = candidate
-                        break
-                if app:
-                    break
-        result.app = app
+        result.app = _detect_app_from_services(result.running_services, app_hint)
 
     # Save to registry
     if save:
@@ -678,36 +738,10 @@ def auto_probe(
         now = datetime.utcnow()
         existing = reg.get(host_str) or reg.get(ip)
         if existing:
-            existing.host = host_str
-            existing.ip = ip
-            existing.ssh_user = ssh_user
-            if ssh_key:
-                existing.ssh_key = ssh_key
-            existing.ssh_port = port
-            existing.strategy = result.strategy
-            existing.hostname = result.hostname or existing.hostname
-            existing.last_seen = now
-            existing.last_ssh_ok = now
-            if result.app and not existing.app:
-                existing.app = result.app
+            _update_existing_device(existing, result, ssh_user, ssh_key, ip, host_str, port, now)
             reg.upsert(existing)
         else:
-            reg.upsert(KnownDevice(
-                id=host_str,
-                host=host_str,
-                ip=ip,
-                mac="",
-                hostname=result.hostname,
-                ssh_user=ssh_user,
-                ssh_key=ssh_key if ssh_key else None,
-                ssh_port=port,
-                strategy=result.strategy,
-                app=result.app,
-                last_seen=now,
-                last_ssh_ok=now,
-                source="probe",
-                tags=["discovered"],
-            ))
+            reg.upsert(_create_new_device(result, ssh_user, ssh_key, ip, host_str, port, now))
         reg.save()
         logger.info(f"[probe {ip}] saved to registry as {host_str}")
 

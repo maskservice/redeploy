@@ -194,14 +194,21 @@ class Executor:
             logger.info(f"resume: skipping {len(skip_ids)} already-completed step(s): "
                         f"{', '.join(sorted(skip_ids))}")
 
+        ok = self._execute_steps_loop(skip_ids)
+        elapsed = time.monotonic() - self._t0
+
+        self._handle_completion(ok, elapsed)
+        self._write_audit(ok=ok, elapsed_s=elapsed)
+        return ok
+
+    def _execute_steps_loop(self, skip_ids: set[str]) -> bool:
+        """Execute steps, handling skips and errors. Returns True if all passed."""
         ok = True
         for i, step in enumerate(self.plan.steps, 1):
             if step.id in skip_ids:
-                step.status = StepStatus.SKIPPED
-                step.result = "resumed: previously completed"
-                if self._emitter:
-                    self._emitter.step_done(i, step)
+                self._skip_step(i, step)
                 continue
+
             try:
                 if self._emitter:
                     self._emitter.step_start(i, step)
@@ -212,20 +219,33 @@ class Executor:
                 if self._emitter:
                     self._emitter.step_done(i, step)
             except StepError as e:
-                logger.error(f"Step failed: {e}")
-                step.status = StepStatus.FAILED
-                step.error = str(e)
-                if self._state is not None:
-                    self._state.mark_failed(step.id, str(e))
-                if self._emitter:
-                    self._emitter.step_fail(i, step, str(e))
-                    self._emitter.failed(len(self._completed), len(self.plan.steps), str(e))
-                if not self.dry_run:
-                    self._rollback()
+                self._handle_step_failure(i, step, e)
                 ok = False
                 break
+        return ok
 
-        elapsed = time.monotonic() - self._t0
+    def _skip_step(self, i: int, step: MigrationStep) -> None:
+        """Handle a skipped step due to resume."""
+        step.status = StepStatus.SKIPPED
+        step.result = "resumed: previously completed"
+        if self._emitter:
+            self._emitter.step_done(i, step)
+
+    def _handle_step_failure(self, i: int, step: MigrationStep, error: StepError) -> None:
+        """Handle a step failure."""
+        logger.error(f"Step failed: {error}")
+        step.status = StepStatus.FAILED
+        step.error = str(error)
+        if self._state is not None:
+            self._state.mark_failed(step.id, str(error))
+        if self._emitter:
+            self._emitter.step_fail(i, step, str(error))
+            self._emitter.failed(len(self._completed), len(self.plan.steps), str(error))
+        if not self.dry_run:
+            self._rollback()
+
+    def _handle_completion(self, ok: bool, elapsed: float) -> None:
+        """Handle plan completion or failure."""
         if ok:
             logger.info(f"{'[DRY RUN] ' if self.dry_run else ''}All {len(self.plan.steps)} steps completed")
             if self._emitter:
@@ -237,8 +257,6 @@ class Executor:
             if self._state is not None and self._state_path is not None:
                 logger.info(f"resume: checkpoint saved → {self._state_path} "
                             f"({self._state.completed_count}/{self._state.total_steps} done)")
-        self._write_audit(ok=ok, elapsed_s=elapsed)
-        return ok
 
     def _compute_skip_set(self) -> set[str]:
         """Determine which step ids should be skipped this run.

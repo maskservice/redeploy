@@ -487,6 +487,50 @@ def _show_checkpoint(console, path) -> None:
         console.print(f"  done:        {', '.join(st.completed_step_ids)}")
 
 
+def _apply_manifest_to_spec(console, manifest, spec, env_name) -> None:
+    from .models import ProjectManifest
+
+    if manifest:
+        if env_name and env_name not in manifest.environments:
+            console.print(f"[yellow]⚠ env '{env_name}' not in redeploy.yaml — known: "
+                          f"{', '.join(manifest.environments) or 'none'}[/yellow]")
+        manifest.apply_to_spec(spec, env_name=env_name)
+        env_label = f" [cyan][env: {env_name}][/cyan]" if env_name else ""
+        console.print(f"[dim]manifest: {_find_manifest_path()}{env_label}[/dim]")
+    elif not env_name:
+        dotenv_manifest = ProjectManifest.from_dotenv(Path.cwd())
+        if dotenv_manifest:
+            dotenv_manifest.apply_to_spec(spec)
+            console.print("[dim]manifest: .env (DEPLOY_* vars)[/dim]")
+
+
+def _print_spec_summary(console, spec) -> None:
+    console.print(f"\n[bold]{spec.name}[/bold]"
+                  + (f"  [dim]{spec.description}[/dim]" if spec.description else ""))
+    console.print(f"  [dim]{spec.source.strategy.value}[/dim]  →  "
+                  f"[bold]{spec.target.strategy.value}[/bold]"
+                  f"  ({spec.source.host})")
+
+
+def _perform_live_detect(console, spec) -> object:
+    from .detect import Detector
+    from .plan import Planner
+
+    console.print(f"\n[bold]detect[/bold]  (live probe of {spec.source.host})")
+    d = Detector(
+        host=spec.source.host,
+        app=spec.source.app,
+        domain=spec.source.domain,
+    )
+    state = d.run()
+    console.print(f"  detected: {state.detected_strategy.value}  "
+                  f"version={state.current_version or '?'}  "
+                  f"conflicts={len(state.conflicts)}")
+    planner = Planner(state, spec.to_target_config())
+    planner._spec = spec
+    return planner
+
+
 def _run_apply(console, migration, dry_run, output, ssh_key: str = "",
                progress_yaml: bool = False,
                resume: bool = False,
@@ -1375,41 +1419,12 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
     spec = _load_spec_or_exit(console, resolved_spec)
 
     # overlay manifest values — env-specific or global
-    if manifest:
-        if env_name and env_name not in manifest.environments:
-            console.print(f"[yellow]⚠ env '{env_name}' not in redeploy.yaml — known: "
-                          f"{', '.join(manifest.environments) or 'none'}[/yellow]")
-        manifest.apply_to_spec(spec, env_name=env_name)
-        env_label = f" [cyan][env: {env_name}][/cyan]" if env_name else ""
-        console.print(f"[dim]manifest: {_find_manifest_path()}{env_label}[/dim]")
-    elif not env_name:
-        # Fallback: read DEPLOY_* from .env if no redeploy.yaml
-        dotenv_manifest = ProjectManifest.from_dotenv(Path.cwd())
-        if dotenv_manifest:
-            dotenv_manifest.apply_to_spec(spec)
-            console.print("[dim]manifest: .env (DEPLOY_* vars)[/dim]")
-
-    console.print(f"\n[bold]{spec.name}[/bold]"
-                  + (f"  [dim]{spec.description}[/dim]" if spec.description else ""))
-    console.print(f"  [dim]{spec.source.strategy.value}[/dim]  →  "
-                  f"[bold]{spec.target.strategy.value}[/bold]"
-                  f"  ({spec.source.host})")
+    _apply_manifest_to_spec(console, manifest, spec, env_name)
+    _print_spec_summary(console, spec)
 
     # ── optional live detect (overrides source in spec) ──────────────────────
     if do_detect:
-        from .detect import Detector
-        console.print(f"\n[bold]detect[/bold]  (live probe of {spec.source.host})")
-        d = Detector(
-            host=spec.source.host,
-            app=spec.source.app,
-            domain=spec.source.domain,
-        )
-        state = d.run()
-        console.print(f"  detected: {state.detected_strategy.value}  "
-                      f"version={state.current_version or '?'}  "
-                      f"conflicts={len(state.conflicts)}")
-        planner = Planner(state, spec.to_target_config())
-        planner._spec = spec
+        planner = _perform_live_detect(console, spec)
     else:
         planner = Planner.from_spec(spec)
 

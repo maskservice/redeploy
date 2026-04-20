@@ -98,28 +98,8 @@ def parse_diagnostics(output: str) -> dict:
             section = _SECTION_HEADERS[line]
         elif not line or line.startswith("__NO_"):
             continue
-        elif section == "system":
-            _apply_system_line(result["system"], line)
-        elif section == "containers":
-            c = parse_container_line(line)
-            if c:
-                result["containers"].append(c)
-        elif section == "git":
-            for prefix in ("BRANCH:", "COMMIT:", "DIRTY:"):
-                if line.startswith(prefix):
-                    result["git"][prefix[:-1].lower()] = line[len(prefix):]
-                    break
-        elif section == "health":
-            try:
-                result["health_code"] = int(line)
-            except ValueError:
-                pass
-        elif section == "network":
-            if line.startswith("PORTS:"):
-                try:
-                    result["listening_ports"] = int(line[6:])
-                except ValueError:
-                    pass
+        else:
+            _parse_section_line(section, result, line)
     return result
 
 
@@ -139,6 +119,47 @@ def _apply_system_line(sys: dict, line: str) -> None:
                 "total": parts[1], "used": parts[2], "free": parts[3],
                 "available": parts[6] if len(parts) > 6 else "",
             }
+
+
+def _apply_git_line(git: dict, line: str) -> bool:
+    for prefix in ("BRANCH:", "COMMIT:", "DIRTY:"):
+        if line.startswith(prefix):
+            git[prefix[:-1].lower()] = line[len(prefix):]
+            return True
+    return False
+
+
+def _apply_health_line(result: dict, line: str) -> bool:
+    try:
+        result["health_code"] = int(line)
+        return True
+    except ValueError:
+        return False
+
+
+def _apply_network_line(result: dict, line: str) -> bool:
+    if line.startswith("PORTS:"):
+        try:
+            result["listening_ports"] = int(line[6:])
+            return True
+        except ValueError:
+            pass
+    return False
+
+
+def _parse_section_line(section: str, result: dict, line: str) -> None:
+    if section == "system":
+        _apply_system_line(result["system"], line)
+    elif section == "containers":
+        c = parse_container_line(line)
+        if c:
+            result["containers"].append(c)
+    elif section == "git":
+        _apply_git_line(result["git"], line)
+    elif section == "health":
+        _apply_health_line(result, line)
+    elif section == "network":
+        _apply_network_line(result, line)
 
 
 # ── health check ─────────────────────────────────────────────────────────────
