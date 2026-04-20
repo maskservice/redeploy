@@ -1,0 +1,279 @@
+"""redeploy CLI — detect | plan | apply | migrate."""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import click
+import yaml
+from loguru import logger
+
+from . import __version__
+from .models import DeployStrategy, TargetConfig
+
+
+def _setup_logging(verbose: bool) -> None:
+    logger.remove()
+    level = "DEBUG" if verbose else "INFO"
+    logger.add(sys.stderr, level=level,
+               format="<green>{time:HH:mm:ss}</green> | <level>{level:<7}</level> | {message}")
+
+
+@click.group()
+@click.version_option(__version__)
+@click.option("-v", "--verbose", is_flag=True)
+@click.pass_context
+def cli(ctx, verbose):
+    """redeploy — Infrastructure migration toolkit: detect → plan → apply"""
+    _setup_logging(verbose)
+    ctx.ensure_object(dict)
+    ctx.obj["verbose"] = verbose
+
+
+# ── detect ────────────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--host", required=True, help="SSH host (user@ip) or 'local'")
+@click.option("--app", default="c2004", show_default=True, help="Application name")
+@click.option("--domain", default=None, help="Public domain for HTTP health checks")
+@click.option("-o", "--output", default="infra.yaml", show_default=True,
+              type=click.Path(), help="Output file for InfraState")
+@click.pass_context
+def detect(ctx, host, app, domain, output):
+    """Probe infrastructure and produce infra.yaml."""
+    from rich.console import Console
+    from rich.table import Table
+    from .detect import Detector
+
+    console = Console()
+    out_path = Path(output)
+
+    try:
+        d = Detector(host=host, app=app, domain=domain)
+        state = d.run()
+        d.save(state, out_path)
+    except ConnectionError as e:
+        console.print(f"[red]✗ {e}[/red]")
+        sys.exit(1)
+
+    # Print summary
+    console.print(f"\n[bold]Infrastructure: {host}[/bold]")
+
+    t = Table(show_header=False, box=None, padding=(0, 2))
+    t.add_column("key", style="dim")
+    t.add_column("value")
+    t.add_row("App", state.app)
+    t.add_row("Strategy (detected)", state.detected_strategy.value)
+    t.add_row("Version", state.current_version or "unknown")
+    t.add_row("Docker", state.runtime.docker or "—")
+    t.add_row("k3s", state.runtime.k3s or "—")
+    t.add_row("Podman", state.runtime.podman or "—")
+    t.add_row("Open ports", ", ".join(str(p) for p in sorted(state.ports.keys())))
+    console.print(t)
+
+    # Docker services
+    if state.services.get("docker"):
+        console.print("\n[bold]Docker containers:[/bold]")
+        for s in state.services["docker"]:
+            icon = "✅" if s.status == "healthy" else "⚪"
+            console.print(f"  {icon} {s.name}  ({s.status})")
+
+    # k3s pods
+    if state.services.get("k3s"):
+        console.print(f"\n[bold]k3s pods ({len(state.services['k3s'])}):[/bold]")
+        for s in state.services["k3s"]:
+            icon = "✅" if s.status == "running" else "⚪"
+            console.print(f"  {icon} {s.namespace}/{s.name}  ({s.status})")
+
+    # Conflicts
+    if state.conflicts:
+        console.print(f"\n[bold yellow]Conflicts ({len(state.conflicts)}):[/bold yellow]")
+        for c in state.conflicts:
+            color = {"critical": "red", "high": "yellow", "medium": "blue", "low": "dim"}[c.severity.value]
+            console.print(f"  [{color}][{c.severity.upper()}][/{color}] {c.type}: {c.description}")
+            if c.fix_hint:
+                console.print(f"    [dim]hint: {c.fix_hint}[/dim]")
+    else:
+        console.print("\n[green]No conflicts detected.[/green]")
+
+    console.print(f"\n[dim]Saved to {out_path}[/dim]")
+
+
+# ── plan ──────────────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--infra", default="infra.yaml", show_default=True,
+              type=click.Path(exists=True), help="InfraState file (from detect)")
+@click.option("--target", default=None, type=click.Path(),
+              help="Target config YAML (desired state)")
+@click.option("--strategy", default=None,
+              type=click.Choice([s.value for s in DeployStrategy]),
+              help="Override target strategy")
+@click.option("--domain", default=None, help="Public domain for verify step")
+@click.option("--version", "target_version", default=None, help="Target version to verify")
+@click.option("--compose", multiple=True, help="Compose file(s) for docker_full strategy")
+@click.option("--env-file", default=None, help="Env file path")
+@click.option("-o", "--output", default="migration-plan.yaml", show_default=True,
+              type=click.Path(), help="Output migration plan file")
+@click.pass_context
+def plan(ctx, infra, target, strategy, domain, target_version, compose, env_file, output):
+    """Generate migration-plan.yaml from infra.yaml + target config."""
+    from rich.console import Console
+    from rich.table import Table
+    from .plan import Planner
+
+    console = Console()
+    out_path = Path(output)
+    infra_path = Path(infra)
+    target_path = Path(target) if target else None
+
+    planner = Planner.from_files(infra_path, target_path)
+
+    # CLI overrides
+    if strategy:
+        planner.target.strategy = DeployStrategy(strategy)
+    if domain:
+        planner.target.domain = domain
+    if target_version:
+        planner.target.verify_version = target_version
+    if compose:
+        planner.target.compose_files = list(compose)
+    if env_file:
+        planner.target.env_file = env_file
+
+    migration = planner.run()
+    planner.save(migration, out_path)
+
+    console.print(f"\n[bold]Migration plan: {migration.from_strategy.value} → {migration.to_strategy.value}[/bold]")
+    console.print(f"  Risk:             {migration.risk.value}")
+    console.print(f"  Estimated downtime: {migration.estimated_downtime}")
+    console.print(f"  Steps:            {len(migration.steps)}")
+
+    if migration.steps:
+        console.print("\n[bold]Steps:[/bold]")
+        t = Table(show_header=True, box=None, padding=(0, 2))
+        t.add_column("#", style="dim", width=3)
+        t.add_column("ID")
+        t.add_column("Action", style="cyan")
+        t.add_column("Description")
+        t.add_column("Risk", style="dim")
+        for i, step in enumerate(migration.steps, 1):
+            t.add_row(str(i), step.id, step.action.value, step.description, step.risk.value)
+        console.print(t)
+
+    if migration.notes:
+        console.print("\n[bold yellow]Notes:[/bold yellow]")
+        for note in migration.notes:
+            console.print(f"  • {note}")
+
+    console.print(f"\n[dim]Saved to {out_path}[/dim]")
+
+
+# ── apply ─────────────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--plan", "plan_file", default="migration-plan.yaml", show_default=True,
+              type=click.Path(exists=True), help="Migration plan file")
+@click.option("--dry-run", is_flag=True, help="Show steps without executing")
+@click.option("--step", default=None, help="Run only a specific step by ID")
+@click.option("-o", "--output", default=None, type=click.Path(),
+              help="Save results to file after apply")
+@click.pass_context
+def apply(ctx, plan_file, dry_run, step, output):
+    """Execute a migration plan."""
+    from rich.console import Console
+    from .apply import Executor
+
+    console = Console()
+    executor = Executor.from_file(Path(plan_file))
+
+    if step:
+        # Filter to single step
+        matched = [s for s in executor.plan.steps if s.id == step]
+        if not matched:
+            console.print(f"[red]Step '{step}' not found in plan[/red]")
+            ids = ", ".join(s.id for s in executor.plan.steps)
+            console.print(f"Available: {ids}")
+            sys.exit(1)
+        executor.plan.steps = matched
+
+    executor.dry_run = dry_run
+
+    prefix = "[DRY RUN] " if dry_run else ""
+    console.print(f"\n{prefix}[bold]Applying: {executor.plan.from_strategy.value}"
+                  f" → {executor.plan.to_strategy.value}[/bold]  "
+                  f"({len(executor.plan.steps)} steps)")
+
+    ok = executor.run()
+    console.print(f"\n{executor.summary()}")
+
+    if output:
+        executor.save_results(Path(output))
+
+    if not ok:
+        sys.exit(1)
+
+
+# ── migrate (detect + plan + apply) ──────────────────────────────────────────
+
+@cli.command()
+@click.option("--host", required=True, help="SSH host (user@ip) or 'local'")
+@click.option("--app", default="c2004", show_default=True)
+@click.option("--domain", default=None)
+@click.option("--target", default=None, type=click.Path(), help="Target config YAML")
+@click.option("--strategy", default="docker_full", show_default=True,
+              type=click.Choice([s.value for s in DeployStrategy]))
+@click.option("--version", "target_version", default=None)
+@click.option("--compose", multiple=True)
+@click.option("--env-file", default=None)
+@click.option("--dry-run", is_flag=True)
+@click.option("--infra-out", default="infra.yaml", show_default=True, type=click.Path())
+@click.option("--plan-out", default="migration-plan.yaml", show_default=True, type=click.Path())
+@click.pass_context
+def migrate(ctx, host, app, domain, target, strategy, target_version,
+            compose, env_file, dry_run, infra_out, plan_out):
+    """Full pipeline: detect → plan → apply."""
+    from rich.console import Console
+    from .detect import Detector
+    from .plan import Planner
+    from .apply import Executor
+    from .models import TargetConfig
+
+    console = Console()
+
+    # 1. detect
+    console.print(f"\n[bold]Step 1/3 — detect[/bold]")
+    d = Detector(host=host, app=app, domain=domain)
+    state = d.run()
+    d.save(state, Path(infra_out))
+    console.print(f"  Strategy: {state.detected_strategy.value}  "
+                  f"  Version: {state.current_version or '?'}  "
+                  f"  Conflicts: {len(state.conflicts)}")
+
+    # 2. plan
+    console.print(f"\n[bold]Step 2/3 — plan[/bold]")
+    target_path = Path(target) if target else None
+    planner = Planner.from_files(Path(infra_out), target_path)
+    planner.target.strategy = DeployStrategy(strategy)
+    if domain:
+        planner.target.domain = domain
+    if target_version:
+        planner.target.verify_version = target_version
+    if compose:
+        planner.target.compose_files = list(compose)
+    if env_file:
+        planner.target.env_file = env_file
+
+    migration = planner.run()
+    planner.save(migration, Path(plan_out))
+    console.print(f"  Steps: {len(migration.steps)}  Risk: {migration.risk.value}  "
+                  f"Downtime: {migration.estimated_downtime}")
+
+    # 3. apply
+    console.print(f"\n[bold]Step 3/3 — apply{'  (dry-run)' if dry_run else ''}[/bold]")
+    executor = Executor(migration, dry_run=dry_run)
+    ok = executor.run()
+    console.print(f"\n{executor.summary()}")
+
+    if not ok:
+        sys.exit(1)

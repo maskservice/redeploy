@@ -1,0 +1,19 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+*.dist-info/
+.coverage
+htmlcov/
+
+# generated output files (not committed — user-specific)
+infra.yaml
+migration-plan.yaml
+apply-results.yaml
