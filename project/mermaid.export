@@ -1,0 +1,117 @@
+flowchart TD
+    subgraph redeploy__apply
+        redeploy__apply__executor__StepError____init__["__init__"]
+        redeploy__apply__executor__Executor____init__["__init__"]
+        redeploy__apply__executor__Executor__run["run"]
+        redeploy__apply__executor__Executor___execute_step["_execute_step"]
+        redeploy__apply__executor__Executor___run_ssh["_run_ssh"]
+        redeploy__apply__executor__Executor___run_scp["_run_scp"]
+        redeploy__apply__executor__Executor___run_rsync["_run_rsync"]
+        redeploy__apply__executor__Executor___run_http_check("_run_http_check CC=9")
+        redeploy__apply__executor__Executor___run_version_check["_run_version_check"]
+        redeploy__apply__executor__Executor___run_wait["_run_wait"]
+        redeploy__apply__executor__Executor___rollback["_rollback"]
+        redeploy__apply__executor__Executor__summary["summary"]
+        redeploy__apply__executor__Executor__from_file["from_file"]
+        redeploy__apply__executor__Executor__save_results["save_results"]
+    end
+    subgraph redeploy__cli
+        redeploy__cli___setup_logging["_setup_logging"]
+        redeploy__cli__cli["cli"]
+        redeploy__cli__detect{{detect CC=16}}
+        redeploy__cli__plan("plan CC=11")
+        redeploy__cli__apply("apply CC=9")
+        redeploy__cli__migrate("migrate CC=9")
+        redeploy__cli__run("run CC=12")
+    end
+    subgraph redeploy__data_sync
+        redeploy__data_sync__collect_sqlite_counts["collect_sqlite_counts"]
+        redeploy__data_sync__rsync_timeout_for_path["rsync_timeout_for_path"]
+    end
+    subgraph redeploy__detect
+        redeploy__detect__detector__Detector____init__["__init__"]
+        redeploy__detect__detector__Detector__run("run CC=9")
+        redeploy__detect__detector__Detector__save["save"]
+        redeploy__detect__probes__probe_runtime["probe_runtime"]
+        redeploy__detect__probes__probe_ports["probe_ports"]
+        redeploy__detect__probes__probe_iptables_dnat["probe_iptables_dnat"]
+        redeploy__detect__probes__probe_docker_services("probe_docker_services CC=11")
+        redeploy__detect__probes__probe_k3s_services["probe_k3s_services"]
+        redeploy__detect__probes__probe_systemd_services["probe_systemd_services"]
+        redeploy__detect__probes__probe_health["probe_health"]
+        redeploy__detect__probes__detect_conflicts("detect_conflicts CC=13")
+        redeploy__detect__probes__detect_strategy("detect_strategy CC=10")
+    end
+    subgraph redeploy__models
+        redeploy__models__MigrationSpec__from_file["from_file"]
+        redeploy__models__MigrationSpec__to_infra_state["to_infra_state"]
+        redeploy__models__MigrationSpec__to_target_config["to_target_config"]
+    end
+    subgraph redeploy__plan
+        redeploy__plan__planner__Planner____init__["__init__"]
+        redeploy__plan__planner__Planner__run["run"]
+        redeploy__plan__planner__Planner___plan_conflict_fixes["_plan_conflict_fixes"]
+        redeploy__plan__planner__Planner___plan_stop_old_services["_plan_stop_old_services"]
+        redeploy__plan__planner__Planner___plan_deploy_new["_plan_deploy_new"]
+        redeploy__plan__planner__Planner___plan_docker_full["_plan_docker_full"]
+        redeploy__plan__planner__Planner___plan_podman_quadlet["_plan_podman_quadlet"]
+        redeploy__plan__planner__Planner___plan_systemd["_plan_systemd"]
+        redeploy__plan__planner__Planner___plan_verify["_plan_verify"]
+        redeploy__plan__planner__Planner___compose_cmd["_compose_cmd"]
+        redeploy__plan__planner__Planner___compose_file["_compose_file"]
+        redeploy__plan__planner__Planner___add_step["_add_step"]
+        redeploy__plan__planner__Planner___assess_risk["_assess_risk"]
+        redeploy__plan__planner__Planner___estimate_downtime("_estimate_downtime CC=8")
+        redeploy__plan__planner__Planner__from_files["from_files"]
+        redeploy__plan__planner__Planner__from_spec["from_spec"]
+        redeploy__plan__planner__Planner___append_extra_steps["_append_extra_steps"]
+        redeploy__plan__planner__Planner__save["save"]
+    end
+    subgraph redeploy__ssh
+        redeploy__ssh__SshClient____init__["__init__"]
+        redeploy__ssh__SshClient__key["key"]
+        redeploy__ssh__SshClient__run["run"]
+        redeploy__ssh__SshClient__rsync["rsync"]
+        redeploy__ssh__SshClient__scp["scp"]
+        redeploy__ssh__SshClient__is_reachable["is_reachable"]
+        redeploy__ssh__SshClient__is_ssh_ready["is_ssh_ready"]
+        redeploy__ssh__SshClient__ping["ping"]
+        redeploy__ssh__SshClient___run_local["_run_local"]
+        redeploy__ssh__SshClient___ssh_opts["_ssh_opts"]
+        redeploy__ssh__SshClient___scp_opts["_scp_opts"]
+        redeploy__ssh__SshClient___detect_ssh_key["_detect_ssh_key"]
+        redeploy__ssh__SshClient___detect_key["_detect_key"]
+        redeploy__ssh__RemoteProbe____init__["__init__"]
+        redeploy__ssh__RemoteProbe__is_local["is_local"]
+        redeploy__ssh__RemoteExecutor____init__["__init__"]
+    end
+    subgraph redeploy__verify
+        redeploy__verify__VerifyContext__check("check CC=8")
+        redeploy__verify__VerifyContext__add_pass["add_pass"]
+        redeploy__verify__VerifyContext__add_fail["add_fail"]
+        redeploy__verify__VerifyContext__add_warn["add_warn"]
+        redeploy__verify__VerifyContext__add_info["add_info"]
+        redeploy__verify__VerifyContext__summary["summary"]
+        redeploy__verify__verify_data_integrity["verify_data_integrity"]
+    end
+    subgraph redeploy__version
+        redeploy__version__read_local_version["read_local_version"]
+        redeploy__version__read_remote_version["read_remote_version"]
+        redeploy__version__check_version["check_version"]
+        redeploy__version__check_version_http("check_version_http CC=8")
+    end
+    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_runtime
+    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_ports
+    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_iptables_dnat
+    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_systemd_services
+    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_health
+    redeploy__ssh__SshClient___detect_ssh_key --> redeploy__ssh__SshClient___detect_key
+    redeploy__cli__cli --> redeploy__cli___setup_logging
+    redeploy__cli__plan --> redeploy__plan__planner__Planner__from_files
+    redeploy__cli__apply --> redeploy__apply__executor__Executor__from_file
+    redeploy__cli__run --> redeploy__models__MigrationSpec__from_file
+
+    classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
+    class redeploy__cli__detect highCC
+    class redeploy__plan__planner__Planner___estimate_downtime,redeploy__detect__detector__Detector__run,redeploy__version__check_version_http,redeploy__cli__plan,redeploy__cli__apply,redeploy__cli__migrate,redeploy__cli__run,redeploy__verify__VerifyContext__check,redeploy__detect__probes__probe_docker_services,redeploy__detect__probes__detect_conflicts,redeploy__detect__probes__detect_strategy,redeploy__apply__executor__Executor___run_http_check medCC

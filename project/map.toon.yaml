@@ -1,0 +1,105 @@
+# redeploy | 17f 2084L | shell:2,python:15 | 2026-04-20
+# stats: 83 func | 0 cls | 17 mod | CC̄=4.3 | critical:1 | cycles:0
+# alerts[5]: fan-out run=26; fan-out detect=20; fan-out migrate=20; fan-out Detector.run=19; fan-out plan=18
+# hotspots[5]: run fan=26; detect fan=20; migrate fan=20; Detector.run fan=19; plan fan=18
+# evolution: baseline
+# Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
+M[17]:
+  project.sh,35
+  redeploy/__init__.py,2
+  redeploy/apply/__init__.py,4
+  redeploy/apply/executor.py,200
+  redeploy/cli.py,378
+  redeploy/data_sync.py,45
+  redeploy/detect/__init__.py,4
+  redeploy/detect/detector.py,96
+  redeploy/detect/probes.py,272
+  redeploy/detect/remote.py,4
+  redeploy/models.py,271
+  redeploy/plan/__init__.py,4
+  redeploy/plan/planner.py,310
+  redeploy/ssh.py,271
+  redeploy/verify.py,92
+  redeploy/version.py,95
+  tree.sh,1
+D:
+  redeploy/cli.py:
+    e: _setup_logging,cli,detect,plan,apply,migrate,run
+    _setup_logging(verbose)
+    cli(ctx;verbose)
+    detect(ctx;host;app;domain;output)
+    plan(ctx;infra;target;strategy;domain;target_version;compose;env_file;output)
+    apply(ctx;plan_file;dry_run;step;output)
+    migrate(ctx;host;app;domain;target;strategy;target_version;compose;env_file;dry_run;infra_out;plan_out)
+    run(ctx;spec_file;dry_run;plan_only;do_detect;plan_out;output)
+  redeploy/detect/probes.py:
+    e: probe_runtime,probe_ports,probe_iptables_dnat,probe_docker_services,probe_k3s_services,probe_systemd_services,probe_health,detect_conflicts,detect_strategy
+    probe_runtime(p)
+    probe_ports(p)
+    probe_iptables_dnat(p;ports)
+    probe_docker_services(p)
+    probe_k3s_services(p;namespaces)
+    probe_systemd_services(p;app)
+    probe_health(host;app;domain)
+    detect_conflicts(ports;iptables_dnat;runtime;docker_services;k3s_services)
+    detect_strategy(runtime;docker_services;k3s_services;systemd_services)
+  redeploy/detect/detector.py:
+    e: Detector
+    Detector: __init__(3),run(0),save(2)  # Probe infrastructure and produce InfraState...
+  redeploy/apply/executor.py:
+    e: StepError,Executor
+    StepError(Exception): __init__(2)
+    Executor: __init__(2),run(0),_execute_step(1),_run_ssh(1),_run_scp(1),_run_rsync(1),_run_http_check(3),_run_version_check(1),_run_wait(1),_rollback(0),summary(0),from_file(0),save_results(1)  # Execute MigrationPlan steps on a remote host...
+  redeploy/plan/planner.py:
+    e: Planner
+    Planner: __init__(2),run(0),_plan_conflict_fixes(0),_plan_stop_old_services(0),_plan_deploy_new(0),_plan_docker_full(0),_plan_podman_quadlet(0),_plan_systemd(0),_plan_verify(0),_compose_cmd(0),_compose_file(0),_add_step(1),_assess_risk(0),_estimate_downtime(0),from_files(1),from_spec(0),_append_extra_steps(1),save(2)  # Generate a MigrationPlan from detected infra + desired targe...
+  redeploy/version.py:
+    e: read_local_version,read_remote_version,check_version,check_version_http
+    read_local_version(workspace_root;app)
+    read_remote_version(remote;remote_dir;app)
+    check_version(local;remote)
+    check_version_http(base_url;expected_version;timeout)
+  redeploy/verify.py:
+    e: VerifyContext,verify_data_integrity
+    VerifyContext: check(5),add_pass(1),add_fail(2),add_warn(1),add_info(1),summary(0)  # Accumulates check results during verification...
+    verify_data_integrity(ctx;local_counts;remote_counts)
+  redeploy/ssh.py:
+    e: SshResult,SshClient,RemoteProbe,RemoteExecutor
+    SshResult:
+    SshClient: __init__(4),key(1),key(1),run(2),rsync(5),scp(3),is_reachable(1),is_ssh_ready(0),ping(0),_run_local(2),_ssh_opts(0),_scp_opts(0),_detect_ssh_key(-1),_detect_key(-1)  # Execute commands on a remote host via SSH (or locally).
+
+Arg...
+    RemoteProbe(SshClient): __init__(1),is_local(1),is_local(1)  # Thin wrapper kept for redeploy.detect compatibility.
+
+``Remo...
+    RemoteExecutor(SshClient): __init__(1)  # Thin wrapper kept for deploy.core compatibility.
+
+``RemoteEx...
+  redeploy/data_sync.py:
+    e: collect_sqlite_counts,rsync_timeout_for_path
+    collect_sqlite_counts(app_root;db_specs)
+    rsync_timeout_for_path(path;minimum;base;per_mb)
+  redeploy/models.py:
+    e: ConflictSeverity,StepAction,StepStatus,DeployStrategy,ServiceInfo,PortInfo,ConflictInfo,RuntimeInfo,AppHealthInfo,InfraState,TargetConfig,MigrationStep,InfraSpec,MigrationSpec,MigrationPlan
+    ConflictSeverity(str,Enum):
+    StepAction(str,Enum):
+    StepStatus(str,Enum):
+    DeployStrategy(str,Enum):
+    ServiceInfo(BaseModel):
+    PortInfo(BaseModel):
+    ConflictInfo(BaseModel):
+    RuntimeInfo(BaseModel):
+    AppHealthInfo(BaseModel):
+    InfraState(BaseModel):  # Full detected state of infrastructure — output of `detect`...
+    TargetConfig(BaseModel):  # Desired infrastructure state — input to `plan`...
+    MigrationStep(BaseModel):
+    InfraSpec(BaseModel):  # Declarative description of one infrastructure state (from OR...
+    MigrationSpec(BaseModel): from_file(1),to_infra_state(0),to_target_config(0)  # Single YAML file describing full migration: from-state → to-...
+    MigrationPlan(BaseModel):  # Full migration plan — output of `plan`, input to `apply`...
+  project.sh:
+  tree.sh:
+  redeploy/apply/__init__.py:
+  redeploy/detect/remote.py:
+  redeploy/plan/__init__.py:
+  redeploy/__init__.py:
+  redeploy/detect/__init__.py:

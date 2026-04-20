@@ -1,0 +1,206 @@
+project: /home/tom/github/maskservice/redeploy
+generated_from: code2llm call graph analysis
+stats:
+  total_nodes: 12
+  total_edges: 7
+  modules_count: 6
+nodes:
+  redeploy.cli.run:
+    name: run
+    module: redeploy.cli
+    line: 296
+    cyclomatic_complexity: 12
+    calls_out: 48
+    calls_in: 0
+  redeploy.ssh.SshClient._detect_key:
+    name: _detect_key
+    module: redeploy.ssh
+    line: 205
+    cyclomatic_complexity: 6
+    calls_out: 8
+    calls_in: 1
+  redeploy.models.MigrationSpec.from_file:
+    name: from_file
+    module: redeploy.models
+    line: 214
+    cyclomatic_complexity: 1
+    calls_out: 4
+    calls_in: 1
+  redeploy.apply.executor.Executor.from_file:
+    name: from_file
+    module: redeploy.apply.executor
+    line: 191
+    cyclomatic_complexity: 1
+    calls_out: 4
+    calls_in: 1
+  redeploy.detect.probes.probe_ports:
+    name: probe_ports
+    module: redeploy.detect.probes
+    line: 42
+    cyclomatic_complexity: 6
+    calls_out: 11
+    calls_in: 1
+  redeploy.cli.apply:
+    name: apply
+    module: redeploy.cli
+    line: 182
+    cyclomatic_complexity: 9
+    calls_out: 22
+    calls_in: 0
+  redeploy.cli._setup_logging:
+    name: _setup_logging
+    module: redeploy.cli
+    line: 15
+    cyclomatic_complexity: 2
+    calls_out: 2
+    calls_in: 1
+  redeploy.ssh.SshClient._detect_ssh_key:
+    name: _detect_ssh_key
+    module: redeploy.ssh
+    line: 200
+    cyclomatic_complexity: 1
+    calls_out: 1
+    calls_in: 0
+  redeploy.detect.detector.Detector.run:
+    name: run
+    module: redeploy.detect.detector
+    line: 28
+    cyclomatic_complexity: 9
+    calls_out: 30
+    calls_in: 0
+  redeploy.detect.probes.probe_runtime:
+    name: probe_runtime
+    module: redeploy.detect.probes
+    line: 15
+    cyclomatic_complexity: 5
+    calls_out: 15
+    calls_in: 1
+  redeploy.detect.probes.probe_iptables_dnat:
+    name: probe_iptables_dnat
+    module: redeploy.detect.probes
+    line: 65
+    cyclomatic_complexity: 7
+    calls_out: 5
+    calls_in: 1
+  redeploy.cli.cli:
+    name: cli
+    module: redeploy.cli
+    line: 26
+    cyclomatic_complexity: 1
+    calls_out: 5
+    calls_in: 0
+edges:
+- caller: redeploy.detect.detector.Detector.run
+  callee: redeploy.detect.probes.probe_runtime
+  call_type: resolved
+- caller: redeploy.detect.detector.Detector.run
+  callee: redeploy.detect.probes.probe_ports
+  call_type: resolved
+- caller: redeploy.detect.detector.Detector.run
+  callee: redeploy.detect.probes.probe_iptables_dnat
+  call_type: resolved
+- caller: redeploy.ssh.SshClient._detect_ssh_key
+  callee: redeploy.ssh.SshClient._detect_key
+  call_type: resolved
+- caller: redeploy.cli.cli
+  callee: redeploy.cli._setup_logging
+  call_type: resolved
+- caller: redeploy.cli.apply
+  callee: redeploy.apply.executor.Executor.from_file
+  call_type: resolved
+- caller: redeploy.cli.run
+  callee: redeploy.models.MigrationSpec.from_file
+  call_type: resolved
+modules:
+  redeploy.apply.executor:
+  - redeploy.apply.executor.Executor.from_file
+  redeploy.cli:
+  - redeploy.cli._setup_logging
+  - redeploy.cli.apply
+  - redeploy.cli.cli
+  - redeploy.cli.run
+  redeploy.detect.detector:
+  - redeploy.detect.detector.Detector.run
+  redeploy.detect.probes:
+  - redeploy.detect.probes.probe_iptables_dnat
+  - redeploy.detect.probes.probe_ports
+  - redeploy.detect.probes.probe_runtime
+  redeploy.models:
+  - redeploy.models.MigrationSpec.from_file
+  redeploy.ssh:
+  - redeploy.ssh.SshClient._detect_key
+  - redeploy.ssh.SshClient._detect_ssh_key
+entry_points:
+- redeploy.apply.executor.Executor.__init__
+- redeploy.apply.executor.Executor._execute_step
+- redeploy.apply.executor.Executor._rollback
+- redeploy.apply.executor.Executor._run_http_check
+- redeploy.apply.executor.Executor._run_rsync
+- redeploy.apply.executor.Executor._run_scp
+- redeploy.apply.executor.Executor._run_ssh
+- redeploy.apply.executor.Executor._run_version_check
+- redeploy.apply.executor.Executor._run_wait
+- redeploy.apply.executor.Executor.from_file
+- redeploy.apply.executor.Executor.run
+- redeploy.apply.executor.Executor.save_results
+- redeploy.apply.executor.Executor.summary
+- redeploy.apply.executor.StepError.__init__
+- redeploy.cli.apply
+- redeploy.cli.cli
+- redeploy.cli.detect
+- redeploy.cli.migrate
+- redeploy.cli.plan
+- redeploy.cli.run
+- redeploy.data_sync.collect_sqlite_counts
+- redeploy.data_sync.rsync_timeout_for_path
+- redeploy.detect.detector.Detector.__init__
+- redeploy.detect.detector.Detector.run
+- redeploy.detect.detector.Detector.save
+- redeploy.models.MigrationSpec.from_file
+- redeploy.models.MigrationSpec.to_infra_state
+- redeploy.models.MigrationSpec.to_target_config
+- redeploy.plan.planner.Planner.__init__
+- redeploy.plan.planner.Planner._add_step
+- redeploy.plan.planner.Planner._append_extra_steps
+- redeploy.plan.planner.Planner._assess_risk
+- redeploy.plan.planner.Planner._compose_cmd
+- redeploy.plan.planner.Planner._compose_file
+- redeploy.plan.planner.Planner._estimate_downtime
+- redeploy.plan.planner.Planner._plan_conflict_fixes
+- redeploy.plan.planner.Planner._plan_deploy_new
+- redeploy.plan.planner.Planner._plan_docker_full
+- redeploy.plan.planner.Planner._plan_podman_quadlet
+- redeploy.plan.planner.Planner._plan_stop_old_services
+- redeploy.plan.planner.Planner._plan_systemd
+- redeploy.plan.planner.Planner._plan_verify
+- redeploy.plan.planner.Planner.from_files
+- redeploy.plan.planner.Planner.from_spec
+- redeploy.plan.planner.Planner.run
+- redeploy.plan.planner.Planner.save
+- redeploy.ssh.RemoteExecutor.__init__
+- redeploy.ssh.RemoteProbe.__init__
+- redeploy.ssh.RemoteProbe.is_local
+- redeploy.ssh.SshClient.__init__
+- redeploy.ssh.SshClient._detect_key
+- redeploy.ssh.SshClient._detect_ssh_key
+- redeploy.ssh.SshClient._run_local
+- redeploy.ssh.SshClient._scp_opts
+- redeploy.ssh.SshClient._ssh_opts
+- redeploy.ssh.SshClient.is_reachable
+- redeploy.ssh.SshClient.is_ssh_ready
+- redeploy.ssh.SshClient.key
+- redeploy.ssh.SshClient.ping
+- redeploy.ssh.SshClient.rsync
+- redeploy.ssh.SshClient.run
+- redeploy.ssh.SshClient.scp
+- redeploy.verify.VerifyContext.add_fail
+- redeploy.verify.VerifyContext.add_info
+- redeploy.verify.VerifyContext.add_pass
+- redeploy.verify.VerifyContext.add_warn
+- redeploy.verify.VerifyContext.check
+- redeploy.verify.VerifyContext.summary
+- redeploy.verify.verify_data_integrity
+- redeploy.version.check_version
+- redeploy.version.check_version_http
+- redeploy.version.read_local_version
+- redeploy.version.read_remote_version

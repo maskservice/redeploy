@@ -1,0 +1,35 @@
+flowchart TD
+
+    %% Entry points (blue)
+    classDef entry fill:#4dabf7,stroke:#1971c2,color:#fff
+
+    subgraph CLI
+        redeploy__cli___setup_logging["_setup_logging"]
+        redeploy__cli__cli["cli"]
+        redeploy__cli__detect["detect"]
+        redeploy__cli__plan["plan"]
+        redeploy__cli__apply["apply"]
+        redeploy__cli__migrate["migrate"]
+        redeploy__cli__run["run"]
+    end
+
+    subgraph Core
+        redeploy__plan__planner__Planner__run["run"]
+        redeploy__plan__planner__Planner___plan_conflict_fixes["_plan_conflict_fixes"]
+        redeploy__plan__planner__Planner___plan_stop_old_services["_plan_stop_old_services"]
+        redeploy__plan__planner__Planner___plan_deploy_new["_plan_deploy_new"]
+        redeploy__plan__planner__Planner___plan_docker_full["_plan_docker_full"]
+        redeploy__plan__planner__Planner___plan_podman_quadlet["_plan_podman_quadlet"]
+        redeploy__plan__planner__Planner___plan_systemd["_plan_systemd"]
+        redeploy__plan__planner__Planner___plan_verify["_plan_verify"]
+        redeploy__plan__planner__Planner___compose_cmd["_compose_cmd"]
+        redeploy__plan__planner__Planner___compose_file["_compose_file"]
+        redeploy__plan__planner__Planner___add_step["_add_step"]
+        redeploy__plan__planner__Planner___assess_risk["_assess_risk"]
+        redeploy__plan__planner__Planner___estimate_downtime["_estimate_downtime"]
+        redeploy__plan__planner__Planner__from_files["from_files"]
+        redeploy__plan__planner__Planner__from_spec["from_spec"]
+        ...["+46 more"]
+    end
+
+    class redeploy__plan__planner__Planner__run,redeploy__plan__planner__Planner___plan_conflict_fixes,redeploy__plan__planner__Planner___plan_stop_old_services,redeploy__plan__planner__Planner___plan_deploy_new,redeploy__plan__planner__Planner___plan_docker_full,redeploy__plan__planner__Planner___plan_podman_quadlet,redeploy__plan__planner__Planner___plan_systemd,redeploy__plan__planner__Planner___plan_verify,redeploy__plan__planner__Planner___compose_cmd,redeploy__plan__planner__Planner___compose_file entry

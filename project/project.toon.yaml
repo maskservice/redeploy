@@ -1,0 +1,52 @@
+# redeploy | 83 func | 10f | 2496L | python | 2026-04-20
+
+HEALTH:
+  CC̄=4.3  critical=6 (limit:10)  dup=0  cycles=0
+
+ALERTS[10]:
+  !!! high_fan_out     run = 26 (limit:10)
+  !!! high_fan_out     detect = 20 (limit:10)
+  !!! high_fan_out     migrate = 20 (limit:10)
+  !!  high_fan_out     Detector.run = 19 (limit:10)
+  !!  high_fan_out     plan = 18 (limit:10)
+  !   cc_exceeded      detect = 16 (limit:15)
+  !   high_fan_out     apply = 13 (limit:10)
+  !   high_fan_out     probe_docker_services = 13 (limit:10)
+  !   high_fan_out     Planner.run = 10 (limit:10)
+  !   high_fan_out     check_version_http = 10 (limit:10)
+
+MODULES[17] (top by size):
+  M[redeploy/cli.py] 378L C:0 F:7 CC↑16 D:0 (python)
+  M[redeploy/plan/planner.py] 310L C:1 F:18 CC↑8 D:0 (python)
+  M[redeploy/detect/probes.py] 272L C:0 F:9 CC↑13 D:1 (python)
+  M[redeploy/ssh.py] 271L C:4 F:16 CC↑7 D:0 (python)
+  M[redeploy/models.py] 271L C:15 F:3 CC↑4 D:0 (python)
+  M[redeploy/apply/executor.py] 200L C:2 F:14 CC↑9 D:0 (python)
+  M[redeploy/detect/detector.py] 96L C:1 F:3 CC↑9 D:0 (python)
+  M[redeploy/version.py] 95L C:0 F:4 CC↑8 D:0 (python)
+  M[redeploy/verify.py] 92L C:1 F:7 CC↑8 D:0 (python)
+  M[redeploy/data_sync.py] 45L C:0 F:2 CC↑7 D:0 (python)
+  M[project.sh] 35L C:0 F:0 CC↑0 D:0 (shell)
+  M[redeploy/apply/__init__.py] 4L C:0 F:0 CC↑0 D:0 (python)
+  M[redeploy/detect/__init__.py] 4L C:0 F:0 CC↑0 D:0 (python)
+  M[redeploy/detect/remote.py] 4L C:0 F:0 CC↑0 D:0 (python)
+  M[redeploy/plan/__init__.py] 4L C:0 F:0 CC↑0 D:0 (python)
+  LANGS: python:15/shell:2
+
+HOTSPOTS[9]:
+  ★ run fan=26  // Execute migration from a single YAML spec (source + target in one file).
+
+SPEC d
+  ★ detect fan=20  // Probe infrastructure and produce infra.yaml.
+  ★ migrate fan=20  // Full pipeline: detect → plan → apply.
+  ★ Detector.run fan=19  // Orchestrates 19 calls
+  ★ plan fan=18  // Generate migration-plan.yaml from infra.yaml + target config.
+
+REFACTOR[4]:
+  [1] M/L Split detect (CC=16)
+  [2] M/M Reduce run fan-out (currently 26)
+  [3] M/M Reduce detect fan-out (currently 20)
+  [4] M/M Reduce migrate fan-out (currently 20)
+
+EVOLUTION:
+  2026-04-20 CC̄=4.3 crit=6 2496L // Automated analysis

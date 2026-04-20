@@ -1,0 +1,8 @@
+flowchart TD
+    redeploy__apply["redeploy.apply<br/>14 funcs"]
+    redeploy__cli["redeploy.cli<br/>7 funcs"]
+    redeploy__models["redeploy.models<br/>3 funcs"]
+    redeploy__plan["redeploy.plan<br/>18 funcs"]
+    redeploy__cli -->|3| redeploy__plan
+    redeploy__cli -->|1| redeploy__apply
+    redeploy__cli -->|1| redeploy__models

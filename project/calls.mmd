@@ -1,0 +1,30 @@
+flowchart LR
+    subgraph redeploy__apply
+        redeploy__apply__executor__Executor__from_file["from_file"]
+    end
+    subgraph redeploy__cli
+        redeploy__cli__run["run"]
+        redeploy__cli__apply["apply"]
+        redeploy__cli___setup_logging["_setup_logging"]
+        redeploy__cli__cli["cli"]
+    end
+    subgraph redeploy__detect
+        redeploy__detect__probes__probe_ports["probe_ports"]
+        redeploy__detect__detector__Detector__run["run"]
+        redeploy__detect__probes__probe_runtime["probe_runtime"]
+        redeploy__detect__probes__probe_iptables_dnat["probe_iptables_dnat"]
+    end
+    subgraph redeploy__models
+        redeploy__models__MigrationSpec__from_file["from_file"]
+    end
+    subgraph redeploy__ssh
+        redeploy__ssh__SshClient___detect_key["_detect_key"]
+        redeploy__ssh__SshClient___detect_ssh_key["_detect_ssh_key"]
+    end
+    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_runtime
+    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_ports
+    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_iptables_dnat
+    redeploy__ssh__SshClient___detect_ssh_key --> redeploy__ssh__SshClient___detect_key
+    redeploy__cli__cli --> redeploy__cli___setup_logging
+    redeploy__cli__apply --> redeploy__apply__executor__Executor__from_file
+    redeploy__cli__run --> redeploy__models__MigrationSpec__from_file

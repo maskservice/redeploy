@@ -1,0 +1,58 @@
+# code2llm call graph | /home/tom/github/maskservice/redeploy
+# nodes: 12 | edges: 7 | modules: 6
+# CC̄=4.3
+
+HUBS[20]:
+  redeploy.cli.run
+    CC=12  in:0  out:48  total:48
+  redeploy.detect.detector.Detector.run
+    CC=9  in:0  out:30  total:30
+  redeploy.cli.apply
+    CC=9  in:0  out:22  total:22
+  redeploy.detect.probes.probe_runtime
+    CC=5  in:1  out:15  total:16
+  redeploy.detect.probes.probe_ports
+    CC=6  in:1  out:11  total:12
+  redeploy.ssh.SshClient._detect_key
+    CC=6  in:1  out:8  total:9
+  redeploy.detect.probes.probe_iptables_dnat
+    CC=7  in:1  out:5  total:6
+  redeploy.models.MigrationSpec.from_file
+    CC=1  in:1  out:4  total:5
+  redeploy.apply.executor.Executor.from_file
+    CC=1  in:1  out:4  total:5
+  redeploy.cli.cli
+    CC=1  in:0  out:5  total:5
+  redeploy.cli._setup_logging
+    CC=2  in:1  out:2  total:3
+  redeploy.ssh.SshClient._detect_ssh_key
+    CC=1  in:0  out:1  total:1
+
+MODULES:
+  redeploy.apply.executor  [1 funcs]
+    from_file  CC=1  out:4
+  redeploy.cli  [4 funcs]
+    _setup_logging  CC=2  out:2
+    apply  CC=9  out:22
+    cli  CC=1  out:5
+    run  CC=12  out:48
+  redeploy.detect.detector  [1 funcs]
+    run  CC=9  out:30
+  redeploy.detect.probes  [3 funcs]
+    probe_iptables_dnat  CC=7  out:5
+    probe_ports  CC=6  out:11
+    probe_runtime  CC=5  out:15
+  redeploy.models  [1 funcs]
+    from_file  CC=1  out:4
+  redeploy.ssh  [2 funcs]
+    _detect_key  CC=6  out:8
+    _detect_ssh_key  CC=1  out:1
+
+EDGES:
+  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_runtime
+  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_ports
+  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_iptables_dnat
+  redeploy.ssh.SshClient._detect_ssh_key → redeploy.ssh.SshClient._detect_key
+  redeploy.cli.cli → redeploy.cli._setup_logging
+  redeploy.cli.apply → redeploy.apply.executor.Executor.from_file
+  redeploy.cli.run → redeploy.models.MigrationSpec.from_file

@@ -1,0 +1,54 @@
+# code2llm | 17f 2084L | python:15,shell:2 | 2026-04-20
+# CC̄=4.3 | critical:1/83 | dups:0 | cycles:0
+
+HEALTH[1]:
+  🟡 CC    detect CC=16 (limit:15)
+
+REFACTOR[1]:
+  1. split 1 high-CC methods  (CC>15)
+
+PIPELINES[66]:
+  [1] Src [run]: run
+      PURITY: 100% pure
+  [2] Src [_plan_conflict_fixes]: _plan_conflict_fixes
+      PURITY: 100% pure
+  [3] Src [_plan_stop_old_services]: _plan_stop_old_services
+      PURITY: 100% pure
+  [4] Src [_plan_deploy_new]: _plan_deploy_new
+      PURITY: 100% pure
+  [5] Src [_plan_docker_full]: _plan_docker_full
+      PURITY: 100% pure
+
+LAYERS:
+  redeploy/                       CC̄=4.3    ←in:0  →out:4
+  │ !! cli                        378L  0C    7m  CC=16     ←0
+  │ planner                    310L  1C   18m  CC=8      ←1
+  │ probes                     272L  0C    9m  CC=13     ←1
+  │ ssh                        271L  4C   16m  CC=7      ←0
+  │ models                     271L  15C    3m  CC=4      ←1
+  │ executor                   200L  2C   14m  CC=9      ←1
+  │ detector                    96L  1C    3m  CC=9      ←0
+  │ version                     95L  0C    4m  CC=8      ←0
+  │ verify                      92L  1C    7m  CC=8      ←0
+  │ data_sync                   45L  0C    2m  CC=7      ←0
+  │ __init__                     4L  0C    0m  CC=0.0    ←0
+  │ remote                       4L  0C    0m  CC=0.0    ←0
+  │ __init__                     4L  0C    0m  CC=0.0    ←0
+  │ __init__                     4L  0C    0m  CC=0.0    ←0
+  │ __init__                     2L  0C    0m  CC=0.0    ←0
+  │
+  ./                              CC̄=0.0    ←in:0  →out:0
+  │ project.sh                  35L  0C    0m  CC=0.0    ←0
+  │ tree.sh                      1L  0C    0m  CC=0.0    ←0
+  │
+
+COUPLING:
+                        redeploy   redeploy.plan  redeploy.apply
+        redeploy              ──               3               1
+   redeploy.plan              ←3              ──                
+  redeploy.apply              ←1                              ──
+  CYCLES: none
+
+EXTERNAL:
+  validation: run `vallm batch .` → validation.toon
+  duplication: run `redup scan .` → duplication.toon
