@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-04-20
+
+### Added — Plugin system (`redeploy/plugins/`)
+
+- `redeploy/plugins/__init__.py` — plugin registry and public API
+  - `PluginContext` — dataclass passed to every plugin handler: `step`, `host`, `probe`, `emitter`, `params`, `dry_run`
+  - `PluginRegistry` — central registry mapping `plugin_type` strings to handler callables
+    - `register(name, handler)` — programmatic registration
+    - `__call__(name)` — decorator factory: `@registry("my_plugin")`
+    - `get(name)` — lazy lookup (auto-loads builtins on first call)
+    - `names()` — list all registered plugin types
+    - `load_directory(path)` — import all `*.py` files from a directory
+  - `register_plugin(name)` — module-level decorator shortcut: `@register_plugin("browser_reload")`
+  - `load_user_plugins()` — auto-discovery of user plugins from:
+    - `./redeploy_plugins/` (project-local, scanned in cwd)
+    - `~/.redeploy/plugins/` (user-global)
+  - Built-in plugins loaded lazily from `redeploy/plugins/builtin/`
+
+- `redeploy/plugins/builtin/browser_reload.py` — built-in `browser_reload` plugin
+  - Reloads Chromium/Chrome tabs via Chrome DevTools Protocol (CDP) over SSH
+  - Uses only Python stdlib on the remote host (no `websocket-client` required)
+  - Manual WebSocket handshake + `Page.reload` CDP command
+  - Supports `url_contains` filter to target specific tabs
+  - Emits `progress` events per reloaded tab
+  - Parameters: `port` (default: 9222), `ignore_cache` (default: true), `url_contains` (default: "")
+
+- `StepAction.PLUGIN` — new action type in `models.py`
+- `MigrationStep.plugin_type` + `MigrationStep.plugin_params` — new fields for plugin configuration
+
+### Changed
+- `Executor._execute_step()` — added `StepAction.PLUGIN` dispatch to `_run_plugin()`
+- `Executor._run_plugin()` — new handler: resolves plugin by `plugin_type`, builds `PluginContext`, calls handler
+- `cli.py` `_run_apply()` — calls `load_user_plugins()` before every apply run
+- `pyproject.toml` version: `0.2.1` → `0.2.2`
+
+### Usage example (migration YAML)
+```yaml
+steps:
+  - id: reload_kiosk
+    action: plugin
+    plugin_type: browser_reload
+    description: Reload kiosk browser after deploy
+    plugin_params:
+      port: 9222
+      ignore_cache: true
+      url_contains: "localhost:8100"
+```
+
+### Custom plugin example
+```python
+# ./redeploy_plugins/notify.py
+from redeploy.plugins import register_plugin, PluginContext
+from redeploy.models import StepStatus
+
+@register_plugin("notify_slack")
+def notify_slack(ctx: PluginContext) -> None:
+    webhook = ctx.params["webhook"]
+    ctx.probe.run(f"curl -X POST {webhook} -d '{{\"text\":\"deployed!\"}}'")
+    ctx.step.result = "notified"
+    ctx.step.status = StepStatus.DONE
+```
+
+### Verified
+- Full c2004 → RPi5 pipeline (12 steps) completed successfully with `browser_reload` as step 10
+- `browser_reload` executed in ~2s via CDP WebSocket tunnel over SSH
+- Result: `reloaded 1 tab(s): http://localhost:8100/connect-id?...`
+
 ## [0.2.1] - 2026-04-20
 
 ### Docs

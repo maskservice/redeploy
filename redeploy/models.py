@@ -34,6 +34,7 @@ class StepAction(str, Enum):
     HTTP_CHECK = "http_check"
     VERSION_CHECK = "version_check"
     WAIT = "wait"
+    PLUGIN = "plugin"              # custom plugin action
 
 
 class StepStatus(str, Enum):
@@ -197,6 +198,10 @@ class MigrationStep(BaseModel):
     rollback_command: Optional[str] = None
     timeout: int = 300                   # step timeout in seconds
     log_lines: int = 20                  # lines to tail (container_log_tail)
+
+    # plugin-specific params
+    plugin_type: Optional[str] = None    # e.g. "browser_reload"
+    plugin_params: dict = Field(default_factory=dict)  # passed to plugin
 
     result: Optional[str] = None         # filled after apply
     error: Optional[str] = None

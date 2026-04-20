@@ -7,7 +7,7 @@ Public API (stable from 0.2.0, semver guaranteed)::
 
 Everything not listed in ``__all__`` is internal and may change without notice.
 """
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 # ── Core models ───────────────────────────────────────────────────────────────
 from .models import (  # noqa: F401
@@ -76,6 +76,15 @@ from .iac import (  # noqa: F401
     parser_registry,
 )
 
+# ── Plugin system (first-class from 0.2.2) ────────────────────────────────────
+from .plugins import (  # noqa: F401
+    PluginContext,
+    PluginRegistry,
+    register_plugin,
+    load_user_plugins,
+    registry as plugin_registry,
+)
+
 __all__ = [
     # version
     "__version__",
@@ -131,4 +140,10 @@ __all__ = [
     "parse_file",
     "parse_dir",
     "parser_registry",
+    # plugin system
+    "PluginContext",
+    "PluginRegistry",
+    "register_plugin",
+    "load_user_plugins",
+    "plugin_registry",
 ]

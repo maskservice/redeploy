@@ -64,6 +64,18 @@ class VersionBumpTransaction:
         """Stage single source to temp file."""
         adapter = get_adapter(source.format)
 
+        # Check if file exists
+        if not source.path.exists():
+            if source.optional:
+                # Skip optional files that don't exist
+                return StagingResult(
+                    source=source,
+                    ok=True,  # Consider it success - nothing to do
+                    temp_path=None,
+                    old_version="(not found, optional)",
+                )
+            # Will fail in read/stage anyway
+
         # Read current version for reporting
         old_version = ""
         try:
@@ -99,30 +111,33 @@ class VersionBumpTransaction:
 
         # Create parent directories if needed
         for temp, final, _ in self._staged:
-            final.parent.mkdir(parents=True, exist_ok=True)
+            if temp is not None:
+                final.parent.mkdir(parents=True, exist_ok=True)
 
         # Atomic rename loop
         renamed = []
         try:
             for temp, final, _ in self._staged:
-                temp.replace(final)  # Atomic on POSIX
-                renamed.append(final)
+                if temp is not None:
+                    temp.replace(final)  # Atomic on POSIX
+                    renamed.append(final)
         except Exception:
             # Best-effort cleanup: we can't rollback renamed files
             # but we can cleanup remaining temps
             for temp, _, _ in self._staged[len(renamed):]:
-                temp.unlink(missing_ok=True)
+                if temp is not None:
+                    temp.unlink(missing_ok=True)
             raise
 
         # Cleanup any remaining temps (shouldn't happen)
         for temp, _, _ in self._staged:
-            if temp.exists():
+            if temp is not None and temp.exists():
                 temp.unlink(missing_ok=True)
 
     def rollback(self) -> None:
         """Cleanup staged tempfiles without applying changes."""
         for temp, _, _ in self._staged:
-            if temp.exists():
+            if temp is not None and temp.exists():
                 temp.unlink(missing_ok=True)
         self._staged = []
 

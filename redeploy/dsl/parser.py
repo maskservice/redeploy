@@ -89,12 +89,18 @@ _ATRULE_RE = re.compile(
 
 _PROP_RE = re.compile(
     r"""
-    (?P<key>[a-zA-Z_][a-zA-Z0-9_\-]*)    # property name
-    \s*:\s*                                # colon separator
-    (?P<value>[^;{]+?)                     # value (lazy, no ; or {)
-    \s*;                                   # semicolon terminator
+    ^[ \t]*                                # leading whitespace (line start)
+    (?P<key>[a-zA-Z_][a-zA-Z0-9_\-]*      # property name base
+        (?:\[[^\]]*\])?)                   # optional [attr] suffix e.g. score[is_arm]
+    [ \t]*:[ \t]*                          # colon separator
+    (?P<value>                             # value — quoted string OR unquoted token
+        "(?:[^"\\]|\\.)*"                  #   double-quoted (allows {})
+      | '(?:[^'\\]|\\.)*'                  #   single-quoted
+      | [^;\n]+?                           #   unquoted: stops at ; or newline
+    )
+    [ \t]*;                                # semicolon terminator
     """,
-    re.VERBOSE,
+    re.VERBOSE | re.MULTILINE,
 )
 
 
@@ -224,11 +230,18 @@ class RedeployDSLParser:
     def _parse_props(self, body: str) -> dict[str, str]:
         """Extract key: value; pairs from a block body string."""
         props: dict[str, str] = {}
-        # Strip line comments inside body
-        body = re.sub(r"//[^\n]*", "", body)
+        # Strip line comments — only // at start-of-line or preceded by whitespace
+        # (avoids stripping :// inside URLs)
+        body = re.sub(r"(?:^|(?<=\s))//[^\n]*", "", body, flags=re.MULTILINE)
         for m in _PROP_RE.finditer(body):
             key = m.group("key").strip()
-            value = m.group("value").strip().strip('"').strip("'")
+            raw_val = m.group("value").strip()
+            # Strip wrapping quotes only when the whole value is quoted
+            if (raw_val.startswith('"') and raw_val.endswith('"')) or \
+               (raw_val.startswith("'") and raw_val.endswith("'")):
+                value = raw_val[1:-1]
+            else:
+                value = raw_val
             # Multi-value: step-1, step-2 etc — accumulate as list
             if key in props:
                 existing = props[key]

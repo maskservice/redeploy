@@ -327,7 +327,57 @@ extra_steps:
     insert_before: docker_build_pull   # runs before build, not after verify
 ```
 
-## `redeploy.yaml` project manifest
+## Plugin system
+
+Extend the step pipeline with custom action types using `action: plugin`:
+
+```yaml
+extra_steps:
+  - id: reload_kiosk
+    action: plugin
+    plugin_type: browser_reload
+    description: Reload kiosk browser after deploy
+    plugin_params:
+      port: 9222
+      ignore_cache: true
+      url_contains: "localhost:8100"
+```
+
+### Built-in plugins
+
+| `plugin_type` | Description | `plugin_params` |
+|---------------|-------------|-----------------|
+| `browser_reload` | Reload Chromium via CDP (Chrome DevTools Protocol) over SSH | `port` (9222), `ignore_cache` (true), `url_contains` ("") |
+
+### Writing a custom plugin
+
+Place a `.py` file in `./redeploy_plugins/` (project-local) or `~/.redeploy/plugins/` (user-global):
+
+```python
+# ./redeploy_plugins/notify.py
+from redeploy.plugins import register_plugin, PluginContext
+from redeploy.models import StepStatus
+
+@register_plugin("notify_slack")
+def notify_slack(ctx: PluginContext) -> None:
+    webhook = ctx.params["webhook"]
+    ctx.probe.run(f"curl -X POST {webhook} -d '{{\"text\":\"deployed!\"}}'")
+    ctx.step.result = "notified"
+    ctx.step.status = StepStatus.DONE
+```
+
+`PluginContext` fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `step` | `MigrationStep` | Current step — set `result` and `status` here |
+| `host` | `str` | SSH host (e.g. `pi@192.168.1.5`) |
+| `probe` | `RemoteProbe` | Call `probe.run(cmd)` for remote SSH commands |
+| `emitter` | `ProgressEmitter?` | Emit mid-step progress: `emitter.progress(step.id, msg)` |
+| `params` | `dict` | Shortcut for `step.plugin_params` |
+| `dry_run` | `bool` | Skip side-effects if True |
+
+
 
 Place in project root — `redeploy run` (no args) uses it automatically.
 Supports **named environments** for multi-target projects:

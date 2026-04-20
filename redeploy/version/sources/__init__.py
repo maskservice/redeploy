@@ -7,6 +7,9 @@ from typing import Protocol, runtime_checkable
 from ..manifest import SourceConfig
 from .plain import PlainAdapter
 from .toml_ import TomlAdapter
+from .json_ import JsonAdapter
+from .yaml_ import YamlAdapter
+from .regex import RegexAdapter
 
 
 @runtime_checkable
@@ -32,6 +35,9 @@ class SourceAdapter(Protocol):
 _ADAPTERS: dict[str, SourceAdapter] = {
     "plain": PlainAdapter(),
     "toml": TomlAdapter(),
+    "json": JsonAdapter(),
+    "yaml": YamlAdapter(),
+    "regex": RegexAdapter(),
 }
 
 
@@ -47,4 +53,13 @@ def register_adapter(format_name: str, adapter: SourceAdapter) -> None:
     _ADAPTERS[format_name] = adapter
 
 
-__all__ = ["SourceAdapter", "get_adapter", "register_adapter", "PlainAdapter", "TomlAdapter"]
+__all__ = [
+    "SourceAdapter",
+    "get_adapter",
+    "register_adapter",
+    "PlainAdapter",
+    "TomlAdapter",
+    "JsonAdapter",
+    "YamlAdapter",
+    "RegexAdapter",
+]

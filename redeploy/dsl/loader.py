@@ -25,6 +25,24 @@ class WorkflowStep:
     index: int
     command: str
     doc: str = ""
+    plugin_type: Optional[str] = None
+    plugin_params: dict = field(default_factory=dict)
+
+    @classmethod
+    def from_command(cls, index: int, raw: str) -> "WorkflowStep":
+        """Parse raw step string; detect 'plugin <type> [key=val ...]' syntax."""
+        import re as _re
+        raw = raw.strip()
+        m = _re.match(r"^plugin\s+(\S+)(.*)", raw)
+        if m:
+            ptype = m.group(1)
+            rest = m.group(2).strip()
+            params: dict = {}
+            for kv in _re.findall(r'(\w+)=("(?:[^"\\]|\\.)*"|\S+)', rest):
+                k, v = kv
+                params[k] = v.strip('"')
+            return cls(index=index, command=raw, plugin_type=ptype, plugin_params=params)
+        return cls(index=index, command=raw)
 
 
 @dataclass
@@ -37,14 +55,24 @@ class WorkflowDef:
     doc: str = ""
 
     def as_shell(self) -> str:
-        """Render as executable shell script."""
+        """Render as executable shell script.
+
+        Plugin steps are rendered as ``redeploy plugin run <type> key=val``
+        which is the CLI equivalent for pipeline inspection.
+        """
         lines = [f"#!/bin/bash", f"# workflow: {self.name}", ""]
         if self.description:
             lines.append(f"# {self.description}")
         for step in self.steps:
             if step.doc:
                 lines.append(f"# {step.doc}")
-            lines.append(step.command)
+            if step.plugin_type:
+                params = " ".join(f"{k}={v}" for k, v in step.plugin_params.items())
+                lines.append(f"# plugin step — executed by redeploy executor")
+                lines.append(f"# redeploy plugin run {step.plugin_type}"
+                             + (f" {params}" if params else ""))
+            else:
+                lines.append(step.command)
         return "\n".join(lines)
 
 
@@ -291,7 +319,7 @@ def _build_workflows(nodes: list[DSLNode]) -> list[WorkflowDef]:
             idx = int(m.group(1))  # type: ignore[union-attr]
             vals = val if isinstance(val, list) else [val]
             for cmd in vals:
-                wf.steps.append(WorkflowStep(index=idx, command=cmd.strip()))
+                wf.steps.append(WorkflowStep.from_command(idx, cmd))
         workflows.append(wf)
 
     return workflows

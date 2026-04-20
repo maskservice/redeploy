@@ -32,8 +32,14 @@ class TomlAdapter(BaseAdapter):
             raise ValueError("TOML source requires 'key' (e.g., 'project.version')")
 
         toml, mode = self._get_toml_lib()
-        with open(path, mode) as f:
-            data = toml.load(f)
+        # tomllib requires binary mode, tomli works with both
+        if mode == "r":
+            # We have tomllib (Python 3.11+) - use binary mode
+            with open(path, "rb") as f:
+                data = toml.load(f)
+        else:
+            with open(path, mode) as f:
+                data = toml.load(f)
 
         # Navigate dotted key path
         parts = config.key.split(".")

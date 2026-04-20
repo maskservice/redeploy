@@ -14,6 +14,7 @@ from loguru import logger
 
 from ..detect.remote import RemoteProbe
 from ..models import MigrationPlan, MigrationStep, StepAction, StepStatus
+from ..plugins import PluginContext, registry as _plugin_registry
 
 
 class ProgressEmitter:
@@ -217,6 +218,7 @@ class Executor:
             StepAction.HTTP_CHECK:          self._run_http_check,
             StepAction.VERSION_CHECK:       self._run_version_check,
             StepAction.WAIT:                self._run_wait,
+            StepAction.PLUGIN:              self._run_plugin,
         }
 
         handler = dispatch.get(step.action)
@@ -416,6 +418,25 @@ class Executor:
             raise StepError(step, f"version '{step.expect}' not found in response: {r.out[:100]}")
         step.status = StepStatus.DONE
         step.result = f"version {step.expect} confirmed"
+
+    def _run_plugin(self, step: MigrationStep) -> None:
+        """Dispatch to a registered plugin handler."""
+        plugin_type = step.plugin_type
+        if not plugin_type:
+            raise StepError(step, "plugin action requires plugin_type field")
+        handler = _plugin_registry.get(plugin_type)
+        if not handler:
+            available = ", ".join(_plugin_registry.names()) or "(none loaded)"
+            raise StepError(step, f"unknown plugin_type '{plugin_type}'. Available: {available}")
+        ctx = PluginContext(
+            step=step,
+            host=self.plan.host,
+            probe=self.probe,
+            emitter=self._emitter,
+            params=step.plugin_params,
+            dry_run=self.dry_run,
+        )
+        handler(ctx)
 
     def _run_wait(self, step: MigrationStep) -> None:
         total = step.seconds

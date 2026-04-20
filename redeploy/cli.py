@@ -32,6 +32,9 @@ def _print_plan_table(console, migration) -> None:
 def _run_apply(console, migration, dry_run, output, ssh_key: str = "",
                progress_yaml: bool = False) -> bool:
     from .apply import Executor
+    from .plugins import load_user_plugins
+
+    load_user_plugins()
 
     prefix = "[DRY RUN] " if dry_run else ""
     console.print(f"\n[bold]{prefix}apply[/bold]")
@@ -365,19 +368,44 @@ def inspect(ctx, css_file):
     # ── Workflows ─────────────────────────────────────────────────────────────
     if result.workflows:
         console.print(f"\n[bold]Workflows ({len(result.workflows)})[/bold]")
-        t2 = Table(show_header=True, box=None, padding=(0, 2))
-        t2.add_column("Name", style="cyan")
-        t2.add_column("Trigger", style="dim")
-        t2.add_column("Steps", style="dim")
-        t2.add_column("Description")
         for wf in result.workflows:
-            t2.add_row(
-                wf.name,
-                wf.trigger,
-                str(len(wf.steps)),
-                wf.description or wf.doc[:50] if (wf.description or wf.doc) else "—",
+            plugin_steps = [s for s in wf.steps if s.plugin_type]
+            plugin_hint = (f"  [dim](plugins: "
+                           + ", ".join(s.plugin_type for s in plugin_steps)
+                           + ")[/dim]") if plugin_steps else ""
+            console.print(f"  [cyan]{wf.name}[/cyan]  "
+                          f"[dim]{wf.trigger}[/dim]  "
+                          f"{len(wf.steps)} steps"
+                          + (f"  [dim]{wf.description}[/dim]" if wf.description else "")
+                          + plugin_hint)
+            for step in wf.steps:
+                if step.plugin_type:
+                    params_str = "  ".join(f"{k}={v}" for k, v in step.plugin_params.items())
+                    console.print(f"    step-{step.index}: [yellow]plugin[/yellow] "
+                                  f"[cyan]{step.plugin_type}[/cyan]"
+                                  + (f"  [dim]{params_str}[/dim]" if params_str else ""))
+                else:
+                    console.print(f"    step-{step.index}: [dim]{step.command[:80]}[/dim]")
+
+    # ── Devices ───────────────────────────────────────────────────────────────
+    devices = [n for n in result.raw_nodes if n.selector_type == "device"]
+    if devices:
+        console.print(f"\n[bold]Devices ({len(devices)})[/bold]")
+        t3 = Table(show_header=True, box=None, padding=(0, 2))
+        t3.add_column("Name", style="cyan")
+        t3.add_column("Host")
+        t3.add_column("Arch", style="dim")
+        t3.add_column("Strategy", style="dim")
+        t3.add_column("Description")
+        for d in devices:
+            t3.add_row(
+                d.name,
+                d.get("host", "—"),
+                d.get("arch", "—"),
+                d.get("expected_strategy", "—"),
+                d.get("description", "—"),
             )
-        console.print(t2)
+        console.print(t3)
 
     # ── Raw nodes summary ─────────────────────────────────────────────────────
     by_type: dict[str, int] = {}
@@ -386,6 +414,7 @@ def inspect(ctx, css_file):
     console.print(f"\n[dim]nodes: "
                   + "  ".join(f"{t}×{c}" for t, c in sorted(by_type.items()))
                   + "[/dim]")
+    console.print(f"[dim]export: redeploy export --format css  |  redeploy export --format yaml[/dim]")
 
 
 # ── workflow (run named workflow from redeploy.css) ───────────────────────────
@@ -452,6 +481,160 @@ def workflow_cmd(ctx, name, css_file, dry_run, list_only):
 
     if not dry_run:
         console.print(f"\n[green]✓ workflow '{wf.name}' complete[/green]")
+
+
+# ── plugin ────────────────────────────────────────────────────────────────────
+
+@cli.command("export")
+@click.option("--format", "fmt", default="css",
+              type=click.Choice(["css", "yaml"]),
+              help="Output format (css or yaml)")
+@click.option("-o", "--output", default=None, type=click.Path(),
+              help="Output file (default: print to stdout)")
+@click.option("--file", "src_file", default=None, type=click.Path(),
+              help="Source file to convert (auto-detected if omitted)")
+@click.pass_context
+def export_cmd(ctx, fmt, output, src_file):
+    """Convert between redeploy.css and redeploy.yaml formats.
+
+    Reads the nearest redeploy.css or redeploy.yaml and exports to the
+    requested format. Useful for migration, sharing, and LLM inspection.
+
+    \b
+    Examples:
+        redeploy export --format css            # yaml → css (stdout)
+        redeploy export --format css -o redeploy.css
+        redeploy export --format yaml -o redeploy.yaml
+        redeploy export --format yaml --file redeploy.css
+    """
+    from rich.console import Console
+    from .models import ProjectManifest
+    from .dsl.loader import load_css, manifest_to_css, templates_to_css
+
+    console = Console(stderr=True)
+
+    if src_file:
+        src = Path(src_file)
+    else:
+        src = ProjectManifest.find_css(Path.cwd())
+        if not src:
+            src = next((Path.cwd() / f for f in ("redeploy.yaml",) if (Path.cwd() / f).exists()), None)
+        if not src:
+            for d in list(Path.cwd().parents)[:3]:
+                for f in ("redeploy.css", "redeploy.less", "redeploy.yaml"):
+                    if (d / f).exists():
+                        src = d / f
+                        break
+                if src:
+                    break
+
+    if not src or not src.exists():
+        console.print("[red]✗ No redeploy.css or redeploy.yaml found[/red]")
+        sys.exit(1)
+
+    console.print(f"[dim]source: {src}[/dim]")
+
+    if fmt == "css":
+        # Load from yaml or css → emit css
+        if src.suffix in (".css", ".less"):
+            result = load_css(src)
+            manifest = result.manifest
+            templates = result.templates
+        else:
+            import yaml as _yaml
+            with src.open() as f:
+                manifest = ProjectManifest(**_yaml.safe_load(f))
+            templates = []
+
+        if not manifest:
+            console.print("[red]✗ Could not parse manifest[/red]")
+            sys.exit(1)
+
+        out = manifest_to_css(manifest)
+        if templates:
+            out += "\n\n" + templates_to_css(templates)
+
+    else:  # yaml
+        if src.suffix in (".css", ".less"):
+            result = load_css(src)
+            manifest = result.manifest
+        else:
+            import yaml as _yaml
+            with src.open() as f:
+                manifest = ProjectManifest(**_yaml.safe_load(f))
+
+        if not manifest:
+            console.print("[red]✗ Could not parse manifest[/red]")
+            sys.exit(1)
+
+        import yaml as _yaml
+        out = _yaml.dump(manifest.model_dump(exclude_none=True, exclude_defaults=True),
+                         default_flow_style=False, allow_unicode=True)
+
+    if output:
+        Path(output).write_text(out)
+        console.print(f"[green]✓[/green] written to {output}")
+    else:
+        print(out)
+
+
+@cli.command("plugin")
+@click.argument("subcommand", default="list",
+                type=click.Choice(["list", "info"]))
+@click.argument("name", required=False, default=None)
+@click.pass_context
+def plugin_cmd(ctx, subcommand, name):
+    """List or inspect registered redeploy plugins.
+
+    \b
+    Examples:
+        redeploy plugin list
+        redeploy plugin info browser_reload
+        redeploy plugin info systemd_reload
+    """
+    from rich.console import Console
+    from rich.table import Table
+    from .plugins import registry, load_user_plugins
+
+    console = Console()
+    load_user_plugins()
+    # Trigger builtin load
+    _ = registry.names()
+
+    if subcommand == "list":
+        names = registry.names()
+        if not names:
+            console.print("[yellow]No plugins registered.[/yellow]")
+            return
+        console.print(f"\n[bold]Registered plugins ({len(names)})[/bold]\n")
+        t = Table(show_header=True, box=None, padding=(0, 2))
+        t.add_column("Name", style="cyan")
+        t.add_column("Module", style="dim")
+        t.add_column("Summary")
+        for pname in sorted(names):
+            handler = registry._handlers.get(pname)
+            module = getattr(handler, "__module__", "?") if handler else "?"
+            doc = (handler.__doc__ or "").strip().splitlines()[0][:60] if handler and handler.__doc__ else "—"
+            t.add_row(pname, module.replace("redeploy.plugins.builtin.", "builtin/"), doc)
+        console.print(t)
+        console.print(f"\n[dim]User plugin dirs: ./redeploy_plugins/  ~/.redeploy/plugins/[/dim]")
+
+    elif subcommand == "info":
+        if not name:
+            console.print("[red]✗ Provide plugin name: redeploy plugin info <name>[/red]")
+            sys.exit(1)
+        handler = registry._handlers.get(name)
+        if not handler:
+            console.print(f"[red]✗ Plugin '{name}' not found.[/red]")
+            console.print(f"  Available: {', '.join(sorted(registry.names()))}")
+            sys.exit(1)
+        console.print(f"\n[bold cyan]{name}[/bold cyan]  "
+                      f"[dim]{getattr(handler, '__module__', '?')}[/dim]")
+        # Print full docstring of the module
+        import importlib
+        mod = importlib.import_module(handler.__module__)
+        doc = (mod.__doc__ or handler.__doc__ or "No documentation.").strip()
+        console.print(f"\n{doc}")
 
 
 # ── plan ──────────────────────────────────────────────────────────────────────
