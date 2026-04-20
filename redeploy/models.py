@@ -311,6 +311,7 @@ class MigrationPlan(BaseModel):
     """Full migration plan — output of `plan`, input to `apply`."""
     infra_file: str = "infra.yaml"
     target_file: Optional[str] = None
+    spec_path: Optional[str] = None  # Path to the original spec file (for command_ref resolution)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     host: str

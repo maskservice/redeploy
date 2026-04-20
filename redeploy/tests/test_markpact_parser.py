@@ -4,7 +4,11 @@ import textwrap
 
 import pytest
 
-from redeploy.markpact import MarkpactParseError, parse_markpact_text
+from redeploy.markpact import (
+    MarkpactParseError,
+    extract_script_by_ref,
+    parse_markpact_text,
+)
 
 
 def test_parse_markpact_text_extracts_blocks_and_lines():
@@ -39,3 +43,51 @@ def test_parse_markpact_text_requires_markpact_blocks():
         parse_markpact_text("# No fenced blocks\n", path="demo.md")
 
     assert "No markpact blocks found" in str(exc_info.value)
+
+
+def test_extract_script_by_ref_markpact_ref():
+    """Test extracting script from codeblock with markpact:ref."""
+    md = textwrap.dedent("""\
+        # Demo
+
+        ```bash markpact:ref my-test-script
+        #!/bin/bash
+        echo "hello from ref"
+        exit 0
+        ```
+    """)
+    script = extract_script_by_ref(md, "my-test-script", language="bash")
+    assert script is not None
+    assert "#!/bin/bash" in script
+    assert "hello from ref" in script
+
+
+def test_extract_script_by_ref_not_found():
+    """Test that missing ref returns None."""
+    md = textwrap.dedent("""\
+        ```bash markpact:ref other-script
+        echo "other"
+        ```
+    """)
+    script = extract_script_by_ref(md, "missing-script", language="bash")
+    assert script is None
+
+
+def test_parse_markpact_text_with_ref_id():
+    """Test that parser extracts ref_id from markpact:ref."""
+    document = parse_markpact_text(
+        textwrap.dedent("""\
+            # Demo
+
+            ```bash markpact:ref my-script-id
+            #!/bin/bash
+            echo "test"
+            ```
+        """),
+        path="demo.md",
+    )
+
+    assert len(document.blocks) == 1
+    assert document.blocks[0].kind == "ref"
+    assert document.blocks[0].ref_id == "my-script-id"
+    assert "#!/bin/bash" in document.blocks[0].content

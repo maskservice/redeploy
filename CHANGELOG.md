@@ -11,9 +11,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `action: inline_script` for executing multiline bash scripts directly from YAML without external files
 - Script is base64-encoded and executed via SSH with automatic temp file cleanup
 - Use `command` field with YAML `|` for multiline script content
+- Add `command_ref` field to reference scripts from markdown codeblocks
+  - `"#section-id"` — script from section in current spec file
+  - `"./file.md#section-id"` — script from section in specific file
+  - Single source of truth — no duplication between markdown and YAML
+- Add `extract_script_from_markdown()` parser function for extracting scripts by heading
+- Add `redeploy exec` CLI command to execute single scripts from markdown by reference
+  - `redeploy exec '#section-id' --host user@host --file migration.md`
+  - Supports `--dry-run` to preview script content
+  - Useful for one-off operations and testing individual scripts
+- Add `redeploy exec-multi` CLI command to execute multiple scripts at once
+  - `redeploy exec-multi 'script1,script2,script3' --host user@host --file migration.md`
+  - Sequential execution with summary table
+- Add `markpact:ref <id>` syntax for marking codeblocks in markdown
+  - ```bash markpact:ref my-script-id
+  - Explicit script identification
+  - Multiple scripts per section
+  - `extract_script_by_ref()` parser function
 
 ### Changed
 - Migration specs can now use inline_script for cleaner deployment scripts (no base64 encoding in YAML)
+
+## [0.2.18] - 2026-04-21
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+
+### Other
+- Update .redeploy/state/test-local-36935faf.yaml
+- Update .redeploy/state/test-local-563ceb24.yaml
+- Update redeploy/apply/executor.py
+- Update redeploy/checkpoint.py
+- Update redeploy/cli.py
+- Update redeploy/markpact/__init__.py
+- Update redeploy/markpact/compiler.py
+- Update redeploy/markpact/models.py
+- Update redeploy/markpact/parser.py
+- Update redeploy/models.py
+- ... and 3 more files
 
 ## [0.2.17] - 2026-04-21
 

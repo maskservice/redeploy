@@ -143,10 +143,14 @@ class Executor:
         self._audit_path = audit_path
         self._t0: float = 0.0
 
+        # ── spec path for command_ref resolution ─────────────────────────────
+        if spec_path and not plan.spec_path:
+            plan.spec_path = spec_path
+
         # ── resume / checkpoint ──────────────────────────────────────────────
         self._resume = resume
         self._from_step = from_step
-        spec_id = spec_path or plan.target_file or plan.infra_file or plan.app
+        spec_id = spec_path or plan.spec_path or plan.target_file or plan.infra_file or plan.app
         if state_path is None and not dry_run:
             state_path = default_state_path(spec_id, plan.host)
         self._state_path: Optional[Path] = (
@@ -578,9 +582,10 @@ class Executor:
         command_ref formats:
         - "./file.md#section-id" - script from section in specific file
         - "#section-id" - script from section in current spec file
+        - "#kiosk-browser-configuration-script" - markpact:ref block
         """
         from pathlib import Path
-        from ..markpact.parser import extract_script_from_markdown
+        from ..markpact.parser import extract_script_from_markdown, extract_script_by_ref
         
         # Parse command_ref
         if "#" in command_ref:
@@ -597,12 +602,20 @@ class Executor:
         if not file_path.exists():
             raise StepError(step, f"Command ref file not found: {file_path}")
         
-        # Extract script from markdown
+        # Extract script from markdown - try both methods:
+        # 1. First try markpact:ref codeblock (new format)
+        # 2. Then try section heading (old format)
         markdown_content = file_path.read_text(encoding="utf-8")
-        script = extract_script_from_markdown(markdown_content, section_id, language="bash")
+        
+        # Try markpact:ref format first
+        script = extract_script_by_ref(markdown_content, section_id, language="bash")
+        
+        # Fallback to section heading format
+        if script is None:
+            script = extract_script_from_markdown(markdown_content, section_id, language="bash")
         
         if script is None:
-            raise StepError(step, f"Could not find bash script in section '{section_id}' of {file_path}")
+            raise StepError(step, f"Could not find bash script for ref '{section_id}' in {file_path} (tried markpact:ref and section heading)")
         
         return script
 

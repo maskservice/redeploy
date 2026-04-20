@@ -11,11 +11,13 @@ class MarkpactBlock:
     content: str
     start_line: int
     end_line: int
+    ref_id: str | None = None  # For markpact:ref <id> codeblocks
 
     @property
     def label(self) -> str:
         fmt = self.format or "yaml"
-        return f"markpact:{self.kind} {fmt}".strip()
+        ref = f" ref:{self.ref_id}" if self.ref_id else ""
+        return f"markpact:{self.kind} {fmt}{ref}".strip()
 
 
 @dataclass(frozen=True)

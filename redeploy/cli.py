@@ -743,6 +743,237 @@ def plugin_cmd(ctx, subcommand, name):
         console.print(f"\n{doc}")
 
 
+# ── exec (execute script from markdown by reference) ───────────────────────────
+
+@cli.command("exec")
+@click.argument("ref", required=True)
+@click.option("--host", required=True, help="SSH host (user@ip) or 'local'")
+@click.option("--file", "markdown_file", default=None, type=click.Path(),
+              help="Markdown file (required if ref doesn't specify file)")
+@click.option("--dry-run", is_flag=True, help="Show script without executing")
+@click.option("--timeout", default=300, help="Step timeout in seconds")
+@click.pass_context
+def exec_cmd(ctx, ref, host, markdown_file, dry_run, timeout):
+    """Execute a script from a markdown codeblock by reference.
+
+    REF format: #section-id or ./file.md#section-id or just ref-id (for markpact:ref)
+
+    Extracts the script from a ```bash codeblock in the specified section
+    or from a codeblock marked with markpact:ref <id>.
+
+    \b
+    Examples:
+        redeploy exec '#kiosk-browser-configuration-script' --host pi@192.168.188.108 --file migration.md
+        redeploy exec './migration.md#kiosk-script' --host pi@192.168.188.108
+        redeploy exec '#install-deps' --host root@server.com --file deploy.md --dry-run
+        redeploy exec 'kiosk-browser-configuration-script' --host pi@192.168.188.108 --file migration.md
+    """
+    from rich.console import Console
+    from pathlib import Path
+    from .markpact.parser import extract_script_from_markdown, extract_script_by_ref
+    from .detect.remote import RemoteProbe
+    from .apply.executor import Executor, MigrationPlan, MigrationStep, StepAction, StepStatus
+
+    console = Console()
+
+    # Parse reference
+    if "#" in ref:
+        file_part, section_id = ref.split("#", 1)
+        if file_part:
+            md_path = Path(file_part)
+        elif markdown_file:
+            md_path = Path(markdown_file)
+        else:
+            console.print("[red]✗ No file specified in ref and no --file provided[/red]")
+            sys.exit(1)
+        ref_id = section_id
+        use_section_lookup = True
+    else:
+        ref_id = ref
+        if not markdown_file:
+            console.print("[red]✗ --file required when ref doesn't specify file[/red]")
+            sys.exit(1)
+        md_path = Path(markdown_file)
+        use_section_lookup = False
+
+    if not md_path.exists():
+        console.print(f"[red]✗ File not found: {md_path}[/red]")
+        sys.exit(1)
+
+    # Extract script from markdown
+    console.print(f"[dim]Reading {md_path}...[/dim]")
+    md_content = md_path.read_text(encoding="utf-8")
+    
+    # Try markpact:ref lookup first (more specific), then fallback to section lookup
+    script = extract_script_by_ref(md_content, ref_id, language="bash")
+    lookup_method = "markpact:ref"
+    
+    if script is None and use_section_lookup:
+        script = extract_script_from_markdown(md_content, ref_id, language="bash")
+        lookup_method = "section heading"
+    
+    if script is None:
+        console.print(f"[red]✗ Could not find bash script with ref '#{ref_id}'[/red]")
+        console.print("[dim]  Make sure there's either:[/dim]")
+        console.print("[dim]    - A codeblock: ```bash markpact:ref {ref_id}[/dim]")
+        console.print("[dim]    - Or a ## section heading and ```bash codeblock[/dim]")
+        sys.exit(1)
+
+    console.print(f"[green]✓[/green] Found script ({len(script)} chars) via {lookup_method} '#{ref_id}'")
+
+    if dry_run:
+        console.print(f"\n[bold]Script content (dry-run):[/bold]")
+        console.print("```bash")
+        console.print(script)
+        console.print("```")
+        return
+
+    # Execute script on remote host
+    console.print(f"\n[bold]Executing on {host}...[/bold]")
+
+    # Create minimal plan with single step
+    step = MigrationStep(
+        id=f"exec_{ref_id}",
+        action=StepAction.INLINE_SCRIPT,
+        description=f"Execute script from #{ref_id}",
+        command=script,
+        timeout=timeout,
+    )
+    plan = MigrationPlan(
+        host=host,
+        app="exec",
+        from_strategy="unknown",
+        to_strategy="unknown",
+        steps=[step],
+    )
+
+    executor = Executor(plan, dry_run=False)
+    ok = executor.run()
+
+    if not ok:
+        sys.exit(1)
+
+    console.print(f"[green]✓ Script executed successfully[/green]")
+
+
+# ── exec-multi (execute multiple scripts by ref) ───────────────────────────────
+
+@cli.command("exec-multi")
+@click.argument("refs")
+@click.option("--host", required=True, help="SSH host (user@ip) or 'local'")
+@click.option("--file", "markdown_file", required=True, type=click.Path(),
+              help="Markdown file containing scripts")
+@click.option("--dry-run", is_flag=True, help="Show scripts without executing")
+@click.option("--timeout", default=300, help="Step timeout in seconds")
+@click.option("--parallel", is_flag=True, help="Execute scripts in parallel (default: sequential)")
+@click.pass_context
+def exec_multi_cmd(ctx, refs, host, markdown_file, dry_run, timeout, parallel):
+    """Execute multiple scripts from markdown codeblocks by reference.
+
+    REFS format: comma-separated list of ref ids (markpact:ref or section headings)
+
+    \b
+    Examples:
+        redeploy exec-multi 'kiosk-script,install-deps,cleanup' \
+            --host pi@192.168.188.108 --file migration.md
+
+        redeploy exec-multi '#section1,#section2' \
+            --host root@server.com --file deploy.md --dry-run
+    """
+    from rich.console import Console
+    from rich.table import Table
+    from pathlib import Path
+    from .markpact.parser import extract_script_from_markdown, extract_script_by_ref
+    from .apply.executor import Executor, MigrationPlan, MigrationStep, StepAction, StepStatus
+
+    console = Console()
+    md_path = Path(markdown_file)
+
+    if not md_path.exists():
+        console.print(f"[red]✗ File not found: {md_path}[/red]")
+        sys.exit(1)
+
+    # Parse refs
+    ref_list = [r.strip() for r in refs.split(",")]
+    console.print(f"[bold]Loading {len(ref_list)} scripts from {md_path}...[/bold]")
+
+    md_content = md_path.read_text(encoding="utf-8")
+
+    # Extract all scripts
+    scripts: list[tuple[str, str, str]] = []  # (ref_id, script, lookup_method)
+    for ref_id in ref_list:
+        # Try markpact:ref first
+        script = extract_script_by_ref(md_content, ref_id, language="bash")
+        lookup_method = "markpact:ref"
+
+        if script is None and ref_id.startswith("#"):
+            # Try section lookup
+            script = extract_script_from_markdown(md_content, ref_id[1:], language="bash")
+            lookup_method = "section"
+
+        if script is None:
+            console.print(f"[red]✗ Could not find script: {ref_id}[/red]")
+            sys.exit(1)
+
+        scripts.append((ref_id, script, lookup_method))
+        console.print(f"  [green]✓[/green] {ref_id} ({len(script)} chars, {lookup_method})")
+
+    if dry_run:
+        console.print(f"\n[bold]Scripts (dry-run):[/bold]")
+        for ref_id, script, _ in scripts:
+            console.print(f"\n--- {ref_id} ---")
+            console.print("```bash")
+            console.print(script[:500] + ("..." if len(script) > 500 else ""))
+            console.print("```")
+        return
+
+    # Execute scripts
+    console.print(f"\n[bold]Executing on {host}...[/bold]")
+
+    results = []
+    for ref_id, script, _ in scripts:
+        console.print(f"  Running {ref_id}...", end=" ")
+
+        step = MigrationStep(
+            id=f"exec_{ref_id}",
+            action=StepAction.INLINE_SCRIPT,
+            description=f"Execute script from {ref_id}",
+            command=script,
+            timeout=timeout,
+        )
+        plan = MigrationPlan(
+            host=host,
+            app="exec-multi",
+            from_strategy="unknown",
+            to_strategy="unknown",
+            steps=[step],
+        )
+
+        executor = Executor(plan, dry_run=False)
+        ok = executor.run()
+        results.append((ref_id, ok))
+
+        if ok:
+            console.print("[green]✓[/green]")
+        else:
+            console.print("[red]✗[/red]")
+
+    # Summary table
+    console.print(f"\n[bold]Results:[/bold]")
+    t = Table(show_header=True, box=None)
+    t.add_column("Script")
+    t.add_column("Status")
+    for ref_id, ok in results:
+        status = "[green]✓ OK[/green]" if ok else "[red]✗ Failed[/red]"
+        t.add_row(ref_id, status)
+    console.print(t)
+
+    if not all(ok for _, ok in results):
+        sys.exit(1)
+
+    console.print(f"\n[green]✓ All {len(scripts)} scripts executed successfully[/green]")
+
+
 # ── plan ──────────────────────────────────────────────────────────────────────
 
 @cli.command()
@@ -944,8 +1175,18 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
               help="Named environment from redeploy.yaml (e.g. prod, dev, rpi5)")
 @click.option("--progress-yaml", is_flag=True,
               help="Emit machine-readable YAML progress events to stdout")
+@click.option("--resume", is_flag=True,
+              help="Skip steps already completed in the persisted checkpoint "
+                   "(under .redeploy/state/) and continue from the first pending step.")
+@click.option("--from-step", "from_step", default=None,
+              help="Force start from this step id (skips every step before it).")
+@click.option("--state-file", default=None, type=click.Path(),
+              help="Override the path of the checkpoint file.")
+@click.option("--no-state", is_flag=True,
+              help="Disable checkpoint persistence for this run.")
 @click.pass_context
-def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_name, progress_yaml):
+def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
+        env_name, progress_yaml, resume, from_step, state_file, no_state):
     """Execute migration from a single YAML spec (source + target in one file).
 
     SPEC defaults to migration.yaml (or value from redeploy.yaml manifest).
@@ -1029,8 +1270,104 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_nam
         console.print("\n[dim]--plan-only: stopping before apply[/dim]")
         return
 
-    if not _run_apply(console, migration, dry_run, output, progress_yaml=progress_yaml):
+    if not _run_apply(console, migration, dry_run, output,
+                      progress_yaml=progress_yaml,
+                      resume=resume, from_step=from_step,
+                      state_file=state_file, no_state=no_state,
+                      spec_path=str(resolved_spec)):
         sys.exit(1)
+
+
+# ── state (resume checkpoints) ───────────────────────────────────────────────
+
+@cli.command("state")
+@click.argument("action", type=click.Choice(["show", "clear", "ls"]),
+                default="show")
+@click.argument("spec_file", default=None, required=False, type=click.Path())
+@click.option("--host", default=None, help="Override host (default: from spec)")
+@click.option("--state-file", default=None, type=click.Path(),
+              help="Explicit checkpoint path")
+@click.pass_context
+def state_cmd(ctx, action, spec_file, host, state_file):
+    """Inspect or clear resume checkpoints.
+
+    \b
+    Examples:
+        redeploy state show migration.yaml      # current checkpoint
+        redeploy state clear migration.yaml     # delete checkpoint
+        redeploy state ls                       # list all checkpoints in CWD
+    """
+    from rich.console import Console
+    from rich.table import Table
+    from .apply.state import DEFAULT_STATE_DIR, ResumeState, default_state_path
+
+    console = Console()
+
+    if action == "ls":
+        base = DEFAULT_STATE_DIR
+        if not base.exists():
+            console.print(f"[dim]no checkpoints under {base}/[/dim]")
+            return
+        files = sorted(base.glob("*.yaml"))
+        if not files:
+            console.print(f"[dim]no checkpoints under {base}/[/dim]")
+            return
+        t = Table(show_header=True, box=None, padding=(0, 2))
+        t.add_column("File", style="bold")
+        t.add_column("Spec")
+        t.add_column("Host", style="cyan")
+        t.add_column("Done")
+        t.add_column("Failed", style="red")
+        t.add_column("Updated", style="dim")
+        for f in files:
+            try:
+                st = ResumeState.load(f)
+                t.add_row(
+                    f.name, st.spec_path or "?", st.host,
+                    f"{st.completed_count}/{st.total_steps}",
+                    st.failed_step_id or "—",
+                    st.updated_at,
+                )
+            except Exception as e:
+                t.add_row(f.name, "[red]parse error[/red]", "—", "—", "—", str(e)[:40])
+        console.print(t)
+        return
+
+    # show / clear need a path
+    if state_file:
+        path = Path(state_file)
+    else:
+        if not spec_file:
+            console.print("[red]✗ provide SPEC or --state-file[/red]")
+            sys.exit(2)
+        spec = _load_spec_or_exit(console, spec_file)
+        target_host = host or spec.source.host or "local"
+        path = default_state_path(spec_file, target_host)
+
+    if not path.exists():
+        console.print(f"[dim]no checkpoint at {path}[/dim]")
+        return
+
+    if action == "clear":
+        path.unlink()
+        console.print(f"[green]✓ removed {path}[/green]")
+        return
+
+    # show
+    st = ResumeState.load(path)
+    console.print(f"[bold]checkpoint[/bold] {path}")
+    console.print(f"  spec:        {st.spec_path}")
+    console.print(f"  host:        {st.host}")
+    console.print(f"  progress:    {st.completed_count}/{st.total_steps} "
+                  f"({st.remaining} pending)")
+    console.print(f"  started:     {st.started_at}")
+    console.print(f"  updated:     {st.updated_at}")
+    if st.failed_step_id:
+        console.print(f"  [red]failed:      {st.failed_step_id}[/red]")
+        if st.failed_error:
+            console.print(f"  [red]error:       {st.failed_error[:200]}[/red]")
+    if st.completed_step_ids:
+        console.print(f"  done:        {', '.join(st.completed_step_ids)}")
 
 
 # ── helper ────────────────────────────────────────────────────────────────────

@@ -674,3 +674,59 @@ exit 1
         exc.probe.run.return_value = MagicMock(ok=True, out="test", stderr="", exit_code=0)
         exc.run()
         assert exc.probe.run.call_args.kwargs["timeout"] == 456
+
+    def test_command_ref_resolves_from_markdown(self, tmp_path):
+        """Test that command_ref extracts script from markdown codeblock."""
+        # Create markdown file with script
+        md_content = """# Test Migration
+
+## Test Script Section
+
+```bash
+#!/bin/bash
+echo "from markdown"
+```
+"""
+        md_file = tmp_path / "test.md"
+        md_file.write_text(md_content)
+        
+        # Create step with command_ref
+        step = MigrationStep(
+            id="script_ref",
+            action=StepAction.INLINE_SCRIPT,
+            description="test",
+            command=None,
+            command_ref="#test-script-section",
+        )
+        plan = _make_plan([step])
+        plan.spec_path = str(md_file)
+        
+        exc = _executor(plan)
+        exc.probe.run.return_value = MagicMock(ok=True, out="from markdown", stderr="", exit_code=0)
+        
+        result = exc.run()
+        assert result is True
+        assert step.status == StepStatus.DONE
+
+    def test_command_ref_missing_section_fails(self, tmp_path):
+        """Test that missing section in markdown fails gracefully."""
+        md_content = "# Test\n\n## Other Section\n```bash\necho test\n```"
+        md_file = tmp_path / "test.md"
+        md_file.write_text(md_content)
+        
+        step = MigrationStep(
+            id="script_ref_fail",
+            action=StepAction.INLINE_SCRIPT,
+            description="test",
+            command=None,
+            command_ref="#nonexistent-section",
+        )
+        plan = _make_plan([step])
+        plan.spec_path = str(md_file)
+        
+        exc = _executor(plan)
+        result = exc.run()
+        
+        assert result is False
+        assert step.status == StepStatus.FAILED
+        assert "nonexistent-section" in step.error

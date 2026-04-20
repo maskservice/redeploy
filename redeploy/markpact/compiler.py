@@ -17,8 +17,8 @@ class MarkpactCompileError(ValueError):
     """Raised when a markpact document cannot be compiled to MigrationSpec."""
 
 
-_SUPPORTED_BLOCK_KINDS = {"config", "steps"}
-_SUPPORTED_FORMATS = {"yaml", "toml", "json"}
+_SUPPORTED_BLOCK_KINDS = {"config", "steps", "ref"}
+_SUPPORTED_FORMATS = {"yaml", "toml", "json", "bash", "sh"}
 _ALLOWED_SPEC_KEYS = set(MigrationSpec.model_fields)
 _ALLOWED_INFRA_KEYS = set(InfraSpec.model_fields)
 _ALLOWED_STEP_KEYS = set(MigrationStep.model_fields) | {"insert_before"}
@@ -46,7 +46,12 @@ def compile_markpact_document_to_data(document: MarkpactDocument) -> dict[str, A
                 "Phase 1 supports only markpact:config and markpact:steps."
             )
 
+        # Skip payload loading for ref blocks - they are used by inline_script via command_ref
+        if block.kind == "ref":
+            continue
+
         payload = _load_block_payload(document.path, block)
+
         if block.kind == "config":
             saw_config = True
             config_payload = _normalize_config_payload(payload, document.path, block)

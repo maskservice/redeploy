@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.17-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$5.40-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-11.3h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.18-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$5.55-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-12.6h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $5.4000 (36 commits)
-- 👤 **Human dev:** ~$1130 (11.3h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $5.5500 (37 commits)
+- 👤 **Human dev:** ~$1255 (12.6h @ $100/h, 30min dedup)
 
 Generated on 2026-04-21 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.17-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.18-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -403,6 +403,108 @@ extra_steps:
 ```
 
 The script is base64-encoded and executed via SSH with automatic temp file cleanup. Use `command` field for multiline script content (YAML `|` preserves newlines).
+
+### Script References (`command_ref`)
+
+Instead of duplicating scripts in YAML, reference a script defined in a markdown codeblock:
+
+```yaml
+extra_steps:
+  - id: configure_kiosk
+    action: inline_script
+    description: "Execute kiosk script from markdown"
+    command_ref: "#kiosk-browser-configuration-script"
+    risk: medium
+```
+
+In your migration markdown file, define the script in a section:
+
+```markdown
+## Kiosk Browser Configuration Script
+
+```bash
+#!/bin/bash
+# Auto-detect browser...
+if command -v chromium-browser >/dev/null 2>&1; then
+  chromium-browser --kiosk http://localhost:8100
+fi
+```
+```
+
+**Benefits:**
+- Single source of truth — script lives in one place (markdown codeblock)
+- No duplication between markdown documentation and YAML
+- Easy to read and maintain
+- Changes to the codeblock automatically apply to the deployment
+
+**Reference formats:**
+- `"#section-id"` — script from section in current spec file
+- `"./file.md#section-id"` — script from section in specific file
+
+The section ID is derived from the heading: spaces become hyphens, lowercase.
+Example: `## Kiosk Browser Configuration Script` → `#kiosk-browser-configuration-script`
+
+### Execute Script by Reference (`redeploy exec`)
+
+Run a single script from markdown without running the full migration:
+
+```bash
+# Execute script from codeblock on remote host
+redeploy exec '#kiosk-browser-configuration-script' \
+    --host pi@192.168.188.108 \
+    --file migration.podman-rpi5-resume.md
+
+# With file in reference
+redeploy exec './migration.md#install-deps' --host root@server.com
+
+# Using markpact:ref (more explicit)
+redeploy exec 'kiosk-script-id' --host pi@192.168.188.108 --file migration.md
+
+# Dry-run to preview script
+redeploy exec '#backup-script' --host pi@192.168.188.108 --file ops.md --dry-run
+```
+
+This is useful for:
+- One-off operations defined in markdown docs
+- Testing individual scripts before full migration
+- Running maintenance tasks
+
+### Execute Multiple Scripts (`redeploy exec-multi`)
+
+Test multiple scripts at once:
+
+```bash
+# Execute multiple scripts by ref
+redeploy exec-multi 'kiosk-script,install-deps,cleanup' \
+    --host pi@192.168.188.108 \
+    --file migration.md
+
+# Mix of markpact:ref and section headings
+redeploy exec-multi 'script1,#section2,script3' \
+    --host root@server.com \
+    --file deploy.md \
+    --dry-run
+```
+
+### Marking Codeblocks with `markpact:ref`
+
+For more explicit script identification, use `markpact:ref <id>` in codeblock:
+
+```markdown
+```bash markpact:ref kiosk-browser-configuration-script
+#!/bin/bash
+# Auto-detect browser...
+if command -v chromium-browser >/dev/null 2>&1; then
+  chromium-browser --kiosk http://localhost:8100
+fi
+```
+```
+
+Benefits of `markpact:ref`:
+- Explicit ID assignment (not derived from heading)
+- Multiple scripts per section
+- Can reference by simple ID instead of full heading
+- Self-documenting in markdown
 
 
 

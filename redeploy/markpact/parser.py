@@ -29,7 +29,7 @@ def parse_markpact_text(text: str, *, path: str | Path = "migration.md") -> Mark
         if parsed is None:
             continue
 
-        kind, format_name = parsed
+        kind, format_name, ref_id = parsed
         start_line = (token.map[0] + 1) if token.map else 1
         end_line = token.map[1] if token.map else start_line
         blocks.append(MarkpactBlock(
@@ -38,6 +38,7 @@ def parse_markpact_text(text: str, *, path: str | Path = "migration.md") -> Mark
             content=token.content,
             start_line=start_line,
             end_line=end_line,
+            ref_id=ref_id,
         ))
 
     if not blocks:
@@ -48,17 +49,39 @@ def parse_markpact_text(text: str, *, path: str | Path = "migration.md") -> Mark
     return MarkpactDocument(path=source_path, blocks=blocks)
 
 
-def _parse_markpact_fence_info(info: str) -> tuple[str, str | None] | None:
+def _parse_markpact_fence_info(info: str) -> tuple[str, str | None, str | None] | None:
+    """Parse fence info, returns (kind, format_name, ref_id) or None.
+
+    Supports:
+    - ```yaml markpact:steps
+    - ```bash markpact:ref kiosk-browser-configuration-script
+    """
     tokens = [part for part in info.strip().split() if part]
     if not tokens:
         return None
 
     kind: str | None = None
     format_name: str | None = None
+    ref_id: str | None = None
+    prev_was_markpact_ref = False
 
     for token in tokens:
         if token.startswith("markpact:"):
-            kind = token.split(":", 1)[1].strip().lower()
+            kind_part = token.split(":", 1)[1].strip().lower()
+            if kind_part.startswith("ref"):
+                kind = "ref"
+                # Check if ref id is in the same token: markpact:ref:my-id
+                if ":" in kind_part:
+                    ref_id = kind_part.split(":", 1)[1].strip()
+                else:
+                    prev_was_markpact_ref = True
+            else:
+                kind = kind_part
+            continue
+        if prev_was_markpact_ref:
+            # This token is the ref id after markpact:ref
+            ref_id = token
+            prev_was_markpact_ref = False
             continue
         if format_name is None and "=" not in token:
             format_name = token.lower()
@@ -69,7 +92,91 @@ def _parse_markpact_fence_info(info: str) -> tuple[str, str | None] | None:
     if format_name is None and kind in {"config", "steps", "rollback"}:
         format_name = "yaml"
 
-    return kind, format_name
+    return kind, format_name, ref_id
+
+
+def parse_markpact_file_with_refs(path: str | Path) -> tuple[MarkpactDocument, dict[str, str]]:
+    """Parse markpact file and extract all referenced scripts.
+    
+    Returns:
+        (document, refs) where refs is dict of ref_id -> script_content
+    """
+    file_path = Path(path)
+    text = file_path.read_text(encoding="utf-8")
+    doc = parse_markpact_text(text, path=file_path)
+    
+    # Extract all refs
+    refs: dict[str, str] = {}
+    parser = MarkdownIt("commonmark")
+    tokens = parser.parse(text)
+    
+    for token in tokens:
+        if token.type != "fence":
+            continue
+        parsed = _parse_markpact_fence_info(token.info)
+        if parsed is None:
+            continue
+        kind, format_name, ref_id = parsed
+        if kind == "ref" and ref_id:
+            refs[ref_id] = token.content
+    
+    return doc, refs
+
+
+def extract_script_by_ref(text: str, ref_id: str, language: str = "bash") -> str | None:
+    """Extract script from codeblock marked with markpact:ref <ref_id>.
+    
+    Example markdown:
+        ```bash markpact:ref my-script-id
+        #!/bin/bash
+        echo "hello"
+        ```
+    
+    Args:
+        text: Full markdown content
+        ref_id: The reference ID to find
+        language: Expected codeblock language
+    
+    Returns:
+        Script content or None if not found
+    """
+    import re
+    
+    lines = text.splitlines()
+    in_target_block = False
+    script_lines: list[str] = []
+    
+    for line in lines:
+        # Check for opening fence with markpact:ref
+        fence_match = re.match(rf'^```{language}\s+markpact:ref\s+{re.escape(ref_id)}\s*$', line, re.IGNORECASE)
+        if fence_match:
+            in_target_block = True
+            script_lines = []
+            continue
+        
+        # Also try generic pattern for any language
+        if not in_target_block:
+            generic_match = re.match(r'^```(\w+)\s+markpact:ref\s+(\S+)\s*$', line, re.IGNORECASE)
+            if generic_match:
+                lang, ref = generic_match.groups()
+                if ref == ref_id and lang.lower() == language.lower():
+                    in_target_block = True
+                    script_lines = []
+                    continue
+        
+        # Check for closing fence
+        if in_target_block and line.strip() == "```":
+            return "\n".join(script_lines)
+        
+        # Collect lines if inside target block
+        if in_target_block:
+            script_lines.append(line)
+    
+    # Handle unclosed block at end of file
+    if in_target_block and script_lines:
+        return "\n".join(script_lines)
+    
+    return None
 
 
 def extract_script_from_markdown(
