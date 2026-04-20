@@ -105,7 +105,13 @@ class ChangelogManager:
         if not commit_messages:
             return ""
 
-        categories: dict[str, list[str]] = {
+        categories = self._init_categories()
+        self._categorize_commits(commit_messages, categories)
+        return self._build_release_content(categories)
+
+    def _init_categories(self) -> dict[str, list[str]]:
+        """Initialize empty category buckets."""
+        return {
             "Added": [],
             "Changed": [],
             "Deprecated": [],
@@ -114,42 +120,45 @@ class ChangelogManager:
             "Security": [],
         }
 
+    def _categorize_commits(self, commit_messages: list[str], categories: dict[str, list[str]]) -> None:
+        """Categorize commit messages into buckets."""
         for msg in commit_messages:
             commit = parse_conventional(msg)
             if not commit:
                 continue
 
-            entry = f"- {commit.description}"
-            if commit.scope:
-                entry = f"- **{commit.scope}:** {commit.description}"
+            entry = self._format_commit_entry(commit)
+            self._add_to_category(commit, entry, categories)
 
-            # Map commit type to category
-            if commit.breaking:
-                categories["Changed"].append(f"- ⚠️ **BREAKING:** {commit.description}")
-            elif commit.type == "feat":
-                categories["Added"].append(entry)
-            elif commit.type == "fix":
-                categories["Fixed"].append(entry)
-            elif commit.type == "perf":
-                categories["Changed"].append(f"- Performance: {commit.description}")
-            elif commit.type == "security":
-                categories["Security"].append(entry)
-            elif commit.type == "docs":
-                pass  # Skip docs
-            elif commit.type == "chore":
-                pass  # Skip chores
-            elif commit.type == "test":
-                pass  # Skip tests
-            else:
-                # Other types go to Changed
-                categories["Changed"].append(entry)
+    def _format_commit_entry(self, commit) -> str:
+        """Format a single commit as a changelog entry."""
+        if commit.scope:
+            return f"- **{commit.scope}:** {commit.description}"
+        return f"- {commit.description}"
 
-        # Build output
+    def _add_to_category(self, commit, entry: str, categories: dict[str, list[str]]) -> None:
+        """Add commit entry to appropriate category."""
+        if commit.breaking:
+            categories["Changed"].append(f"- ⚠️ **BREAKING:** {commit.description}")
+        elif commit.type == "feat":
+            categories["Added"].append(entry)
+        elif commit.type == "fix":
+            categories["Fixed"].append(entry)
+        elif commit.type == "perf":
+            categories["Changed"].append(f"- Performance: {commit.description}")
+        elif commit.type == "security":
+            categories["Security"].append(entry)
+        elif commit.type in ("docs", "chore", "test"):
+            pass  # Skip docs, chores, tests
+        else:
+            categories["Changed"].append(entry)
+
+    def _build_release_content(self, categories: dict[str, list[str]]) -> str:
+        """Build final release content from categorized entries."""
         sections = []
         for category, entries in categories.items():
             if entries:
                 sections.append(f"### {category}\n" + "\n".join(entries))
-
         return "\n\n".join(sections) if sections else ""
 
     def write(self, content: str) -> None:

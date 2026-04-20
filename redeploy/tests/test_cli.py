@@ -91,7 +91,7 @@ print("unsupported in phase 1")
 
 
 def _runner():
-    return CliRunner(mix_stderr=False)
+    return CliRunner()
 
 
 # ── redeploy run --plan-only ──────────────────────────────────────────────────

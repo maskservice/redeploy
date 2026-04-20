@@ -32,6 +32,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Migration specs can now use inline_script for cleaner deployment scripts (no base64 encoding in YAML)
 
+## [0.2.21] - 2026-04-21
+
+### Docs
+- Update README.md
+- Update project/code2llm_output/README.md
+- Update project/code2llm_output/context.md
+
+### Other
+- Update .redeploy/state/test-local-46c5e2ce.yaml
+- Update .redeploy/state/test-local-56cb0635.yaml
+- Update .redeploy/state/test-local-7f5ddd97.yaml
+- Update .redeploy/state/test-local-be94eb0c.yaml
+- Update .redeploy/state/test-local-e1009318.yaml
+- Update .redeploy/state/test-local-ea908429.yaml
+- Update project/code2llm_output/analysis.toon.yaml
+- Update redeploy/apply/executor.py
+- Update redeploy/cli.py
+- Update redeploy/cli/__init__.py
+- ... and 26 more files
+
 ## [0.2.20] - 2026-04-21
 
 ### Docs

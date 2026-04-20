@@ -488,27 +488,14 @@ class Executor:
         while elapsed < timeout:
             r = self.probe.run(cmd, timeout=20)
             if r.ok and r.out.strip():
-                lines = r.out.strip().splitlines()
-                # Parse simple table: Name | Status
-                statuses = []
-                for line in lines:
-                    if line.startswith("NAME") or not line.strip():
-                        continue
-                    parts = line.split(None, 1)
-                    name = parts[0] if parts else "?"
-                    status = parts[1].strip() if len(parts) > 1 else "?"
-                    statuses.append((name, status))
-
+                statuses = self._parse_container_statuses(r.out)
                 status_str = ", ".join(f"{n}:{s}" for n, s in statuses)
+                
                 if status_str != last_status:
                     logger.debug(f"    [{elapsed}s] containers: {status_str}")
                     last_status = status_str
 
-                unhealthy = [
-                    n for n, s in statuses
-                    if not any(kw in s.lower() for kw in ("up", "running", "healthy"))
-                ]
-                if statuses and not unhealthy:
+                if self._all_containers_healthy(statuses):
                     step.status = StepStatus.DONE
                     step.result = f"all containers healthy after {elapsed}s: {status_str}"
                     logger.debug(f"    ✓ all containers healthy ({elapsed}s)")
@@ -523,6 +510,29 @@ class Executor:
         step.status = StepStatus.DONE
         step.result = f"timeout {timeout}s reached, last: {last_status or 'unknown'}"
         logger.warning(f"    docker_health_wait timed out after {timeout}s — proceeding to health check")
+
+    def _parse_container_statuses(self, output: str) -> list[tuple[str, str]]:
+        """Parse docker compose ps output into (name, status) tuples."""
+        lines = output.strip().splitlines()
+        statuses = []
+        for line in lines:
+            if line.startswith("NAME") or not line.strip():
+                continue
+            parts = line.split(None, 1)
+            name = parts[0] if parts else "?"
+            status = parts[1].strip() if len(parts) > 1 else "?"
+            statuses.append((name, status))
+        return statuses
+
+    def _all_containers_healthy(self, statuses: list[tuple[str, str]]) -> bool:
+        """Check if all containers are in a healthy/running state."""
+        if not statuses:
+            return False
+        unhealthy = [
+            n for n, s in statuses
+            if not any(kw in s.lower() for kw in ("up", "running", "healthy"))
+        ]
+        return not unhealthy
 
     def _run_container_log_tail(self, step: MigrationStep) -> None:
         """Fetch and log the last N lines from each container after start."""

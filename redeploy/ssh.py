@@ -207,6 +207,8 @@ class SshClient:
             "-o", "ConnectTimeout=10",
             "-o", "StrictHostKeyChecking=no",
             "-o", "BatchMode=yes",
+            "-o", "ServerAliveInterval=60",
+            "-o", "ServerAliveCountMax=5",
             "-p", str(self.port),
         ]
         if self.key:
