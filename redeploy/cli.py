@@ -432,6 +432,95 @@ def _find_manifest_path() -> str:
     return "redeploy.yaml"
 
 
+def _resolve_device(console, device_id: str) -> tuple:
+    """Resolve device from registry or auto-probe. Returns (device, registry) or (None, None)."""
+    from .discovery import auto_probe
+    from .models import DeviceRegistry
+
+    reg = DeviceRegistry.load()
+    dev = reg.get(device_id)
+
+    if not dev:
+        # Unknown device — try autonomous probe first
+        console.print(f"[yellow]⚠ {device_id} not in registry — probing…[/yellow]")
+        r = auto_probe(device_id, timeout=8, save=True)
+        if r.reachable:
+            reg = DeviceRegistry.load()  # reload after probe saved
+            dev = reg.get(r.host) or reg.get(r.ip)
+            key_name = __import__('os').path.basename(r.ssh_key) if r.ssh_key else 'agent'
+            console.print(f"  [green]✓[/green] auto-probe OK: {r.host}  "
+                          f"strategy={r.strategy}  key={key_name}")
+        else:
+            console.print(f"  [red]✗ probe failed: {r.error}[/red]")
+            console.print("[dim]  Add manually: redeploy device-add HOST --strategy STRATEGY[/dim]")
+
+    return dev, reg
+
+
+def _load_spec_with_manifest(console, spec_file: str | None, dev) -> "MigrationSpec":
+    """Load spec and apply manifest/device overlays."""
+    from .models import MigrationSpec, ProjectManifest
+
+    manifest = ProjectManifest.find_and_load(Path.cwd())
+    resolved_spec = spec_file or (manifest.spec if manifest else "migration.yaml")
+    if not Path(resolved_spec).exists():
+        console.print(f"[red]✗ spec not found: {resolved_spec}[/red]")
+        sys.exit(1)
+
+    spec = MigrationSpec.from_file(resolved_spec)
+    if manifest:
+        manifest.apply_to_spec(spec)
+
+    return spec, manifest
+
+
+def _overlay_device_onto_spec(spec, dev, console) -> None:
+    """Overlay device values onto spec target configuration."""
+    if not dev:
+        return
+
+    spec.source.host = dev.host
+    spec.target.host = dev.host
+
+    if dev.strategy:
+        from .models import DeployStrategy as DS
+        try:
+            spec.target.strategy = DS(dev.strategy)
+        except ValueError:
+            pass
+
+    if dev.app and not spec.target.app:
+        spec.target.app = dev.app
+    if dev.domain and not spec.target.domain:
+        spec.target.domain = dev.domain
+    if dev.remote_dir and not spec.target.remote_dir:
+        spec.target.remote_dir = dev.remote_dir
+
+    console.print(
+        f"[bold]target[/bold]  [cyan]{dev.id}[/cyan]  "
+        f"{spec.source.strategy.value} → {spec.target.strategy.value}"
+    )
+
+
+def _run_detect_for_spec(console, spec, do_detect: bool) -> "Planner":
+    """Run detect if requested and return planner."""
+    from .detect import Detector
+    from .plan import Planner
+
+    if not do_detect:
+        return Planner.from_spec(spec)
+
+    console.print(f"\n[bold]detect[/bold]  (live probe of {spec.source.host})")
+    d = Detector(host=spec.source.host, app=spec.source.app, domain=spec.source.domain)
+    state = d.run()
+    console.print(f"  detected: {state.detected_strategy.value}  "
+                  f"version={state.current_version or '?'}  "
+                  f"conflicts={len(state.conflicts)}")
+    planner = Planner(state, spec.to_target_config())
+    planner._spec = spec
+    return planner
+
+
 # ── init (generate migration.yaml + redeploy.yaml) ────────────────────────────
 
 @cli.command()
@@ -800,77 +889,25 @@ def target(device_id, spec_file, dry_run, plan_only, do_detect, plan_out):
         redeploy target kiosk-01 --detect --plan-only
     """
     from rich.console import Console
-    from .models import DeviceRegistry, MigrationSpec, ProjectManifest
-    from .plan import Planner
 
     console = Console()
 
     # Resolve device
-    reg = DeviceRegistry.load()
-    dev = reg.get(device_id)
-    if not dev:
-        # Unknown device — try autonomous probe first
-        console.print(f"[yellow]⚠ {device_id} not in registry — probing…[/yellow]")
-        from .discovery import auto_probe
-        r = auto_probe(device_id, timeout=8, save=True)
-        if r.reachable:
-            reg = DeviceRegistry.load()  # reload after probe saved
-            dev = reg.get(r.host) or reg.get(r.ip)
-            console.print(f"  [green]✓[/green] auto-probe OK: {r.host}  "
-                          f"strategy={r.strategy}  key={__import__('os').path.basename(r.ssh_key) if r.ssh_key else 'agent'}")
-        else:
-            console.print(f"  [red]✗ probe failed: {r.error}[/red]")
-            console.print("[dim]  Add manually: redeploy device-add HOST --strategy STRATEGY[/dim]")
+    dev, reg = _resolve_device(console, device_id)
 
     # Resolve spec
-    manifest = ProjectManifest.find_and_load(Path.cwd())
-    resolved_spec = spec_file or (manifest.spec if manifest else "migration.yaml")
-    if not Path(resolved_spec).exists():
-        console.print(f"[red]✗ spec not found: {resolved_spec}[/red]")
-        sys.exit(1)
-
-    spec = MigrationSpec.from_file(resolved_spec)
-    if manifest:
-        manifest.apply_to_spec(spec)
+    spec, manifest = _load_spec_with_manifest(console, spec_file, dev)
 
     # Overlay device values onto spec
     if dev:
-        spec.source.host = dev.host
-        spec.target.host = dev.host
-        if dev.strategy:
-            from .models import DeployStrategy as DS
-            try:
-                spec.target.strategy = DS(dev.strategy)
-            except ValueError:
-                pass
-        if dev.app and not spec.target.app:
-            spec.target.app = dev.app
-        if dev.domain and not spec.target.domain:
-            spec.target.domain = dev.domain
-        if dev.remote_dir and not spec.target.remote_dir:
-            spec.target.remote_dir = dev.remote_dir
-        console.print(
-            f"[bold]target[/bold]  [cyan]{dev.id}[/cyan]  "
-            f"{spec.source.strategy.value} → {spec.target.strategy.value}"
-        )
+        _overlay_device_onto_spec(spec, dev, console)
     else:
         spec.source.host = device_id
         spec.target.host = device_id
         console.print(f"[bold]target[/bold]  {device_id}")
 
-    # Run detect if requested
-    if do_detect:
-        from .detect import Detector
-        console.print(f"\n[bold]detect[/bold]  (live probe of {spec.source.host})")
-        d = Detector(host=spec.source.host, app=spec.source.app, domain=spec.source.domain)
-        state = d.run()
-        console.print(f"  detected: {state.detected_strategy.value}  "
-                      f"version={state.current_version or '?'}  "
-                      f"conflicts={len(state.conflicts)}")
-        planner = Planner(state, spec.to_target_config())
-        planner._spec = spec
-    else:
-        planner = Planner.from_spec(spec)
+    # Run detect if requested and generate plan
+    planner = _run_detect_for_spec(console, spec, do_detect)
 
     console.print(f"\n[bold]plan[/bold]")
     migration = planner.run()
