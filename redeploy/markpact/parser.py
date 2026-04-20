@@ -42,7 +42,7 @@ def parse_markpact_text(text: str, *, path: str | Path = "migration.md") -> Mark
 
     if not blocks:
         raise MarkpactParseError(
-            f"No markpact blocks found in {source_path}. Expected fenced blocks like ```markpact:config yaml."
+            f"No markpact blocks found in {source_path}. Expected fenced blocks like ```yaml markpact:config."
         )
 
     return MarkpactDocument(path=source_path, blocks=blocks)

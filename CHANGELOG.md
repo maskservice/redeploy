@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.15] - 2026-04-20
+
+### Docs
+- Update README.md
+
+### Other
+- Update redeploy/markpact/parser.py
+- Update redeploy/tests/test_markpact_compiler.py
+- Update redeploy/tests/test_markpact_parser.py
+
 ## [0.2.14] - 2026-04-20
 
 ### Docs

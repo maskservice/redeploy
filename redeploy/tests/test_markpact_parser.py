@@ -12,7 +12,7 @@ def test_parse_markpact_text_extracts_blocks_and_lines():
         textwrap.dedent("""\
             # Demo
 
-            ```markpact:config yaml
+            ```yaml markpact:config
             name: parser test
             ```
 

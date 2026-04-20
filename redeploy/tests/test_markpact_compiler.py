@@ -12,7 +12,7 @@ def test_compile_markpact_document_yaml_subset_to_spec():
         textwrap.dedent("""\
             # Demo
 
-            ```markpact:config yaml
+            ```yaml markpact:config
             name: compiler test
             source:
               strategy: docker_full
@@ -27,7 +27,7 @@ def test_compile_markpact_document_yaml_subset_to_spec():
               remote_dir: ~/myapp
             ```
 
-            ```markpact:steps yaml
+            ```yaml markpact:steps
             extra_steps:
               - id: sync_env
                 src: .env
@@ -64,7 +64,7 @@ def test_compile_markpact_document_supports_toml_config_and_steps():
             remote_dir = "~/myapp"
             ```
 
-            ```markpact:steps toml
+            ```toml markpact:steps
             [[extra_steps]]
             id = "wait_startup"
             seconds = 5
@@ -85,7 +85,7 @@ def test_compile_markpact_document_rejects_unsupported_block_kind():
         textwrap.dedent("""\
             # Demo
 
-            ```markpact:config yaml
+            ```yaml markpact:config
             name: compiler test
             source:
               strategy: docker_full
@@ -98,7 +98,7 @@ def test_compile_markpact_document_rejects_unsupported_block_kind():
               remote_dir: ~/myapp
             ```
 
-            ```markpact:python
+            ```python markpact:python
             print("unsupported")
             ```
         """),
@@ -116,7 +116,7 @@ def test_compile_markpact_document_rejects_unsupported_step_keys():
         textwrap.dedent("""\
             # Demo
 
-            ```markpact:config yaml
+            ```yaml markpact:config
             name: compiler test
             source:
               strategy: docker_full
@@ -129,7 +129,7 @@ def test_compile_markpact_document_rejects_unsupported_step_keys():
               remote_dir: ~/myapp
             ```
 
-            ```markpact:steps yaml
+            ```yaml markpact:steps
             extra_steps:
               - id: install_docker
                 action: ssh_cmd
