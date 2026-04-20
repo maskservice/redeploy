@@ -171,6 +171,53 @@ _PODMAN_DAEMON_RELOAD = _step(
     risk=ConflictSeverity.LOW,
 )
 
+_STOP_PODMAN = _step(
+    id="stop_podman",
+    action=StepAction.SYSTEMCTL_STOP,
+    service="podman",
+    description="Stop all Podman containers via systemd",
+    command="systemctl stop podman.service 2>/dev/null || podman stop --all 2>/dev/null || true",
+    risk=ConflictSeverity.MEDIUM,
+    rollback_command="systemctl start podman.service 2>/dev/null || true",
+)
+
+_ENABLE_PODMAN_UNIT = _step(
+    id="enable_podman_unit",
+    action=StepAction.SYSTEMCTL_START,
+    description="Enable and start a Podman Quadlet unit (set service= to override)",
+    command="systemctl daemon-reload && systemctl enable --now {service}.service",
+    risk=ConflictSeverity.LOW,
+)
+
+# ── systemd generic ───────────────────────────────────────────────────────────
+
+_SYSTEMCTL_RESTART = _step(
+    id="systemctl_restart",
+    action=StepAction.SYSTEMCTL_START,
+    description="Restart a systemd service (set command= to override)",
+    command="systemctl restart {service}",
+    risk=ConflictSeverity.LOW,
+)
+
+_SYSTEMCTL_DAEMON_RELOAD = _step(
+    id="systemctl_daemon_reload",
+    action=StepAction.SSH_CMD,
+    description="Reload systemd daemon",
+    command="systemctl daemon-reload",
+    risk=ConflictSeverity.LOW,
+)
+
+# ── git ───────────────────────────────────────────────────────────────────────
+
+_GIT_PULL = _step(
+    id="git_pull",
+    action=StepAction.SSH_CMD,
+    description="Pull latest code from git (cd to remote_dir first)",
+    command="git -C ~/app pull --ff-only",
+    risk=ConflictSeverity.LOW,
+    rollback_command="git -C ~/app reset --hard HEAD@{1}",
+)
+
 # ── registry ──────────────────────────────────────────────────────────────────
 
 _LIBRARY: dict[str, MigrationStep] = {
@@ -189,6 +236,11 @@ _LIBRARY: dict[str, MigrationStep] = {
         _VERSION_CHECK,
         _SYNC_ENV,
         _PODMAN_DAEMON_RELOAD,
+        _STOP_PODMAN,
+        _ENABLE_PODMAN_UNIT,
+        _SYSTEMCTL_RESTART,
+        _SYSTEMCTL_DAEMON_RELOAD,
+        _GIT_PULL,
     ]
 }
 

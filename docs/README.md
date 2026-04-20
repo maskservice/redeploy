@@ -1,7 +1,7 @@
 <!-- code2docs:start --># redeploy
 
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-83-green)
-> **83** functions | **24** classes | **17** files | CC̄ = 4.3
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-142-green)
+> **142** functions | **36** classes | **21** files | CC̄ = 5.7
 
 > Auto-generated project documentation from source code analysis.
 
@@ -74,20 +74,24 @@ docs = generate_docs("./my-project", config=config)
 redeploy/
 ├── tree
 ├── project
-    ├── apply/
-    ├── verify
-        ├── planner
-    ├── version
-        ├── remote
+    ├── steps
     ├── cli
     ├── plan/
+        ├── planner
         ├── executor
+    ├── version
+        ├── probes
     ├── data_sync
     ├── ssh
-        ├── probes
     ├── detect/
+    ├── apply/
         ├── detector
+        ├── remote
 ├── redeploy/
+    ├── verify
+    ├── parse
+    ├── discovery
+    ├── fleet
     ├── models
 ```
 
@@ -95,7 +99,7 @@ redeploy/
 
 ### Classes
 
-- **`VerifyContext`** — Accumulates check results during verification.
+- **`StepLibrary`** — Registry of pre-defined named MigrationSteps.
 - **`Planner`** — Generate a MigrationPlan from detected infra + desired target.
 - **`StepError`** — —
 - **`Executor`** — Execute MigrationPlan steps on a remote host.
@@ -104,6 +108,14 @@ redeploy/
 - **`RemoteProbe`** — Thin wrapper kept for redeploy.detect compatibility.
 - **`RemoteExecutor`** — Thin wrapper kept for deploy.core compatibility.
 - **`Detector`** — Probe infrastructure and produce InfraState.
+- **`VerifyContext`** — Accumulates check results during verification.
+- **`DiscoveredHost`** — —
+- **`ProbeResult`** — Full autonomous probe result for a single host.
+- **`DeviceArch`** — —
+- **`Stage`** — —
+- **`DeviceExpectation`** — Declarative assertions about required infrastructure on a device.
+- **`FleetDevice`** — Generic device descriptor — superset of ``deploy``'s DeviceConfig.
+- **`FleetConfig`** — Top-level fleet manifest — list of devices with stage / tag organisation.
 - **`ConflictSeverity`** — —
 - **`StepAction`** — —
 - **`StepStatus`** — —
@@ -119,22 +131,31 @@ redeploy/
 - **`InfraSpec`** — Declarative description of one infrastructure state (from OR to).
 - **`MigrationSpec`** — Single YAML file describing full migration: from-state → to-state.
 - **`MigrationPlan`** — Full migration plan — output of `plan`, input to `apply`.
+- **`ProjectManifest`** — Per-project redeploy.yaml — replaces repetitive Makefile variables.
+- **`DeployRecord`** — Single deployment event recorded for a device.
+- **`KnownDevice`** — Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml.
+- **`DeviceRegistry`** — Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
 
 ### Functions
 
-- `verify_data_integrity(ctx, local_counts, remote_counts)` — Compare local vs remote SQLite row counts and record results in *ctx*.
-- `read_local_version(workspace_root, app)` — Read VERSION file from local workspace.
-- `read_remote_version(remote, remote_dir, app)` — Read VERSION file from remote device via SSH.
-- `check_version(local, remote)` — Compare local vs remote version string. Returns (match, detail_line).
-- `check_version_http(base_url, expected_version, timeout)` — Call ``/api/v3/version/check`` on a running service.
 - `cli(ctx, verbose)` — redeploy — Infrastructure migration toolkit: detect → plan → apply
 - `detect(ctx, host, app, domain)` — Probe infrastructure and produce infra.yaml.
 - `plan(ctx, infra, target, strategy)` — Generate migration-plan.yaml from infra.yaml + target config.
 - `apply(ctx, plan_file, dry_run, step)` — Execute a migration plan.
 - `migrate(ctx, host, app, domain)` — Full pipeline: detect → plan → apply.
 - `run(ctx, spec_file, dry_run, plan_only)` — Execute migration from a single YAML spec (source + target in one file).
-- `collect_sqlite_counts(app_root, db_specs)` — Collect row counts for the given SQLite tables under *app_root*.
-- `rsync_timeout_for_path(path, minimum, base, per_mb)` — Compute a conservative rsync timeout based on file size (seconds).
+- `init(host, app, domain, strategy)` — Scaffold migration.yaml + redeploy.yaml for this project.
+- `status(spec_file)` — Show current project manifest and spec summary.
+- `devices(tag, strategy, reachable, as_json)` — List known devices from ~/.config/redeploy/devices.yaml.
+- `scan(subnet, ssh_users, ssh_port, ping)` — Discover SSH-accessible devices on the local network.
+- `device_add(host, device_id, name, tags)` — Add or update a device in the registry.
+- `device_rm(device_id)` — Remove a device from the registry.
+- `target(device_id, spec_file, dry_run, plan_only)` — Deploy a spec to a specific registered device.
+- `probe(hosts, subnet, users, ssh_port)` — Autonomously probe one or more hosts — detect SSH credentials, strategy, app.
+- `read_local_version(workspace_root, app)` — Read VERSION file from local workspace.
+- `read_remote_version(remote, remote_dir, app)` — Read VERSION file from remote device via SSH.
+- `check_version(local, remote)` — Compare local vs remote version string. Returns (match, detail_line).
+- `check_version_http(base_url, expected_version, timeout)` — Call ``/api/v3/version/check`` on a running service.
 - `probe_runtime(p)` — Detect installed runtimes: docker, k3s, podman, systemd.
 - `probe_ports(p)` — Detect listening ports and which process owns them.
 - `probe_iptables_dnat(p, ports)` — Find iptables DNAT rules stealing specific ports (returns [(port, target_ip)]).
@@ -144,6 +165,17 @@ redeploy/
 - `probe_health(host, app, domain)` — HTTP health checks against known endpoints.
 - `detect_conflicts(ports, iptables_dnat, runtime, docker_services)` — Identify conflicts: port stealing, duplicate services, etc.
 - `detect_strategy(runtime, docker_services, k3s_services, systemd_services)` — Infer the current deployment strategy from detected services.
+- `collect_sqlite_counts(app_root, db_specs)` — Collect row counts for the given SQLite tables under *app_root*.
+- `rsync_timeout_for_path(path, minimum, base, per_mb)` — Compute a conservative rsync timeout based on file size (seconds).
+- `verify_data_integrity(ctx, local_counts, remote_counts)` — Compare local vs remote SQLite row counts and record results in *ctx*.
+- `parse_docker_ps(output)` — Parse 'docker ps --format "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}|{{.State}}"' output.
+- `parse_container_line(line)` — Parse a single NAME|STATUS|IMAGE pipe-delimited container line.
+- `parse_system_info(output)` — Parse KEY:VALUE system info lines (HOSTNAME, UPTIME, DISK, MEM, LOAD) into a dict.
+- `parse_diagnostics(output)` — Parse multi-section SSH diagnostics output into structured dict.
+- `parse_health_info(output)` — Parse health-check SSH output (HOSTNAME, UPTIME, HEALTH, DISK, LOAD) into a dict.
+- `discover(subnet, ssh_users, ssh_port, ping)` — Discover SSH-accessible hosts in the local network.
+- `update_registry(hosts, registry, save)` — Merge discovered hosts into DeviceRegistry and optionally save.
+- `auto_probe(ip_or_host, users, port, timeout)` — Autonomously probe a host — try all available SSH keys and users.
 
 
 ## Project Structure
@@ -152,16 +184,20 @@ redeploy/
 📦 `redeploy`
 📦 `redeploy.apply`
 📄 `redeploy.apply.executor` (14 functions, 2 classes)
-📄 `redeploy.cli` (7 functions)
+📄 `redeploy.cli` (18 functions)
 📄 `redeploy.data_sync` (2 functions)
 📦 `redeploy.detect`
 📄 `redeploy.detect.detector` (3 functions, 1 classes)
 📄 `redeploy.detect.probes` (9 functions)
 📄 `redeploy.detect.remote`
-📄 `redeploy.models` (3 functions, 15 classes)
+📄 `redeploy.discovery` (15 functions, 2 classes)
+📄 `redeploy.fleet` (9 functions, 5 classes)
+📄 `redeploy.models` (15 functions, 19 classes)
+📄 `redeploy.parse` (6 functions)
 📦 `redeploy.plan`
-📄 `redeploy.plan.planner` (18 functions, 1 classes)
+📄 `redeploy.plan.planner` (19 functions, 1 classes)
 📄 `redeploy.ssh` (16 functions, 4 classes)
+📄 `redeploy.steps` (5 functions, 1 classes)
 📄 `redeploy.verify` (7 functions, 1 classes)
 📄 `redeploy.version` (4 functions)
 📄 `tree`

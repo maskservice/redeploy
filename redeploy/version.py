@@ -53,14 +53,15 @@ def check_version_http(
     base_url: str,
     expected_version: Optional[str] = None,
     timeout: int = 10,
+    endpoint: str = "/api/v3/version/check",
 ) -> tuple[bool, str, dict[str, Any]]:
-    """Call ``/api/v3/version/check`` on a running service.
+    """Call *endpoint* on a running service (default: ``/api/v3/version/check``).
 
     Returns ``(ok, summary_line, full_payload)``.
     Compares all service versions (backend/frontend/firmware) and optionally
     checks they match *expected_version*.
     """
-    url = base_url.rstrip("/") + "/api/v3/version/check"
+    url = base_url.rstrip("/") + "/" + endpoint.lstrip("/")
     try:
         req = urllib.request.Request(url, headers={
             "Accept": "application/json",

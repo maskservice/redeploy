@@ -43,8 +43,8 @@ class Planner:
         downtime = self._estimate_downtime()
 
         return MigrationPlan(
-            host=self.state.host,
-            app=self.state.app,
+            host=self.target.host or self.state.host,
+            app=self.target.app if self.target.app != "c2004" else self.state.app,
             from_strategy=self.state.detected_strategy,
             to_strategy=self.target.strategy,
             risk=risk,

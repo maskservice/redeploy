@@ -64,7 +64,7 @@ def cli(ctx, verbose):
 
 @cli.command()
 @click.option("--host", required=True, help="SSH host (user@ip) or 'local'")
-@click.option("--app", default="c2004", show_default=True, help="Application name")
+@click.option("--app", default=None, show_default=True, help="Application name (default from redeploy.yaml)")
 @click.option("--domain", default=None, help="Public domain for HTTP health checks")
 @click.option("-o", "--output", default="infra.yaml", show_default=True,
               type=click.Path(), help="Output file for InfraState")
@@ -74,9 +74,14 @@ def detect(ctx, host, app, domain, output):
     from rich.console import Console
     from rich.table import Table
     from .detect import Detector
+    from .models import ProjectManifest
 
     console = Console()
     out_path = Path(output)
+
+    manifest = ProjectManifest.find_and_load(Path.cwd())
+    app = app or (manifest.app if manifest else "c2004")
+    domain = domain or (manifest.domain if manifest else None)
 
     try:
         d = Detector(host=host, app=app, domain=domain)
@@ -248,7 +253,7 @@ def apply(ctx, plan_file, dry_run, step, output):
 
 @cli.command()
 @click.option("--host", required=True, help="SSH host (user@ip) or 'local'")
-@click.option("--app", default="c2004", show_default=True)
+@click.option("--app", default=None, show_default=True, help="Application name (default from redeploy.yaml)")
 @click.option("--domain", default=None)
 @click.option("--target", default=None, type=click.Path(), help="Target config YAML")
 @click.option("--strategy", default="docker_full", show_default=True,
@@ -267,9 +272,13 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
     from .detect import Detector
     from .plan import Planner
     from .apply import Executor
-    from .models import TargetConfig
+    from .models import ProjectManifest, TargetConfig
 
     console = Console()
+
+    manifest = ProjectManifest.find_and_load(Path.cwd())
+    app = app or (manifest.app if manifest else "c2004")
+    domain = domain or (manifest.domain if manifest else None)
 
     # 1. detect
     console.print(f"\n[bold]Step 1/3 — detect[/bold]")
@@ -322,8 +331,10 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
               help="Save generated plan to file")
 @click.option("-o", "--output", default=None, type=click.Path(),
               help="Save apply results to file")
+@click.option("--env", "env_name", default="",
+              help="Named environment from redeploy.yaml (e.g. prod, dev, rpi5)")
 @click.pass_context
-def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output):
+def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_name):
     """Execute migration from a single YAML spec (source + target in one file).
 
     SPEC defaults to migration.yaml (or value from redeploy.yaml manifest).
@@ -331,7 +342,8 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output):
     \b
     Example:
         redeploy run                        # uses redeploy.yaml + migration.yaml
-        redeploy run examples/k3s-to-docker.yaml
+        redeploy run --env prod             # use prod environment from redeploy.yaml
+        redeploy run --env rpi5 --detect    # deploy to rpi5 env with live probe
         redeploy run migration.yaml --dry-run
         redeploy run migration.yaml --detect --plan-out plan.yaml
     """
@@ -353,10 +365,20 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output):
 
     spec = MigrationSpec.from_file(resolved_spec)
 
-    # overlay manifest values (host, domain, remote_dir, ssh_key)
+    # overlay manifest values — env-specific or global
     if manifest:
-        manifest.apply_to_spec(spec)
-        console.print(f"[dim]manifest: {_find_manifest_path()}[/dim]")
+        if env_name and env_name not in manifest.environments:
+            console.print(f"[yellow]⚠ env '{env_name}' not in redeploy.yaml — known: "
+                          f"{', '.join(manifest.environments) or 'none'}[/yellow]")
+        manifest.apply_to_spec(spec, env_name=env_name)
+        env_label = f" [cyan][env: {env_name}][/cyan]" if env_name else ""
+        console.print(f"[dim]manifest: {_find_manifest_path()}{env_label}[/dim]")
+    elif not env_name:
+        # Fallback: read DEPLOY_* from .env if no redeploy.yaml
+        dotenv_manifest = ProjectManifest.from_dotenv(Path.cwd())
+        if dotenv_manifest:
+            dotenv_manifest.apply_to_spec(spec)
+            console.print("[dim]manifest: .env (DEPLOY_* vars)[/dim]")
 
     console.print(f"\n[bold]{spec.name}[/bold]"
                   + (f"  [dim]{spec.description}[/dim]" if spec.description else ""))

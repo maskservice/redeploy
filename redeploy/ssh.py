@@ -137,6 +137,34 @@ class SshClient:
         except Exception as e:
             return SshResult(1, "", str(e))
 
+    def put_file(self, content: str, remote_path: str, mode: str = "0600") -> SshResult:
+        """Write *content* as a file at *remote_path* on the remote host.
+
+        Uses ``cat >`` over SSH so no temporary local file is created.
+        *mode* is applied via ``chmod`` after writing (default: ``0600``).
+        """
+        if self.is_local:
+            from pathlib import Path as _Path
+            try:
+                p = _Path(remote_path)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(content)
+                import os
+                os.chmod(remote_path, int(mode, 8))
+                return SshResult(0, "", "")
+            except Exception as e:
+                return SshResult(1, "", str(e))
+
+        full_cmd = ["ssh"] + self._ssh_opts() + [self.host, f"cat > '{remote_path}' && chmod {mode} '{remote_path}'"]
+        logger.info(f"[{self.ssh_id}] put_file → {remote_path} ({len(content)} bytes)")
+        try:
+            p = subprocess.run(full_cmd, input=content, capture_output=True, text=True, timeout=30)
+            if p.returncode != 0:
+                logger.warning(f"[{self.ssh_id}] put_file failed: {p.stderr[:200]}")
+            return SshResult(p.returncode, p.stdout, p.stderr)
+        except Exception as e:
+            return SshResult(1, "", str(e))
+
     def is_reachable(self, timeout: int = 10) -> bool:
         """Return True if SSH connection succeeds."""
         if self.is_local:

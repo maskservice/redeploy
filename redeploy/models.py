@@ -126,6 +126,7 @@ class InfraState(BaseModel):
 class TargetConfig(BaseModel):
     """Desired infrastructure state — input to `plan`."""
     strategy: DeployStrategy = DeployStrategy.DOCKER_FULL
+    host: Optional[str] = None           # override InfraState.host when set
     app: str = "c2004"
     version: Optional[str] = None
 
@@ -275,20 +276,49 @@ class MigrationPlan(BaseModel):
 
 # ── ProjectManifest (redeploy.yaml — project-level config) ───────────────────
 
+class EnvironmentConfig(BaseModel):
+    """One named environment (prod / dev / rpi5 / staging …) in redeploy.yaml."""
+    host: Optional[str] = None
+    strategy: Optional[str] = None
+    app: Optional[str] = None
+    domain: Optional[str] = None
+    remote_dir: Optional[str] = None
+    env_file: Optional[str] = None
+    ssh_key: Optional[str] = None
+    ssh_port: int = 22
+    verify_url: Optional[str] = None
+    spec: Optional[str] = None           # override spec file for this env
+
+
 class ProjectManifest(BaseModel):
     """Per-project redeploy.yaml — replaces repetitive Makefile variables.
 
     Place ``redeploy.yaml`` in the project root; then just run ``redeploy run``
     with no arguments and it will pick up spec, host, app, domain automatically.
 
+    Supports named environments (prod/dev/rpi5/…).
+
     Example::
 
         spec: migration.yaml
-        local_spec: migration-local.yaml
-        host: root@1.2.3.4
         app: myapp
-        domain: myapp.example.com
-        ssh_key: ~/.ssh/id_ed25519
+
+        environments:
+          prod:
+            host: root@87.106.87.183
+            strategy: docker_full
+            env_file: envs/vps.env
+            verify_url: https://myapp.example.com/api/v1/health
+          rpi5:
+            host: pi@192.168.188.108
+            strategy: systemd
+            env_file: .env
+            verify_url: http://192.168.188.108:8000/api/v1/health
+          dev:
+            host: local
+            strategy: docker_full
+            env_file: .env.local
+            verify_url: http://localhost:8000/api/v1/health
     """
     spec: str = "migration.yaml"
     local_spec: str = "migration-local.yaml"
@@ -299,6 +329,7 @@ class ProjectManifest(BaseModel):
     ssh_port: int = 22
     remote_dir: Optional[str] = None
     env_file: str = ".env"
+    environments: dict[str, EnvironmentConfig] = Field(default_factory=dict)
 
     @classmethod
     def find_and_load(cls, start: "Path") -> "Optional[ProjectManifest]":  # type: ignore[name-defined]
@@ -312,15 +343,104 @@ class ProjectManifest(BaseModel):
                     return cls(**yaml.safe_load(f))
         return None
 
-    def apply_to_spec(self, spec: "MigrationSpec") -> None:
-        """Overlay manifest values onto a MigrationSpec (host/domain/ssh_key)."""
-        if self.host:
-            spec.source.host = self.host
-            spec.target.host = self.host
-        if self.domain and not spec.target.domain:
-            spec.target.domain = self.domain
-        if self.remote_dir and not spec.target.remote_dir:
-            spec.target.remote_dir = self.remote_dir
+    def env(self, name: str) -> "Optional[EnvironmentConfig]":
+        """Return named environment config, or None if not defined."""
+        return self.environments.get(name)
+
+    def resolve_env(self, name: str) -> "EnvironmentConfig":
+        """Return env config merged with manifest defaults (env overrides manifest)."""
+        base = EnvironmentConfig(
+            host=self.host,
+            app=self.app,
+            domain=self.domain,
+            remote_dir=self.remote_dir,
+            env_file=self.env_file,
+            ssh_key=self.ssh_key,
+            ssh_port=self.ssh_port,
+        )
+        override = self.environments.get(name)
+        if not override:
+            return base
+        return EnvironmentConfig(
+            host=override.host or base.host,
+            strategy=override.strategy,
+            app=override.app or base.app,
+            domain=override.domain or base.domain,
+            remote_dir=override.remote_dir or base.remote_dir,
+            env_file=override.env_file or base.env_file,
+            ssh_key=override.ssh_key or base.ssh_key,
+            ssh_port=override.ssh_port if override.ssh_port != 22 else base.ssh_port,
+            verify_url=override.verify_url,
+            spec=override.spec,
+        )
+
+    @classmethod
+    def from_dotenv(cls, project_dir: "Path") -> "Optional[ProjectManifest]":  # type: ignore[name-defined]
+        """Read DEPLOY_* vars from .env file in project_dir as a fallback.
+
+        Supports::
+
+            DEPLOY_HOST=pi@192.168.188.108
+            DEPLOY_STRATEGY=systemd
+            DEPLOY_APP=c2004
+            DEPLOY_ENV_FILE=.env
+            DEPLOY_VERIFY_URL=http://192.168.188.108:8000/api/v1/health
+        """
+        from pathlib import Path
+        env_path = Path(project_dir) / ".env"
+        if not env_path.exists():
+            return None
+        data: dict = {}
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            k = k.strip().upper()
+            v = v.strip().strip('"').strip("'")
+            if k == "DEPLOY_HOST":
+                data["host"] = v
+            elif k == "DEPLOY_APP":
+                data["app"] = v
+            elif k == "DEPLOY_DOMAIN":
+                data["domain"] = v
+            elif k == "DEPLOY_ENV_FILE":
+                data["env_file"] = v
+            elif k == "DEPLOY_SSH_KEY":
+                data["ssh_key"] = v
+        if not data:
+            return None
+        return cls(**data)
+
+    def apply_to_spec(self, spec: "MigrationSpec", env_name: str = "") -> None:
+        """Overlay manifest values onto a MigrationSpec.
+
+        If *env_name* is given, uses that environment's config (merged with defaults).
+        """
+        cfg = self.resolve_env(env_name) if env_name else self
+        host = cfg.host if isinstance(cfg, EnvironmentConfig) else self.host
+        domain = cfg.domain if isinstance(cfg, EnvironmentConfig) else self.domain
+        remote_dir = cfg.remote_dir if isinstance(cfg, EnvironmentConfig) else self.remote_dir
+        env_file = cfg.env_file if isinstance(cfg, EnvironmentConfig) else self.env_file
+        verify_url = cfg.verify_url if isinstance(cfg, EnvironmentConfig) else None
+        strategy_str = cfg.strategy if isinstance(cfg, EnvironmentConfig) else None
+
+        if host:
+            spec.source.host = host
+            spec.target.host = host
+        if domain and not spec.target.domain:
+            spec.target.domain = domain
+        if remote_dir and not spec.target.remote_dir:
+            spec.target.remote_dir = remote_dir
+        if env_file and not spec.target.env_file:
+            spec.target.env_file = env_file
+        if verify_url and not spec.target.verify_url:
+            spec.target.verify_url = verify_url
+        if strategy_str:
+            try:
+                spec.target.strategy = DeployStrategy(strategy_str)
+            except ValueError:
+                pass
 
 
 # ── DeviceRegistry (znane urządzenia + historia deployów) ─────────────────────
