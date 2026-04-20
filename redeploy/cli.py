@@ -2105,24 +2105,30 @@ def version_verify(manifest):
 
 
 @version_cmd.command(name="bump")
-@click.argument("type", type=click.Choice(["patch", "minor", "major", "prerelease"]))
+@click.argument("type", type=click.Choice(["patch", "minor", "major", "prerelease"]), required=False)
 @click.option("--manifest", "-m", default=".redeploy/version.yaml",
               help="Path to version manifest")
 @click.option("--dry-run", is_flag=True, help="Preview changes without applying")
+@click.option("--analyze", is_flag=True, help="Auto-detect bump type from conventional commits")
 @click.option("--commit", is_flag=True, help="Create git commit with changes")
 @click.option("--tag", is_flag=True, help="Create git tag for new version")
 @click.option("--push", is_flag=True, help="Push commit and tags to origin")
 @click.option("--sign", is_flag=True, help="Sign tag with GPG")
 @click.option("--allow-dirty", is_flag=True, help="Allow bump with dirty working directory")
-def version_bump(type, manifest, dry_run, commit, tag, push, sign, allow_dirty):
+@click.option("--changelog", is_flag=True, help="Update CHANGELOG.md")
+def version_bump(type, manifest, dry_run, analyze, commit, tag, push, sign, allow_dirty, changelog):
     """Bump version across all sources atomically.
 
-    Example: redeploy version bump patch
-    With git: redeploy version bump patch --commit --tag --push
+    Examples:
+        redeploy version bump patch
+        redeploy version bump patch --commit --tag --push
+        redeploy version bump --analyze --commit --tag  # Auto-detect from commits
     """
     from rich.console import Console
     from .version import VersionManifest
     from .version.bump import bump_version_with_git, GitIntegrationError
+    from .version.commits import analyze_commits, format_analysis_report
+    from .version.changelog import ChangelogManager, get_commits_since_tag
 
     console = Console()
     path = Path(manifest)
@@ -2134,6 +2140,26 @@ def version_bump(type, manifest, dry_run, commit, tag, push, sign, allow_dirty):
 
     m = VersionManifest.load(path)
     old = m.version
+    repo_path = path.parent.parent
+
+    # Auto-analyze if requested
+    if analyze:
+        last_tag = m.git.tag_format.format(version=old)
+        analysis = analyze_commits(last_tag, repo_path, m.commits)
+
+        console.print("[bold]Analyzing commits...[/bold]")
+        console.print(format_analysis_report(analysis))
+
+        if analysis.bump_type:
+            type = analysis.bump_type
+            console.print(f"\nUsing detected bump type: [bold]{type}[/bold]")
+        else:
+            console.print("\n[yellow]No bump-worthy commits found. Use explicit type to force bump.[/yellow]")
+            sys.exit(0)
+
+    if not type:
+        console.print("[red]✗ Bump type required (patch/minor/major) or use --analyze[/red]")
+        sys.exit(1)
 
     # Dry run
     if dry_run:
@@ -2143,17 +2169,28 @@ def version_bump(type, manifest, dry_run, commit, tag, push, sign, allow_dirty):
         console.print(f"  Sources: {len(m.sources)}")
         if commit or tag or push:
             console.print(f"  Git: commit={commit}, tag={tag}, push={push}, sign={sign}")
+        if changelog:
+            console.print(f"  Changelog: update")
         for s in m.sources:
             console.print(f"    - {s.path} ({s.format})")
         return
 
     # Real bump
     try:
+        # Handle changelog update
+        if changelog:
+            changelog_mgr = ChangelogManager(repo_path / "CHANGELOG.md")
+            commits = get_commits_since_tag(repo_path, m.git.tag_format.format(version=old))
+            new_version = _calculate_bump(old, type)
+            new_content = changelog_mgr.prepare_release(new_version, commit_messages=commits)
+            changelog_mgr.write(new_content)
+            console.print(f"[green]✓ Updated CHANGELOG.md[/green]")
+
         if commit or tag or push:
             # Use git integration
             result = bump_version_with_git(
                 m, type,
-                repo_path=path.parent.parent,  # .redeploy/version.yaml -> repo root
+                repo_path=repo_path,
                 commit=commit or push,
                 tag=tag or push,
                 push=push,
@@ -2181,7 +2218,37 @@ def version_bump(type, manifest, dry_run, commit, tag, push, sign, allow_dirty):
         sys.exit(1)
     except Exception as e:
         console.print(f"[red]✗ Bump failed: {e}[/red]")
+        import traceback
+        console.print(f"[dim]{traceback.format_exc()}[/dim]")
         sys.exit(1)
+
+
+def _calculate_bump(current: str, bump_type: str) -> str:
+    """Calculate new version from current + bump type."""
+    import re
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$", current)
+    if not match:
+        raise ValueError(f"Cannot bump non-semver version: {current}")
+
+    major, minor, patch, prerelease = match.groups()
+    major, minor, patch = int(major), int(minor), int(patch)
+
+    if bump_type == "major":
+        return f"{major + 1}.0.0"
+    elif bump_type == "minor":
+        return f"{major}.{minor + 1}.0"
+    elif bump_type == "patch":
+        return f"{major}.{minor}.{patch + 1}"
+    elif bump_type == "prerelease":
+        if prerelease:
+            base = re.match(r"^(.*?)(\d+)$", prerelease)
+            if base:
+                prefix, num = base.groups()
+                return f"{major}.{minor}.{patch}-{prefix}{int(num) + 1}"
+            return f"{major}.{minor}.{patch}-{prerelease}.1"
+        return f"{major}.{minor}.{patch}-rc.1"
+    else:
+        raise ValueError(f"Unknown bump type: {bump_type}")
 
 
 @version_cmd.command(name="init")

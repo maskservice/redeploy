@@ -19,6 +19,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Optional
 
+from .changelog import ChangelogManager, get_commits_since_tag
+from .commits import analyze_commits, format_analysis_report, BumpAnalysis, ConventionalCommit
 from .git_integration import GitIntegration, GitIntegrationError
 from .git_transaction import GitVersionBumpTransaction, GitTransactionResult
 from .manifest import VersionManifest, SourceConfig, GitConfig, ChangelogConfig
@@ -106,19 +108,31 @@ def check_version_http(
 
 
 __all__ = [
+    # Manifest
     "VersionManifest",
     "SourceConfig",
     "GitConfig",
     "ChangelogConfig",
+    # Transactions
     "VersionBumpTransaction",
     "GitIntegration",
     "GitIntegrationError",
     "GitVersionBumpTransaction",
     "GitTransactionResult",
+    # Bump operations
     "bump_version",
     "bump_version_with_git",
     "verify_sources",
+    # Commits & Changelog
+    "analyze_commits",
+    "format_analysis_report",
+    "BumpAnalysis",
+    "ConventionalCommit",
+    "ChangelogManager",
+    "get_commits_since_tag",
+    # Sources
     "get_adapter",
+    # Legacy
     "read_local_version",
     "read_remote_version",
     "check_version",
