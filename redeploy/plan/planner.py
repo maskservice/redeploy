@@ -31,7 +31,10 @@ class Planner:
 
         self._plan_conflict_fixes()
         self._plan_stop_old_services()
-        self._plan_deploy_new()
+        if self.target.pattern:
+            self._plan_pattern()
+        else:
+            self._plan_deploy_new()
         if self._spec:
             self._append_extra_steps(self._spec)
             for note in self._spec.notes:
@@ -467,6 +470,39 @@ class Planner:
 
     def _plan_systemd(self) -> None:
         self._notes.append("Systemd deploy: ensure unit files installed and enabled")
+
+    # ── pattern overlay ───────────────────────────────────────────────────────
+
+    def _plan_pattern(self) -> None:
+        """Expand a named DeployPattern and append its steps."""
+        from ..patterns import get_pattern
+        pattern_name = self.target.pattern
+        cls = get_pattern(pattern_name)
+        if cls is None:
+            self._notes.append(
+                f"Unknown pattern '{pattern_name}' — falling back to standard deploy"
+            )
+            self._plan_deploy_new()
+            return
+
+        cfg = dict(self.target.pattern_config)
+        cfg.setdefault("app", self.target.app or self.state.app)
+        cfg.setdefault("remote_dir", self.target.remote_dir or f"~/{cfg['app']}")
+        cfg.setdefault("verify_url", self.target.verify_url)
+        if self.target.env_file:
+            cfg.setdefault("env_file", self.target.env_file)
+        compose_parts = ["docker compose"]
+        for f in self.target.compose_files:
+            compose_parts.append(f"-f {f}")
+        if self.target.env_file:
+            compose_parts.append("--env-file .env")
+        cfg.setdefault("compose_cmd", " ".join(compose_parts))
+
+        pattern = cls(**{k: v for k, v in cfg.items()
+                         if k in cls.__init__.__code__.co_varnames})
+        for step in pattern.expand():
+            self._add_step(step)
+        self._notes.append(f"Deploy pattern: {pattern_name}")
 
     # ── verify ────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,36 @@
+# redeploy example: Canary deploy pattern
+#
+# Gradual rollout: deploy canary alongside main, scale up in stages.
+# Health checks at each stage before proceeding.
+#
+# Usage:
+#   redeploy run examples/15-canary.yaml --plan-only
+#   redeploy run examples/15-canary.yaml
+
+name: myapp canary deploy
+description: "Gradual canary rollout: 10% → 25% → 50% → 100%"
+
+source:
+  strategy: docker_full
+  host: root@10.0.0.1
+  app: myapp
+  version: "1.2.0"
+
+target:
+  strategy: docker_full
+  host: root@10.0.0.1
+  app: myapp
+  version: "1.3.0"
+  remote_dir: ~/myapp
+  domain: myapp.example.com
+  verify_url: https://myapp.example.com/health
+
+  pattern: canary
+  pattern_config:
+    canary_suffix: "-canary"
+    stages: [10, 25, 50, 100]
+    stage_wait_seconds: 60
+
+notes:
+  - "Monitor logs during each canary stage before automatic promotion"
+  - "Canary directory ~/myapp-canary will be created during deploy"

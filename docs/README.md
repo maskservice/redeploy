@@ -1,7 +1,7 @@
 <!-- code2docs:start --># redeploy
 
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-174-green)
-> **174** functions | **45** classes | **23** files | CC̄ = 6.0
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-204-green)
+> **204** functions | **47** classes | **23** files | CC̄ = 5.6
 
 > Auto-generated project documentation from source code analysis.
 
@@ -74,25 +74,25 @@ docs = generate_docs("./my-project", config=config)
 redeploy/
 ├── tree
 ├── project
-    ├── steps
     ├── parse
-    ├── apply/
-        ├── executor
-    ├── plan/
         ├── probes
-    ├── verify
+    ├── apply/
+    ├── ssh
+    ├── plan/
+        ├── executor
         ├── planner
+    ├── steps
+├── redeploy/
+    ├── verify
     ├── version
     ├── data_sync
+    ├── discovery
     ├── detect/
-    ├── cli
-├── redeploy/
         ├── remote
         ├── detector
-    ├── discovery
-    ├── ssh
-        ├── workflow
+    ├── cli
         ├── templates
+        ├── workflow
     ├── fleet
     ├── models
 ```
@@ -101,31 +101,33 @@ redeploy/
 
 ### Classes
 
-- **`StepLibrary`** — Registry of pre-defined named MigrationSteps.
-- **`StepError`** — —
-- **`Executor`** — Execute MigrationPlan steps on a remote host.
-- **`VerifyContext`** — Accumulates check results during verification.
-- **`Planner`** — Generate a MigrationPlan from detected infra + desired target.
-- **`Detector`** — Probe infrastructure and produce InfraState.
-- **`DiscoveredHost`** — —
-- **`ProbeResult`** — Full autonomous probe result for a single host.
 - **`SshResult`** — —
 - **`SshClient`** — Execute commands on a remote host via SSH (or locally).
 - **`RemoteProbe`** — Thin wrapper kept for redeploy.detect compatibility.
 - **`RemoteExecutor`** — Thin wrapper kept for deploy.core compatibility.
-- **`HostDetectionResult`** — Full detection result for a single host.
-- **`WorkflowResult`** — Aggregated result across all probed hosts.
-- **`DetectionWorkflow`** — Multi-host detection workflow with template scoring.
+- **`ProgressEmitter`** — Emits YAML-formatted progress events to a stream (default: stdout).
+- **`StepError`** — —
+- **`Executor`** — Execute MigrationPlan steps on a remote host.
+- **`Planner`** — Generate a MigrationPlan from detected infra + desired target.
+- **`StepLibrary`** — Registry of pre-defined named MigrationSteps.
+- **`VerifyContext`** — Accumulates check results during verification.
+- **`DiscoveredHost`** — —
+- **`ProbeResult`** — Full autonomous probe result for a single host.
+- **`Detector`** — Probe infrastructure and produce InfraState.
 - **`Condition`** — A single scoreable condition.
 - **`DetectionTemplate`** — Named template for a device+environment+strategy combination.
 - **`TemplateMatch`** — Scored template match.
 - **`DetectionResult`** — Full result of template-based detection.
 - **`TemplateEngine`** — Score all templates against a context and return ranked matches.
+- **`HostDetectionResult`** — Full detection result for a single host.
+- **`WorkflowResult`** — Aggregated result across all probed hosts.
+- **`DetectionWorkflow`** — Multi-host detection workflow with template scoring.
 - **`DeviceArch`** — —
 - **`Stage`** — —
 - **`DeviceExpectation`** — Declarative assertions about required infrastructure on a device.
 - **`FleetDevice`** — Generic device descriptor — superset of ``deploy``'s DeviceConfig.
 - **`FleetConfig`** — Top-level fleet manifest — list of devices with stage / tag organisation.
+- **`Fleet`** — Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
 - **`ConflictSeverity`** — —
 - **`StepAction`** — —
 - **`StepStatus`** — —
@@ -170,6 +172,9 @@ redeploy/
 - `check_version_http(base_url, expected_version, timeout, endpoint)` — Call *endpoint* on a running service (default: ``/api/v3/version/check``).
 - `collect_sqlite_counts(app_root, db_specs)` — Collect row counts for the given SQLite tables under *app_root*.
 - `rsync_timeout_for_path(path, minimum, base, per_mb)` — Compute a conservative rsync timeout based on file size (seconds).
+- `discover(subnet, ssh_users, ssh_port, ping)` — Discover SSH-accessible hosts in the local network.
+- `update_registry(hosts, registry, save)` — Merge discovered hosts into DeviceRegistry and optionally save.
+- `auto_probe(ip_or_host, users, port, timeout)` — Autonomously probe a host — try all available SSH keys and users.
 - `cli(ctx, verbose)` — redeploy — Infrastructure migration toolkit: detect → plan → apply
 - `detect(ctx, host, app, domain)` — Probe infrastructure and produce infra.yaml.
 - `plan(ctx, infra, target, strategy)` — Generate migration-plan.yaml from infra.yaml + target config.
@@ -184,9 +189,6 @@ redeploy/
 - `device_rm(device_id)` — Remove a device from the registry.
 - `target(device_id, spec_file, dry_run, plan_only)` — Deploy a spec to a specific registered device.
 - `probe(hosts, subnet, users, ssh_port)` — Autonomously probe one or more hosts — detect SSH credentials, strategy, app.
-- `discover(subnet, ssh_users, ssh_port, ping)` — Discover SSH-accessible hosts in the local network.
-- `update_registry(hosts, registry, save)` — Merge discovered hosts into DeviceRegistry and optionally save.
-- `auto_probe(ip_or_host, users, port, timeout)` — Autonomously probe a host — try all available SSH keys and users.
 - `build_context(state, probe, manifest)` — Flatten InfraState + ProbeResult into a flat dict for condition evaluation.
 
 
@@ -195,7 +197,7 @@ redeploy/
 📄 `project`
 📦 `redeploy`
 📦 `redeploy.apply`
-📄 `redeploy.apply.executor` (14 functions, 2 classes)
+📄 `redeploy.apply.executor` (28 functions, 3 classes)
 📄 `redeploy.cli` (23 functions)
 📄 `redeploy.data_sync` (2 functions)
 📦 `redeploy.detect`
@@ -205,11 +207,11 @@ redeploy/
 📄 `redeploy.detect.templates` (10 functions, 5 classes)
 📄 `redeploy.detect.workflow` (12 functions, 3 classes)
 📄 `redeploy.discovery` (16 functions, 2 classes)
-📄 `redeploy.fleet` (9 functions, 5 classes)
-📄 `redeploy.models` (18 functions, 20 classes)
+📄 `redeploy.fleet` (23 functions, 6 classes)
+📄 `redeploy.models` (19 functions, 20 classes)
 📄 `redeploy.parse` (6 functions)
 📦 `redeploy.plan`
-📄 `redeploy.plan.planner` (19 functions, 1 classes)
+📄 `redeploy.plan.planner` (20 functions, 1 classes)
 📄 `redeploy.ssh` (17 functions, 4 classes)
 📄 `redeploy.steps` (5 functions, 1 classes)
 📄 `redeploy.verify` (7 functions, 1 classes)

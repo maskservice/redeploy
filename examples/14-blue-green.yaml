@@ -1,0 +1,38 @@
+# redeploy example: Blue/Green deploy pattern
+#
+# Zero-downtime deploy via Traefik label swap.
+# Requirements:
+#   - Traefik running in Docker with label-based routing
+#   - Two compose stacks: ~/myapp (blue) and ~/myapp-green (green)
+#
+# Usage:
+#   redeploy run examples/14-blue-green.yaml --plan-only
+#   redeploy run examples/14-blue-green.yaml
+
+name: myapp blue/green deploy
+description: "Zero-downtime blue/green via Traefik label swap"
+
+source:
+  strategy: docker_full
+  host: root@10.0.0.1
+  app: myapp
+  version: "1.2.0"
+
+target:
+  strategy: docker_full
+  host: root@10.0.0.1
+  app: myapp
+  version: "1.3.0"
+  remote_dir: ~/myapp
+  domain: myapp.example.com
+  verify_url: https://myapp.example.com/health
+  env_file: .env
+
+  pattern: blue_green
+  pattern_config:
+    traefik_network: proxy
+    green_suffix: "-green"
+
+notes:
+  - "Traefik must be running with label-based routing on network 'proxy'"
+  - "Ensure ~/myapp-green directory doesn't exist from a failed previous deploy"

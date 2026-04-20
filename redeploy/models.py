@@ -166,6 +166,10 @@ class TargetConfig(BaseModel):
     verify_url: Optional[str] = None
     verify_version: Optional[str] = None
 
+    # Deploy pattern (Phase 4) — optional multi-step strategy overlay
+    pattern: Optional[str] = None           # "blue_green" | "canary" | "rollback_on_failure"
+    pattern_config: dict[str, Any] = Field(default_factory=dict)
+
 
 # ── MigrationStep ─────────────────────────────────────────────────────────────
 

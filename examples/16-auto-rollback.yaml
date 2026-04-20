@@ -1,0 +1,35 @@
+# redeploy example: Rollback-on-failure pattern
+#
+# Snapshots current image tags before deploy.
+# If any step fails, executor rolls back to previous image.
+#
+# Usage:
+#   redeploy run examples/16-auto-rollback.yaml --plan-only
+#   redeploy run examples/16-auto-rollback.yaml
+
+name: myapp deploy with auto-rollback
+description: "Capture pre-deploy snapshot, auto-rollback on failure"
+
+source:
+  strategy: docker_full
+  host: root@10.0.0.1
+  app: myapp
+  version: "1.2.0"
+
+target:
+  strategy: docker_full
+  host: root@10.0.0.1
+  app: myapp
+  version: "1.3.0"
+  remote_dir: ~/myapp
+  domain: myapp.example.com
+  verify_url: https://myapp.example.com/health
+  env_file: .env
+
+  pattern: rollback_on_failure
+  pattern_config:
+    snapshot_file: .deploy-snapshot
+
+notes:
+  - "Snapshot captured to ~/myapp/.deploy-snapshot before deploy"
+  - "On failure: Executor will run rollback_command for each failed step"

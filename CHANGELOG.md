@@ -33,6 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pydantic.field_validator` added to imports in `models.py`
 - `TargetConfig` defaults no longer hardcode project-specific values (`"c2004"`, `"~/c2004"`)
 
+### Phase 4 — Deploy patterns (0.2.0)
+- `redeploy/patterns.py` — new module with `DeployPattern` base class and three patterns:
+  - `BlueGreenPattern` — zero-downtime via Traefik label swap (7 steps: clone_green, deploy_green, health_green, swap_labels, verify_main, retire_blue + optional sync_env)
+  - `CanaryPattern` — gradual rollout in configurable stages with per-stage health checks and waits; promotes canary → main at 100%
+  - `RollbackOnFailurePattern` — snapshots current image tags, auto-rollback on failure
+- `TargetConfig.pattern` + `TargetConfig.pattern_config` fields
+- `Planner._plan_pattern()` — expands pattern steps, falls back to standard deploy for unknown patterns
+- `get_pattern(name)`, `list_patterns()`, `pattern_registry` — pattern lookup API
+- All patterns + helpers exported in `__all__`
+- `test_patterns.py` — 35 tests covering all patterns, planner integration, config passthrough
+- `examples/14-blue-green.yaml`, `15-canary.yaml`, `16-auto-rollback.yaml`
+
 ### Phase 2 — Fleet first-class (0.2.0)
 - `Fleet` class in `redeploy/fleet.py` — unified view over `FleetConfig` + `DeviceRegistry`
   - `Fleet.from_file(path)` — load from `fleet.yaml`

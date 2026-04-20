@@ -44,6 +44,17 @@ from .fleet import (  # noqa: F401
 )
 from .steps import StepLibrary  # noqa: F401
 
+# ── Deploy patterns (first-class from 0.2.0) ──────────────────────────────────
+from .patterns import (  # noqa: F401
+    DeployPattern,
+    BlueGreenPattern,
+    CanaryPattern,
+    RollbackOnFailurePattern,
+    get_pattern,
+    list_patterns,
+    pattern_registry,
+)
+
 __all__ = [
     # version
     "__version__",
@@ -76,4 +87,12 @@ __all__ = [
     "Stage",
     "STAGE_DEFAULT_EXPECTATIONS",
     "StepLibrary",
+    # patterns
+    "DeployPattern",
+    "BlueGreenPattern",
+    "CanaryPattern",
+    "RollbackOnFailurePattern",
+    "get_pattern",
+    "list_patterns",
+    "pattern_registry",
 ]
