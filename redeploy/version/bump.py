@@ -101,6 +101,7 @@ def bump_version_with_git(
     bump_type: str,
     repo_path: Path = Path("."),
     new_version: Optional[str] = None,
+    manifest_path: Optional[Path] = None,
     commit: bool = False,
     tag: bool = False,
     push: bool = False,
@@ -133,7 +134,11 @@ def bump_version_with_git(
 
     # Create extended transaction
     tx = GitVersionBumpTransaction(
-        manifest, new_version, repo_path, allow_dirty=allow_dirty
+        manifest,
+        new_version,
+        repo_path,
+        manifest_path=manifest_path,
+        allow_dirty=allow_dirty,
     )
 
     # Prepare (stage files, check git clean)
@@ -151,7 +156,7 @@ def bump_version_with_git(
 
     # Update manifest in-memory and on disk
     manifest.version = new_version
-    manifest.save(repo_path / ".redeploy" / "version.yaml")
+    manifest.save(manifest_path or (repo_path / ".redeploy" / "version.yaml"))
 
     # Git operations
     if commit or tag or push:
@@ -172,6 +177,82 @@ def bump_version_with_git(
         version=new_version,
         files_updated=len(tx._touched_files),
     )
+
+
+def bump_package(
+    manifest: VersionManifest,
+    package_name: str,
+    bump_type: str,
+    new_version: Optional[str] = None,
+) -> dict:
+    """Bump version of a single package in a monorepo manifest.
+
+    Args:
+        manifest:      Loaded version manifest (policy=independent)
+        package_name:  Key in manifest.packages
+        bump_type:     "patch", "minor", "major", or "prerelease"
+        new_version:   Explicit version (bypasses bump calculation)
+
+    Returns:
+        Summary dict with ``package``, ``old``, ``new_version``, transaction results.
+
+    Raises:
+        KeyError:   If package_name not found in manifest.packages
+        ValueError: If transaction fails
+    """
+    pkg = manifest.get_package(package_name)
+    if pkg is None:
+        available = manifest.list_packages()
+        raise KeyError(
+            f"Package '{package_name}' not found. "
+            f"Available: {available or '(none)'}"
+        )
+
+    if new_version is None:
+        new_version = _calculate_bump(pkg.version, bump_type)
+
+    # Create a temporary mini-manifest for this package's sources
+    mini = VersionManifest(
+        version=pkg.version,
+        sources=pkg.sources,
+        git=pkg.git or manifest.git,
+    )
+
+    tx = VersionBumpTransaction(mini, new_version)
+    results = tx.prepare()
+
+    failures = [r for r in results if not r.ok]
+    if failures:
+        tx.rollback()
+        errors = "\n".join(f"  - {r.source.path}: {r.error}" for r in failures)
+        raise ValueError(f"Failed to stage {len(failures)} source(s) for '{package_name}':\n{errors}")
+
+    tx.commit()
+    pkg.version = new_version
+
+    return {
+        "package": package_name,
+        "old": mini.version,
+        "new_version": new_version,
+        **tx.get_summary(),
+    }
+
+
+def bump_all_packages(
+    manifest: VersionManifest,
+    bump_type: str,
+) -> list[dict]:
+    """Bump all packages in a monorepo manifest independently.
+
+    Returns list of bump summaries per package.
+    """
+    if not manifest.is_monorepo():
+        raise ValueError("Manifest has no packages defined (not a monorepo)")
+
+    results = []
+    for name in manifest.list_packages():
+        results.append(bump_package(manifest, name, bump_type))
+    return results
 
 
 def _calculate_bump(current: str, bump_type: str) -> str:

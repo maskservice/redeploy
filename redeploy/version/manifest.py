@@ -77,6 +77,25 @@ class CommitsConfig(BaseModel):
     rules: CommitRules = Field(default_factory=CommitRules)
 
 
+class PackageConfig(BaseModel):
+    """Single package in monorepo (for policy=independent)."""
+
+    version: str
+    sources: list[SourceConfig] = Field(default_factory=list)
+    changelog: Optional[ChangelogConfig] = None
+    # Package-specific git config (optional, inherits from root)
+    git: Optional[GitConfig] = None
+    tag_format: str = "{package}@v{version}"  # e.g., backend@v1.2.3
+
+
+class Constraint(BaseModel):
+    """Cross-package version constraint."""
+
+    description: str
+    # e.g., "backend >= 2.0 requires frontend >= 4.0"
+    # Parsed at validation time
+
+
 class VersionManifest(BaseModel):
     """Root manifest model for .redeploy/version.yaml."""
 
@@ -88,6 +107,10 @@ class VersionManifest(BaseModel):
     git: GitConfig = Field(default_factory=GitConfig)
     changelog: Optional[ChangelogConfig] = None
     commits: CommitsConfig = Field(default_factory=CommitsConfig)
+
+    # Monorepo: multiple independent packages
+    packages: Optional[dict[str, PackageConfig]] = None
+    constraints: list[Constraint] = Field(default_factory=list)
 
     @classmethod
     def load(cls, path: Path) -> "VersionManifest":
@@ -122,3 +145,25 @@ class VersionManifest(BaseModel):
     def get_source_paths(self) -> list[Path]:
         """Return all source file paths."""
         return [s.path for s in self.sources]
+
+    def get_package(self, name: str) -> Optional[PackageConfig]:
+        """Get package config by name."""
+        if self.packages is None:
+            return None
+        return self.packages.get(name)
+
+    def list_packages(self) -> list[str]:
+        """List all package names."""
+        if self.packages is None:
+            return []
+        return list(self.packages.keys())
+
+    def is_monorepo(self) -> bool:
+        """Check if this is a monorepo with multiple packages."""
+        return self.packages is not None and len(self.packages) > 0
+
+    def get_all_package_versions(self) -> dict[str, str]:
+        """Get version of all packages."""
+        if self.packages is None:
+            return {}
+        return {name: pkg.version for name, pkg in self.packages.items()}

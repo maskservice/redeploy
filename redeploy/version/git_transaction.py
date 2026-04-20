@@ -35,10 +35,12 @@ class GitVersionBumpTransaction(VersionBumpTransaction):
         manifest: VersionManifest,
         new_version: str,
         repo_path: Path = Path("."),
+        manifest_path: Optional[Path] = None,
         allow_dirty: bool = False,
     ):
         super().__init__(manifest, new_version)
         self.git = GitIntegration(manifest.git, repo_path)
+        self.manifest_path = manifest_path or (repo_path / ".redeploy" / "version.yaml")
         self.allow_dirty = allow_dirty
         self._touched_files: list[Path] = []
 
@@ -61,9 +63,8 @@ class GitVersionBumpTransaction(VersionBumpTransaction):
             if r.ok and r.temp_path is not None  # Skip optional not-found
         ]
         # Add manifest file itself
-        manifest_path = Path(".redeploy/version.yaml")
-        if manifest_path.exists():
-            self._touched_files.append(manifest_path)
+        if self.manifest_path.exists() and self.manifest_path not in self._touched_files:
+            self._touched_files.append(self.manifest_path)
 
         return results
 

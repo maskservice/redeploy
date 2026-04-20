@@ -2108,6 +2108,8 @@ def version_verify(manifest):
 @click.argument("type", type=click.Choice(["patch", "minor", "major", "prerelease"]), required=False)
 @click.option("--manifest", "-m", default=".redeploy/version.yaml",
               help="Path to version manifest")
+@click.option("--package", "-p", help="Bump specific package (for monorepo)")
+@click.option("--all-packages", is_flag=True, help="Bump all packages (for monorepo)")
 @click.option("--dry-run", is_flag=True, help="Preview changes without applying")
 @click.option("--analyze", is_flag=True, help="Auto-detect bump type from conventional commits")
 @click.option("--commit", is_flag=True, help="Create git commit with changes")
@@ -2116,7 +2118,7 @@ def version_verify(manifest):
 @click.option("--sign", is_flag=True, help="Sign tag with GPG")
 @click.option("--allow-dirty", is_flag=True, help="Allow bump with dirty working directory")
 @click.option("--changelog", is_flag=True, help="Update CHANGELOG.md")
-def version_bump(type, manifest, dry_run, analyze, commit, tag, push, sign, allow_dirty, changelog):
+def version_bump(type, manifest, package, all_packages, dry_run, analyze, commit, tag, push, sign, allow_dirty, changelog):
     """Bump version across all sources atomically.
 
     Examples:
@@ -2126,9 +2128,6 @@ def version_bump(type, manifest, dry_run, analyze, commit, tag, push, sign, allo
     """
     from rich.console import Console
     from .version import VersionManifest
-    from .version.bump import bump_version_with_git, GitIntegrationError
-    from .version.commits import analyze_commits, format_analysis_report
-    from .version.changelog import ChangelogManager, get_commits_since_tag
 
     console = Console()
     path = Path(manifest)
@@ -2139,38 +2138,128 @@ def version_bump(type, manifest, dry_run, analyze, commit, tag, push, sign, allo
         sys.exit(1)
 
     m = VersionManifest.load(path)
+
+    # Handle monorepo packages
+    if package:
+        # Bump specific package
+        pkg = m.get_package(package)
+        if pkg is None:
+            console.print(f"[red]✗ Package '{package}' not found in manifest[/red]")
+            console.print(f"  Available: {m.list_packages()}")
+            sys.exit(1)
+
+        # Create temporary manifest for this package
+        from .version.manifest import VersionManifest, GitConfig
+
+        pkg_manifest = VersionManifest(
+            version=pkg.version,
+            scheme=m.scheme,
+            policy="synced",  # Single package uses synced
+            sources=pkg.sources,
+            git=pkg.git or m.git,
+            changelog=pkg.changelog,
+            commits=m.commits,
+        )
+
+        result = _bump_single(
+            pkg_manifest, type, dry_run, analyze, commit, tag, push, sign, allow_dirty, changelog,
+            repo_path=path.parent.parent,
+            console=console,
+            package_name=package,
+        )
+
+        # Update package version in main manifest
+        if not dry_run and result:
+            pkg.version = result.version if hasattr(result, 'version') else result['new_version']
+            m.save(path)
+
+        return
+
+    if all_packages and m.is_monorepo():
+        # Bump all packages
+        for pkg_name in m.list_packages():
+            console.print(f"\n[bold]Bumping package: {pkg_name}[/bold]")
+            pkg = m.get_package(pkg_name)
+            pkg_manifest = VersionManifest(
+                version=pkg.version,
+                scheme=m.scheme,
+                policy="synced",
+                sources=pkg.sources,
+                git=pkg.git or m.git,
+                changelog=pkg.changelog,
+                commits=m.commits,
+            )
+
+            _bump_single(
+                pkg_manifest, type, dry_run, analyze, commit, tag, push, sign, allow_dirty, changelog,
+                repo_path=path.parent.parent,
+                console=console,
+                package_name=pkg_name,
+            )
+
+            if not dry_run:
+                pkg.version = pkg_manifest.version
+
+        if not dry_run:
+            m.save(path)
+        return
+
+    # Standard single-repo bump
     old = m.version
-    repo_path = path.parent.parent
+    _bump_single(
+        m, type, dry_run, analyze, commit, tag, push, sign, allow_dirty, changelog,
+        repo_path=path.parent.parent,
+        console=console,
+        manifest_path=path,
+    )
+
+    if not dry_run:
+        m.save(path)
+
+
+def _bump_single(
+    m, type, dry_run, analyze, commit, tag, push, sign, allow_dirty, changelog,
+    *, repo_path, console, package_name: str = None, manifest_path: Path | None = None,
+    new_version: str | None = None,
+):
+    from .version.bump import _calculate_bump, bump_version, bump_version_with_git
+    from .version.changelog import ChangelogManager, get_commits_since_tag
+    from .version.commits import analyze_commits, format_analysis_report
+    from .version.git_integration import GitIntegrationError
+
+    old = m.version
+    prefix = f"[{package_name}] " if package_name else ""
 
     # Auto-analyze if requested
     if analyze:
         last_tag = m.git.tag_format.format(version=old)
         analysis = analyze_commits(last_tag, repo_path, m.commits)
 
-        console.print("[bold]Analyzing commits...[/bold]")
+        console.print(f"{prefix}[bold]Analyzing commits...[/bold]")
         console.print(format_analysis_report(analysis))
 
         if analysis.bump_type:
             type = analysis.bump_type
-            console.print(f"\nUsing detected bump type: [bold]{type}[/bold]")
+            console.print(f"\n{prefix}Using detected bump type: [bold]{type}[/bold]")
         else:
-            console.print("\n[yellow]No bump-worthy commits found. Use explicit type to force bump.[/yellow]")
-            sys.exit(0)
+            console.print(f"\n{prefix}[yellow]No bump-worthy commits found. Use explicit type to force bump.[/yellow]")
+            return None
 
     if not type:
         console.print("[red]✗ Bump type required (patch/minor/major) or use --analyze[/red]")
         sys.exit(1)
 
+    target_version = new_version or _calculate_bump(old, type)
+
     # Dry run
     if dry_run:
-        from .version.bump import _calculate_bump
-        new = _calculate_bump(old, type)
-        console.print(f"[DRY RUN] Would bump: {old} → {new}")
+        console.print(f"[DRY RUN] Would change version: {old} → {target_version}")
         console.print(f"  Sources: {len(m.sources)}")
         if commit or tag or push:
             console.print(f"  Git: commit={commit}, tag={tag}, push={push}, sign={sign}")
         if changelog:
-            console.print(f"  Changelog: update")
+            changelog_path = m.changelog.path if m.changelog else Path("CHANGELOG.md")
+            console.print(f"  Changelog: update {changelog_path}")
         for s in m.sources:
             console.print(f"    - {s.path} ({s.format})")
         return
@@ -2179,25 +2268,27 @@ def version_bump(type, manifest, dry_run, analyze, commit, tag, push, sign, allo
     try:
         # Handle changelog update
         if changelog:
-            changelog_mgr = ChangelogManager(repo_path / "CHANGELOG.md")
+            changelog_path = m.changelog.path if m.changelog else Path("CHANGELOG.md")
+            changelog_mgr = ChangelogManager(repo_path / changelog_path)
             commits = get_commits_since_tag(repo_path, m.git.tag_format.format(version=old))
-            new_version = _calculate_bump(old, type)
-            new_content = changelog_mgr.prepare_release(new_version, commit_messages=commits)
+            new_content = changelog_mgr.prepare_release(target_version, commit_messages=commits)
             changelog_mgr.write(new_content)
-            console.print(f"[green]✓ Updated CHANGELOG.md[/green]")
+            console.print(f"[green]✓ Updated {changelog_path}[/green]")
 
         if commit or tag or push:
             # Use git integration
             result = bump_version_with_git(
                 m, type,
                 repo_path=repo_path,
+                new_version=target_version,
+                manifest_path=manifest_path,
                 commit=commit or push,
                 tag=tag or push,
                 push=push,
                 sign=sign,
                 allow_dirty=allow_dirty,
             )
-            console.print(f"[green]✓ Bumped: {old} → {result.version}[/green]")
+            console.print(f"[green]✓ Changed version: {old} → {result.version}[/green]")
             console.print(f"  Updated {result.files_updated} files")
             if result.commit_hash:
                 console.print(f"  Commit: {result.commit_hash[:8]}")
@@ -2205,13 +2296,14 @@ def version_bump(type, manifest, dry_run, analyze, commit, tag, push, sign, allo
                 console.print(f"  Tag: {result.tag_name}")
             if result.pushed:
                 console.print("  Pushed to origin")
+            return result
         else:
-            # Simple bump without git
-            from .version.bump import bump_version
-            result = bump_version(m, type)
-            m.save(path)
-            console.print(f"[green]✓ Bumped: {old} → {result['new_version']}[/green]")
+            result = bump_version(m, type, new_version=target_version)
+            if manifest_path is not None:
+                m.save(manifest_path)
+            console.print(f"[green]✓ Changed version: {old} → {result['new_version']}[/green]")
             console.print(f"  Updated {result['success']}/{result['total']} sources")
+            return result
 
     except GitIntegrationError as e:
         console.print(f"[red]✗ Git error: {e}[/red]")
@@ -2249,6 +2341,52 @@ def _calculate_bump(current: str, bump_type: str) -> str:
         return f"{major}.{minor}.{patch}-rc.1"
     else:
         raise ValueError(f"Unknown bump type: {bump_type}")
+
+
+@version_cmd.command(name="set")
+@click.argument("version")
+@click.option("--manifest", "manifest_path_str", default=".redeploy/version.yaml",
+              help="Path to version manifest")
+@click.option("--dry-run", is_flag=True, help="Preview changes without applying")
+@click.option("--commit", is_flag=True, help="Create git commit with changes")
+@click.option("--tag", is_flag=True, help="Create git tag for new version")
+@click.option("--push", is_flag=True, help="Push commit and tags to origin")
+@click.option("--sign", is_flag=True, help="Sign tag with GPG")
+@click.option("--allow-dirty", is_flag=True, help="Allow version change with dirty working directory")
+@click.option("--changelog", is_flag=True, help="Update CHANGELOG.md")
+def version_set(version, manifest_path_str, dry_run, commit, tag, push, sign, allow_dirty, changelog):
+    """Set an explicit version across all manifest sources."""
+    from rich.console import Console
+    from .version import VersionManifest
+
+    console = Console()
+    manifest_path = Path(manifest_path_str)
+
+    if not manifest_path.exists():
+        console.print(f"[red]✗ Manifest not found: {manifest_path}[/red]")
+        console.print("  Run: redeploy version init")
+        sys.exit(1)
+
+    manifest_model = VersionManifest.load(manifest_path)
+    _bump_single(
+        manifest_model,
+        "patch",
+        dry_run,
+        False,
+        commit,
+        tag,
+        push,
+        sign,
+        allow_dirty,
+        changelog,
+        repo_path=manifest_path.parent.parent,
+        console=console,
+        manifest_path=manifest_path,
+        new_version=version,
+    )
+
+    if not dry_run:
+        manifest_model.save(manifest_path)
 
 
 @version_cmd.command(name="init")
@@ -2309,3 +2447,105 @@ def version_init(scan, force):
     console.print(f"  Sources: {len(sources)}")
     for s in sources:
         console.print(f"    - {s.path} ({s.format})")
+
+
+@version_cmd.command(name="diff")
+@click.option("--manifest", "-m", default=".redeploy/version.yaml",
+              help="Path to version manifest")
+@click.option("--spec", help="Path to migration.yaml to compare")
+@click.option("--live", help="SSH host to check live version (user@host)")
+@click.option("--app", default="c2004", help="Application name for live check")
+def version_diff(manifest, spec, live, app):
+    """Compare manifest version vs spec vs live.
+
+    Examples:
+        redeploy version diff                    # sources only
+        redeploy version diff --spec migration.yaml   # vs migration.yaml
+        redeploy version diff --live root@vps.example.com  # vs live
+    """
+    from rich.console import Console
+    from .version import VersionManifest, verify_sources
+    from .version.diff import VersionDiff, diff_manifest_vs_spec, diff_manifest_vs_live, format_diff_report
+
+    console = Console()
+    path = Path(manifest)
+
+    if not path.exists():
+        console.print(f"[red]✗ Manifest not found: {path}[/red]")
+        sys.exit(1)
+
+    m = VersionManifest.load(path)
+    diffs = []
+
+    # 1. Check sources (always)
+    result = verify_sources(m)
+    if not result["all_match"]:
+        console.print(f"[yellow]⚠ Source drift detected in {len([s for s in result['sources'] if not s['match']])} file(s)[/yellow]")
+        for s in result["sources"]:
+            if not s["match"]:
+                console.print(f"  [red]✗[/red] {s['path']}: {s.get('actual', 'ERROR')} ≠ {m.version}")
+    else:
+        console.print(f"[green]✓ All {len(result['sources'])} sources in sync at {m.version}[/green]")
+
+    # 2. Compare with migration.yaml spec
+    if spec:
+        import yaml
+        spec_path = Path(spec)
+        if not spec_path.exists():
+            diffs.append(VersionDiff(
+                source="spec",
+                version=None,
+                expected=m.version,
+                match=False,
+                error=f"Spec not found: {spec_path}",
+            ))
+        else:
+            try:
+                spec_data = yaml.safe_load(spec_path.read_text()) or {}
+                if not isinstance(spec_data, dict):
+                    raise ValueError("spec root must be a mapping")
+
+                target_data = spec_data.get("target") or {}
+                if not isinstance(target_data, dict):
+                    raise ValueError("spec target must be a mapping")
+
+                diffs.append(diff_manifest_vs_spec(m, target_data.get("version")))
+            except Exception as e:
+                diffs.append(VersionDiff(
+                    source="spec",
+                    version=None,
+                    expected=m.version,
+                    match=False,
+                    error=f"Could not read spec: {e}",
+                ))
+
+    # 3. Compare with live host
+    if live:
+        from .version import read_remote_version
+        from .ssh import SshClient
+
+        try:
+            remote = SshClient(live)
+            live_version = read_remote_version(remote, "~/c2004", app)
+            diff = diff_manifest_vs_live(m, live_version)
+            diffs.append(diff)
+        except Exception as e:
+            diffs.append(VersionDiff(
+                source="live",
+                version=None,
+                expected=m.version,
+                match=False,
+                error=f"Could not check live version: {e}",
+            ))
+
+    if diffs:
+        console.print()
+        console.print(format_diff_report(diffs, m.version))
+
+    # Summary
+    all_match = result["all_match"] and all(d.match for d in diffs)
+    if all_match:
+        console.print(f"\n[green]✓ No version drift detected[/green]")
+    else:
+        console.print(f"\n[yellow]⚠ Version drift detected - review before deploying[/yellow]")
+        sys.exit(1)

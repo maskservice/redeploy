@@ -21,11 +21,12 @@ from typing import Any, Optional
 
 from .changelog import ChangelogManager, get_commits_since_tag
 from .commits import analyze_commits, format_analysis_report, BumpAnalysis, ConventionalCommit
+from .diff import diff_manifest_vs_spec, diff_manifest_vs_live, format_diff_report, VersionDiff
 from .git_integration import GitIntegration, GitIntegrationError
 from .git_transaction import GitVersionBumpTransaction, GitTransactionResult
 from .manifest import VersionManifest, SourceConfig, GitConfig, ChangelogConfig
 from .transaction import VersionBumpTransaction
-from .bump import bump_version, bump_version_with_git, verify_sources
+from .bump import bump_version, bump_version_with_git, verify_sources, bump_package, bump_all_packages
 from .sources import get_adapter
 
 
@@ -123,6 +124,8 @@ __all__ = [
     "bump_version",
     "bump_version_with_git",
     "verify_sources",
+    "bump_package",
+    "bump_all_packages",
     # Commits & Changelog
     "analyze_commits",
     "format_analysis_report",
@@ -130,6 +133,11 @@ __all__ = [
     "ConventionalCommit",
     "ChangelogManager",
     "get_commits_since_tag",
+    # Diff
+    "diff_manifest_vs_spec",
+    "diff_manifest_vs_live",
+    "format_diff_report",
+    "VersionDiff",
     # Sources
     "get_adapter",
     # Legacy

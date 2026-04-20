@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-04-20
+
+### Docs
+- Update README.md
+- Update redeploy-version-management-plan.md
+
+### Other
+- Update .redeploy/version.yaml
+- Update VERSION
+- Update redeploy/__init__.py
+- Update redeploy/cli.py
+- Update redeploy/models.py
+- Update redeploy/tests/test_version_cli.py
+- Update redeploy/tests/test_version_sources.py
+- Update redeploy/version/__init__.py
+- Update redeploy/version/bump.py
+- Update redeploy/version/diff.py
+- ... and 2 more files
+
 ## [0.2.2] - 2026-04-20
 
 ### Added — Plugin system (`redeploy/plugins/`)

@@ -255,6 +255,20 @@ class MigrationSpec(BaseModel):
         with Path(path).open() as f:
             return cls(**yaml.safe_load(f))
 
+    def resolve_versions(self, manifest_version: Optional[str] = None) -> None:
+        """Resolve @manifest references in version fields.
+
+        If manifest_version is provided, replaces '@manifest' with actual version.
+        Called before deploy to ensure spec.version matches manifest.
+        """
+        if manifest_version:
+            if self.source.version == "@manifest":
+                self.source.version = manifest_version
+            if self.target.version == "@manifest":
+                self.target.version = manifest_version
+            if self.target.verify_version == "@manifest":
+                self.target.verify_version = manifest_version
+
     def to_infra_state(self) -> "InfraState":
         """Build a minimal InfraState from source spec (used when detect is skipped)."""
         rt = RuntimeInfo()

@@ -30,6 +30,20 @@ Ten sam mechanizm obsługuje single-repo (redeploy: 2 źródła) i monorepo (c20
 
 Skala: **6–8 tygodni**, bez nowych wymaganych dependencji dla core (tomllib/tomli i PyYAML już są).
 
+## 0.1 Status implementacji w repo (2026-04-20)
+
+| Obszar | Status | Notatka |
+|---|---|---|
+| Manifest loader/save | `partial` | `.redeploy/version.yaml` działa, ale obecny model używa pola `version`, nie `current`; schema z `packages:` pozostaje docelowa |
+| Source adapters | `partial` | Zaimportowane są `plain`, `toml`, `json`, `yaml`, `regex`; brak `dockerfile`, a zapis YAML/TOML jest nadal heurystyczny |
+| Transakcja plikowa | `partial` | Jest `prepare/commit/rollback`, ale „atomowość" kończy się na rename per plik, nie na pełnym rollbacku po częściowym `commit()` |
+| Git integration | `partial` | `require_clean`, commit/tag/push/sign istnieją; brak automatycznego rollbacku po nieudanym kroku git |
+| Conventional commits | `done` | Parser, analiza bump type i raport są zaimplementowane oraz pokryte testami |
+| Changelog | `partial` | Jest `ChangelogManager` i flaga `--changelog` w `version bump`, ale brak osobnej komendy `version changelog` |
+| CLI version | `partial` | Działają `current`, `list`, `verify`, `bump`, `init`; brak `set`, `diff`, zakresu monorepo i domknięcia deploy loop |
+| Deploy loop closure | `todo` | Brak `@manifest`, preflightu w `redeploy run`, `detect --with-version`, `version diff --live/--spec/--image` |
+| Monorepo policy | `todo` | Brak `packages:` w modelu, `--package`, `--all-packages` i constraints |
+
 ---
 
 ## 1. Dlaczego obecne propozycje są niewystarczające
@@ -82,6 +96,8 @@ Wersja zadeklarowana w manifest → wersja w migration.yaml → wersja build ima
 Ten sam kod obsługuje VERSION (plain), pyproject.toml (TOML), package.json (JSON), `__init__.py` (regex), Chart.yaml (YAML), docker-compose.yml (YAML z image tag pattern). Nowe formaty to nowy source adapter, nie nowa komenda.
 
 ## 3. Kluczowy koncept: Version Manifest
+
+**Status 2026-04-20:** `partial`. Obecny kod umie już czytać i zapisywać manifest, ale nie implementuje jeszcze dokładnie schematu z tej sekcji. W praktyce `VersionManifest` oczekuje dziś pola `version` jako stringa oraz listy `sources` na tym samym poziomie; pola `current:` i blok `packages:` są nadal target state.
 
 ```yaml
 # .redeploy/version.yaml
@@ -238,6 +254,12 @@ redeploy/
 │   └── bump.py                # Public bump operations
 ```
 
+**Status 2026-04-20:**
+
+- `done`: `manifest.py`, `transaction.py`, `git_integration.py`, `git_transaction.py`, `bump.py`, `commits.py`, `changelog.py`, oraz adaptery `plain`, `toml_`, `json_`, `yaml_`, `regex`
+- `partial`: `sources/base.py` istnieje jako wspólna baza, ale nie jako formalny `Protocol`; zapisy TOML/YAML nadal bazują głównie na regex replacement, nie na pełnym round-trip serializer
+- `todo`: `sources/dockerfile.py`, katalog `scheme/`, jawny model monorepo `packages:`
+
 ### Source Adapter protocol
 
 ```python
@@ -300,46 +322,49 @@ Wzorzec prepare/commit/rollback jest istotny — daje semantykę dwufazowego com
 
 ```bash
 # Odczyt
-redeploy version                     # short: current version
-redeploy version current             # explicit
-redeploy version verify              # check wszystkie sources są spójne
-redeploy version list                # all sources + ich wartości
+redeploy version                     # partial: dziś głównie group/help, nie skrót do current
+redeploy version current             # done
+redeploy version verify              # done: sources only, bez git checks
+redeploy version list                # done
 
 # Zapis
-redeploy version bump patch          # 1.0.20 → 1.0.21
-redeploy version bump minor          # 1.0.20 → 1.1.0
-redeploy version bump major          # 1.0.20 → 2.0.0
-redeploy version bump prerelease     # 1.0.20 → 1.0.21-rc.1
-redeploy version bump --analyze      # determine from conventional commits
-redeploy version set 1.2.3           # explicit set
+redeploy version bump patch          # done
+redeploy version bump minor          # done
+redeploy version bump major          # done
+redeploy version bump prerelease     # done
+redeploy version bump --analyze      # done
+redeploy version set 1.2.3           # todo
 
 # Dry-run wszędzie
-redeploy version bump patch --dry-run
+redeploy version bump patch --dry-run # done
 
 # Git integration flags
-redeploy version bump patch --tag --commit --push
-redeploy version bump patch --no-tag  # skip git tag
-redeploy version bump patch --sign    # sign tag with GPG
+redeploy version bump patch --tag --commit --push # done
+redeploy version bump patch --no-tag  # todo: brak jawnego negującego flag alias
+redeploy version bump patch --sign    # done
 
 # Changelog
-redeploy version changelog --unreleased   # show nadchodzące zmiany
-redeploy version changelog --prepare      # rewrite ## [Unreleased] → ## [1.0.21]
+redeploy version bump patch --changelog   # partial: działa tylko jako flaga bump
+redeploy version changelog --unreleased   # todo
+redeploy version changelog --prepare      # todo
 
 # Drift detection
-redeploy version diff                                       # sources vs manifest current
-redeploy version diff --live root@vps.example.com           # manifest vs live host
-redeploy version diff --spec migration.yaml                 # manifest vs target.version
-redeploy version diff --image ghcr.io/org/app:latest        # manifest vs image registry tag
+redeploy version diff                                       # todo
+redeploy version diff --live root@vps.example.com           # todo
+redeploy version diff --spec migration.yaml                 # todo
+redeploy version diff --image ghcr.io/org/app:latest        # todo
 
 # Monorepo
-redeploy version bump patch --package backend   # tylko backend pakiet
-redeploy version current --package frontend     # current of specific package
-redeploy version list --all-packages            # wszystkie pakiety
+redeploy version bump patch --package backend   # todo
+redeploy version current --package frontend     # todo
+redeploy version list --all-packages            # todo
 
 # Init
-redeploy version init                           # generuj .redeploy/version.yaml
-redeploy version init --scan                    # auto-detect źródła w projekcie
+redeploy version init                           # done
+redeploy version init --scan                    # partial: dziś wykrywa tylko VERSION / pyproject.toml / package.json
 ```
+
+**Status 2026-04-20:** `partial`. Najważniejsze read/bump flows już działają, ale surface opisany powyżej jest nadal szerszy niż obecne CLI.
 
 ## 6. Integracja z deploy pipeline — pętla zamknięta
 
@@ -401,6 +426,8 @@ redeploy detect --host root@vps.example.com --app c2004 --with-version
 
 ## 7. Git integration jako first-class
 
+**Status 2026-04-20:** `partial`. Integracja git jest już realna w CLI, ale nie domyka jeszcze pełnej transakcji opisanej niżej.
+
 Większość „bump scriptów" traktuje git jako afterthought. W naszym planie tag + commit + changelog to integralna część transakcji.
 
 ### Rozszerzona transakcja
@@ -418,6 +445,8 @@ Większość „bump scriptów" traktuje git jako afterthought. W naszym planie 
 Opcjonalny krok 9 (if --push):
 9. git push --follow-tags
 ```
+
+**Różnica vs obecny kod:** dziś `require_clean`, commit, tag i push działają, ale rollback po kroku git jest manualny. Dodatkowo `--changelog` zapisuje `CHANGELOG.md` przed głównym bump transaction, więc changelog nie jest jeszcze częścią tej samej dwufazowej transakcji.
 
 ### Require clean working dir
 
@@ -470,6 +499,8 @@ Po `redeploy version bump patch`:
 Opcjonalnie `--auto-sections` wyciąga sekcje z conventional commits od ostatniego tagu.
 
 ## 8. Conventional commits integration
+
+**Status 2026-04-20:** `done` dla parsera i analizy bump type, `partial` dla pełnego UX release, bo brak osobnej komendy `version changelog` i jeszcze nie ma połączenia z `version diff` / deploy preflight.
 
 `redeploy version bump --analyze` czyta commity od ostatniego tagu:
 
@@ -636,6 +667,8 @@ Czy zapisać do .redeploy/version.yaml? [Y/n]
 
 Użytkownik akceptuje, edytuje `[?]` (dodaje/usuwa), rozstrzyga `[!]` (conflict).
 
+**Status 2026-04-20:** `partial`. W obecnym kodzie `init --scan` robi tylko prostą heurystykę dla `VERSION`, `pyproject.toml` i `package.json`; nie ma jeszcze interaktywnego potwierdzania, regex scan ani wykrywania driftu.
+
 ### Krok 2: `redeploy version verify`
 
 ```bash
@@ -654,6 +687,8 @@ Git check:
   Working directory clean:         ✓
 ```
 
+**Status 2026-04-20:** `partial`. Dzisiejsze `redeploy version verify` sprawdza spójność sources, ale nie wypisuje jeszcze sekcji `Git check`.
+
 ### Krok 3: Usunięcie starych skryptów
 
 ```bash
@@ -671,6 +706,8 @@ $ redeploy version bump patch --analyze
 
 ### Faza 0 — Manifest + źródła plain/TOML (1.5 tygodnia)
 
+**Status 2026-04-20:** `partial`.
+
 - `VersionManifest` pydantic model + walidacja
 - `SourceAdapter` protocol
 - Adapters: `plain`, `toml`
@@ -679,11 +716,15 @@ $ redeploy version bump patch --analyze
 
 ### Faza 1 — Pozostałe source adapters (1.5 tygodnia)
 
+**Status 2026-04-20:** `partial`.
+
 - `json`, `yaml`, `regex`, `dockerfile`
 - Edge cases: YAML value_pattern + write_pattern (docker-compose image tags)
 - Testy na sample projektach
 
 ### Faza 2 — Transakcja atomowa + bump (1.5 tygodnia)
+
+**Status 2026-04-20:** `partial`.
 
 - `VersionBumpTransaction` z prepare/commit/rollback
 - CLI: `version bump patch|minor|major`, `version set X.Y.Z`
@@ -693,11 +734,15 @@ $ redeploy version bump patch --analyze
 
 ### Faza 3 — Git integration (1 tydzień)
 
+**Status 2026-04-20:** `partial`.
+
 - `require_clean`, `--tag`, `--commit`, `--push`, `--sign`
 - Staging git changes jako część transakcji
 - Error handling gdy git operations fail mid-transaction
 
 ### Faza 4 — Conventional commits + changelog (1.5 tygodnia)
+
+**Status 2026-04-20:** `partial`.
 
 - Commit parser
 - `--analyze` flag
@@ -706,6 +751,8 @@ $ redeploy version bump patch --analyze
 
 ### Faza 5 — Deploy loop closure (1 tydzień)
 
+**Status 2026-04-20:** `todo`.
+
 - `target.version: "@manifest"` w migration.yaml
 - Preflight check w `redeploy run`
 - `redeploy detect --with-version`
@@ -713,12 +760,16 @@ $ redeploy version bump patch --analyze
 
 ### Faza 6 — Monorepo policy (1 tydzień)
 
+**Status 2026-04-20:** `todo`.
+
 - `packages:` struktura w manifest
 - `--package` flag
 - Policy `synced` vs `independent`
 - Cross-package constraints (basic)
 
 ### Faza 7 — Init/scan + docs (1 tydzień)
+
+**Status 2026-04-20:** `partial`.
 
 - `version init --scan` heurystyka
 - Import z bumpversion / poetry config
