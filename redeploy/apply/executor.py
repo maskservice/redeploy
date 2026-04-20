@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -64,19 +65,21 @@ class Executor:
             return
 
         dispatch = {
-            StepAction.SYSTEMCTL_STOP:    self._run_ssh,
-            StepAction.SYSTEMCTL_DISABLE: self._run_ssh,
-            StepAction.SYSTEMCTL_START:   self._run_ssh,
-            StepAction.KUBECTL_DELETE:    self._run_ssh,
-            StepAction.DOCKER_COMPOSE_UP: self._run_ssh,
+            StepAction.SYSTEMCTL_STOP:      self._run_ssh,
+            StepAction.SYSTEMCTL_DISABLE:   self._run_ssh,
+            StepAction.SYSTEMCTL_START:     self._run_ssh,
+            StepAction.KUBECTL_DELETE:      self._run_ssh,
+            StepAction.DOCKER_COMPOSE_UP:   self._run_ssh,
             StepAction.DOCKER_COMPOSE_DOWN: self._run_ssh,
-            StepAction.DOCKER_BUILD:      self._run_ssh,
-            StepAction.SSH_CMD:           self._run_ssh,
-            StepAction.SCP:               self._run_scp,
-            StepAction.RSYNC:             self._run_rsync,
-            StepAction.HTTP_CHECK:        self._run_http_check,
-            StepAction.VERSION_CHECK:     self._run_version_check,
-            StepAction.WAIT:              self._run_wait,
+            StepAction.DOCKER_BUILD:        self._run_docker_build,
+            StepAction.DOCKER_HEALTH_WAIT:  self._run_docker_health_wait,
+            StepAction.CONTAINER_LOG_TAIL:  self._run_container_log_tail,
+            StepAction.SSH_CMD:             self._run_ssh,
+            StepAction.SCP:                 self._run_scp,
+            StepAction.RSYNC:               self._run_rsync,
+            StepAction.HTTP_CHECK:          self._run_http_check,
+            StepAction.VERSION_CHECK:       self._run_version_check,
+            StepAction.WAIT:                self._run_wait,
         }
 
         handler = dispatch.get(step.action)
@@ -127,6 +130,117 @@ class Executor:
         step.status = StepStatus.DONE
         step.result = "ok"
 
+    def _run_docker_build(self, step: MigrationStep) -> None:
+        """Run docker compose build on remote with periodic progress polling."""
+        cmd = step.command
+        if not cmd:
+            raise StepError(step, "No command specified")
+
+        timeout = step.timeout or 1800  # 30 min default for first ARM64 build
+        poll_interval = 15              # seconds between progress snapshots
+        done_event = threading.Event()
+        result_holder: list = []
+
+        def _ssh_build() -> None:
+            r = self.probe.run(cmd, timeout=timeout)
+            result_holder.append(r)
+            done_event.set()
+
+        thread = threading.Thread(target=_ssh_build, daemon=True)
+        thread.start()
+
+        elapsed = 0
+        while not done_event.wait(timeout=poll_interval):
+            elapsed += poll_interval
+            snap = self.probe.run(
+                "docker system df 2>/dev/null | grep -E 'Image|Cache' | "
+                "awk '{print $1, $3, $4}'",
+                timeout=10,
+            )
+            if snap.ok and snap.out.strip():
+                lines = " | ".join(snap.out.strip().splitlines())
+                logger.debug(f"    [{elapsed}s] build cache: {lines}")
+            else:
+                logger.debug(f"    [{elapsed}s] build in progress (cache unavailable)...")
+
+        if not result_holder:
+            raise StepError(step, "Build thread did not return a result")
+        r = result_holder[0]
+        step.result = r.out[:500]
+        if not r.ok:
+            raise StepError(step, f"exit={r.exit_code}: {r.stderr[:300]}")
+        logger.debug(f"    build completed in {elapsed + poll_interval}s")
+        step.status = StepStatus.DONE
+
+    def _run_docker_health_wait(self, step: MigrationStep) -> None:
+        """Wait until all containers reach 'healthy' or 'running' status.
+
+        Replaces static wait. Polls `docker compose ps` every poll_interval
+        until all containers are up or timeout is reached.
+        """
+        cmd = step.command  # should be: "cd <dir> && docker compose -f ... ps --format json"
+        if not cmd:
+            raise StepError(step, "No command specified for docker_health_wait")
+
+        timeout = step.timeout or 120
+        poll_interval = 8
+        elapsed = 0
+        last_status = ""
+
+        while elapsed < timeout:
+            r = self.probe.run(cmd, timeout=20)
+            if r.ok and r.out.strip():
+                lines = r.out.strip().splitlines()
+                # Parse simple table: Name | Status
+                statuses = []
+                for line in lines:
+                    if line.startswith("NAME") or not line.strip():
+                        continue
+                    parts = line.split(None, 1)
+                    name = parts[0] if parts else "?"
+                    status = parts[1].strip() if len(parts) > 1 else "?"
+                    statuses.append((name, status))
+
+                status_str = ", ".join(f"{n}:{s}" for n, s in statuses)
+                if status_str != last_status:
+                    logger.debug(f"    [{elapsed}s] containers: {status_str}")
+                    last_status = status_str
+
+                unhealthy = [
+                    n for n, s in statuses
+                    if not any(kw in s.lower() for kw in ("up", "running", "healthy"))
+                ]
+                if statuses and not unhealthy:
+                    step.status = StepStatus.DONE
+                    step.result = f"all containers healthy after {elapsed}s: {status_str}"
+                    logger.debug(f"    ✓ all containers healthy ({elapsed}s)")
+                    return
+            else:
+                logger.debug(f"    [{elapsed}s] waiting for containers (no output yet)...")
+
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+
+        # timeout — log final state and continue (don't fail hard, http_check will catch it)
+        step.status = StepStatus.DONE
+        step.result = f"timeout {timeout}s reached, last: {last_status or 'unknown'}"
+        logger.warning(f"    docker_health_wait timed out after {timeout}s — proceeding to health check")
+
+    def _run_container_log_tail(self, step: MigrationStep) -> None:
+        """Fetch and log the last N lines from each container after start."""
+        cmd = step.command
+        if not cmd:
+            raise StepError(step, "No command specified for container_log_tail")
+
+        r = self.probe.run(cmd, timeout=30)
+        if r.ok and r.out.strip():
+            for line in r.out.strip().splitlines():
+                logger.debug(f"    log: {line}")
+            step.result = f"{len(r.out.splitlines())} log lines fetched"
+        else:
+            step.result = "no log output (containers may still be starting)"
+        step.status = StepStatus.DONE
+
     def _run_http_check(self, step: MigrationStep, retries: int = 5, delay: int = 8) -> None:
         """HTTP check via SSH curl on the remote host (avoids local network/firewall issues)."""
         if not step.url:
@@ -161,11 +275,21 @@ class Executor:
         step.result = f"version {step.expect} confirmed"
 
     def _run_wait(self, step: MigrationStep) -> None:
-        if step.seconds > 0:
-            logger.debug(f"    waiting {step.seconds}s...")
-            time.sleep(step.seconds)
+        total = step.seconds
+        if total <= 0:
+            step.status = StepStatus.DONE
+            step.result = "waited 0s"
+            return
+        tick = min(10, max(5, total // 6))  # log every 5–10s
+        elapsed = 0
+        while elapsed < total:
+            chunk = min(tick, total - elapsed)
+            time.sleep(chunk)
+            elapsed += chunk
+            if elapsed < total:
+                logger.debug(f"    waiting... {elapsed}/{total}s")
         step.status = StepStatus.DONE
-        step.result = f"waited {step.seconds}s"
+        step.result = f"waited {total}s"
 
     # ── rollback ──────────────────────────────────────────────────────────────
 

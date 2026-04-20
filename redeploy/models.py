@@ -26,6 +26,8 @@ class StepAction(str, Enum):
     DOCKER_COMPOSE_UP = "docker_compose_up"
     DOCKER_COMPOSE_DOWN = "docker_compose_down"
     DOCKER_BUILD = "docker_build"
+    DOCKER_HEALTH_WAIT = "docker_health_wait"   # wait until all containers healthy
+    CONTAINER_LOG_TAIL = "container_log_tail"   # tail container logs after start
     RSYNC = "rsync"
     SCP = "scp"
     SSH_CMD = "ssh_cmd"
@@ -168,6 +170,8 @@ class MigrationStep(BaseModel):
     reason: Optional[str] = None
     risk: ConflictSeverity = ConflictSeverity.LOW
     rollback_command: Optional[str] = None
+    timeout: int = 300                   # step timeout in seconds
+    log_lines: int = 20                  # lines to tail (container_log_tail)
 
     result: Optional[str] = None         # filled after apply
     error: Optional[str] = None
