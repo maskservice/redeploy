@@ -1,0 +1,33 @@
+# redeploy example: KIOSK_APPLIANCE strategy
+#
+# Used with doql kiosk-station projects.
+# doql build produces build/ with install-kiosk.sh and kiosk.service.
+# Then redeploy run deploys end-to-end to the Raspberry Pi.
+#
+# Usage:
+#   doql build
+#   redeploy run examples/13-kiosk-appliance.yaml --dry-run
+#   redeploy run examples/13-kiosk-appliance.yaml
+
+name: kiosk-station RPi5
+description: "Deploy kiosk appliance to Raspberry Pi 5 (doql: kiosk-appliance)"
+
+source:
+  strategy: native_kiosk
+  host: pi@192.168.188.108
+  app: kiosk-station
+  version: "0.3.0"
+
+target:
+  # accepts doql alias "kiosk-appliance" OR canonical "kiosk_appliance"
+  strategy: kiosk-appliance
+  host: pi@192.168.188.108
+  app: kiosk-station
+  version: "0.4.0"
+  remote_dir: ~/kiosk-station
+  verify_url: http://localhost:8080
+
+extra_steps: []
+notes:
+  - "Ensure SSH key auth is set up: ssh-copy-id pi@192.168.188.108"
+  - "Run 'doql build' before deploying to generate build/ artifacts"

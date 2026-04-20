@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 
 # ── Enums ─────────────────────────────────────────────────────────────────────
@@ -48,10 +48,24 @@ class DeployStrategy(str, Enum):
     DOCKER_FULL = "docker_full"
     NATIVE_KIOSK = "native_kiosk"
     DOCKER_KIOSK = "docker_kiosk"
+    KIOSK_APPLIANCE = "kiosk_appliance"  # full install flow (doql: kiosk-appliance)
     PODMAN_QUADLET = "podman_quadlet"
     K3S = "k3s"
     SYSTEMD = "systemd"
     UNKNOWN = "unknown"
+
+
+# doql / external tool aliases → canonical DeployStrategy values
+_STRATEGY_ALIASES: dict[str, str] = {
+    "docker-compose":  "docker_full",
+    "quadlet":         "podman_quadlet",
+    "kiosk-appliance": "kiosk_appliance",
+    "kiosk_appliance": "kiosk_appliance",  # already canonical, keep for safety
+    "kubernetes":      "k3s",
+    "k8s":             "k3s",
+    "native-kiosk":    "native_kiosk",
+    "docker-kiosk":    "docker_kiosk",
+}
 
 
 # ── InfraState (output of detect) ─────────────────────────────────────────────
@@ -130,13 +144,20 @@ class TargetConfig(BaseModel):
     """Desired infrastructure state — input to `plan`."""
     strategy: DeployStrategy = DeployStrategy.DOCKER_FULL
     host: Optional[str] = None           # override InfraState.host when set
-    app: str = "c2004"
+    app: str = ""
     version: Optional[str] = None
 
     compose_files: list[str] = Field(default_factory=list)
     env_file: Optional[str] = None
-    remote_dir: str = "~/c2004"
+    remote_dir: str = ""
     domain: Optional[str] = None
+
+    @field_validator("strategy", mode="before")
+    @classmethod
+    def _accept_strategy_aliases(cls, v: object) -> object:
+        if isinstance(v, str):
+            return _STRATEGY_ALIASES.get(v, v)
+        return v
 
     stop_services: list[str] = Field(default_factory=list)   # systemd units to stop
     disable_services: list[str] = Field(default_factory=list)

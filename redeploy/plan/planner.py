@@ -149,6 +149,8 @@ class Planner:
             self._plan_systemd()
         elif to_s in (DeployStrategy.NATIVE_KIOSK, DeployStrategy.DOCKER_KIOSK):
             self._plan_kiosk(docker=to_s == DeployStrategy.DOCKER_KIOSK)
+        elif to_s == DeployStrategy.KIOSK_APPLIANCE:
+            self._plan_kiosk_appliance()
         else:
             self._notes.append(f"No deploy steps generated for strategy '{to_s.value}' — add manually")
 
@@ -384,6 +386,84 @@ class Planner:
             self._notes.append(
                 "Run 'doql build' first to generate build/infra/install-kiosk.sh and kiosk.service"
             )
+
+    def _plan_kiosk_appliance(self) -> None:
+        """Full kiosk appliance install — doql kiosk-appliance strategy.
+
+        Assumes doql has already produced build/ with install-kiosk.sh and kiosk.service.
+        Steps: rsync build → run installer → install service → enable → verify.
+        """
+        app = self.target.app or self.state.app
+        remote_dir = self.target.remote_dir or f"~/{app}"
+        verify_url = self.target.verify_url or "http://localhost:8080"
+
+        self._add_step(MigrationStep(
+            id="sync_build",
+            action=StepAction.RSYNC,
+            description="Sync build artifacts to remote kiosk directory",
+            src="build/",
+            dst=f"{remote_dir}/",
+            excludes=[".git", "__pycache__", "*.pyc"],
+            risk=ConflictSeverity.LOW,
+        ))
+
+        self._add_step(MigrationStep(
+            id="run_kiosk_installer",
+            action=StepAction.SSH_CMD,
+            description="Run kiosk install script",
+            command=f"bash {remote_dir}/install-kiosk.sh",
+            risk=ConflictSeverity.MEDIUM,
+            rollback_command=f"systemctl disable --now {app}.service 2>/dev/null || true",
+        ))
+
+        self._add_step(MigrationStep(
+            id="install_kiosk_service",
+            action=StepAction.SCP,
+            description="Install systemd kiosk.service unit",
+            src=f"{remote_dir}/kiosk.service",
+            dst="/etc/systemd/system/kiosk.service",
+            risk=ConflictSeverity.LOW,
+        ))
+
+        self._add_step(MigrationStep(
+            id="systemd_daemon_reload",
+            action=StepAction.SSH_CMD,
+            description="Reload systemd daemon",
+            command="systemctl daemon-reload",
+            risk=ConflictSeverity.LOW,
+        ))
+
+        self._add_step(MigrationStep(
+            id="enable_kiosk_service",
+            action=StepAction.SYSTEMCTL_START,
+            service="kiosk",
+            description="Enable and start kiosk.service",
+            command="systemctl enable --now kiosk.service",
+            risk=ConflictSeverity.LOW,
+            rollback_command="systemctl disable --now kiosk.service || true",
+        ))
+
+        self._add_step(MigrationStep(
+            id="wait_kiosk_start",
+            action=StepAction.WAIT,
+            description="Wait for kiosk app to initialize",
+            seconds=20,
+            risk=ConflictSeverity.LOW,
+        ))
+
+        self._add_step(MigrationStep(
+            id="http_health_check",
+            action=StepAction.HTTP_CHECK,
+            description="Verify kiosk app responds on HTTP",
+            url=verify_url,
+            risk=ConflictSeverity.LOW,
+        ))
+
+        self._notes.append(
+            f"KIOSK_APPLIANCE deploy: build/ synced to {remote_dir}, "
+            "kiosk.service installed via systemd. "
+            "Run 'doql build' first to generate build/install-kiosk.sh and kiosk.service."
+        )
 
     def _plan_systemd(self) -> None:
         self._notes.append("Systemd deploy: ensure unit files installed and enabled")

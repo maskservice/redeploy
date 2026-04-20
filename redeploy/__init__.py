@@ -1,6 +1,38 @@
-"""redeploy — Infrastructure migration toolkit: detect → plan → apply."""
-__version__ = "0.1.6"
+"""redeploy — Infrastructure migration toolkit: detect → plan → apply.
 
+Public API (stable from 0.2.0, semver guaranteed)::
+
+    from redeploy import MigrationSpec, Planner, Executor
+    from redeploy import InfraState, TargetConfig, DeployStrategy
+
+Everything not listed in ``__all__`` is internal and may change without notice.
+"""
+__version__ = "0.2.0"
+
+# ── Core models ───────────────────────────────────────────────────────────────
+from .models import (  # noqa: F401
+    ConflictSeverity,
+    DeployStrategy,
+    InfraSpec,
+    InfraState,
+    MigrationPlan,
+    MigrationSpec,
+    MigrationStep,
+    StepAction,
+    StepStatus,
+    TargetConfig,
+)
+
+# ── Pipeline ──────────────────────────────────────────────────────────────────
+from .detect import Detector          # noqa: F401
+from .plan import Planner             # noqa: F401
+from .apply import Executor           # noqa: F401
+
+# ── SSH primitives ────────────────────────────────────────────────────────────
+from .ssh import SshClient, SshResult  # noqa: F401
+
+# ── Fleet / registry (first-class from 0.2.0) ────────────────────────────────
+from .models import DeviceRegistry, KnownDevice  # noqa: F401
 from .fleet import (  # noqa: F401
     DeviceArch,
     DeviceExpectation,
@@ -10,3 +42,36 @@ from .fleet import (  # noqa: F401
     STAGE_DEFAULT_EXPECTATIONS,
 )
 from .steps import StepLibrary  # noqa: F401
+
+__all__ = [
+    # version
+    "__version__",
+    # models
+    "ConflictSeverity",
+    "DeployStrategy",
+    "InfraSpec",
+    "InfraState",
+    "MigrationPlan",
+    "MigrationSpec",
+    "MigrationStep",
+    "StepAction",
+    "StepStatus",
+    "TargetConfig",
+    # pipeline
+    "Detector",
+    "Planner",
+    "Executor",
+    # SSH
+    "SshClient",
+    "SshResult",
+    # fleet / registry
+    "DeviceRegistry",
+    "KnownDevice",
+    "DeviceArch",
+    "DeviceExpectation",
+    "FleetConfig",
+    "FleetDevice",
+    "Stage",
+    "STAGE_DEFAULT_EXPECTATIONS",
+    "StepLibrary",
+]

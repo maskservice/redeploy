@@ -29,12 +29,14 @@ def _print_plan_table(console, migration) -> None:
         console.print(f"  [yellow]⚠ {note}[/yellow]")
 
 
-def _run_apply(console, migration, dry_run, output, ssh_key: str = "") -> bool:
+def _run_apply(console, migration, dry_run, output, ssh_key: str = "",
+               progress_yaml: bool = False) -> bool:
     from .apply import Executor
 
     prefix = "[DRY RUN] " if dry_run else ""
     console.print(f"\n[bold]{prefix}apply[/bold]")
-    executor = Executor(migration, dry_run=dry_run, ssh_key=ssh_key or None)
+    executor = Executor(migration, dry_run=dry_run, ssh_key=ssh_key or None,
+                        progress_yaml=progress_yaml)
     ok = executor.run()
     console.print(f"\n{executor.summary()}")
     if output:
@@ -449,8 +451,10 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
               help="Save apply results to file")
 @click.option("--env", "env_name", default="",
               help="Named environment from redeploy.yaml (e.g. prod, dev, rpi5)")
+@click.option("--progress-yaml", is_flag=True,
+              help="Emit machine-readable YAML progress events to stdout")
 @click.pass_context
-def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_name):
+def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_name, progress_yaml):
     """Execute migration from a single YAML spec (source + target in one file).
 
     SPEC defaults to migration.yaml (or value from redeploy.yaml manifest).
@@ -534,7 +538,7 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_nam
         console.print("\n[dim]--plan-only: stopping before apply[/dim]")
         return
 
-    if not _run_apply(console, migration, dry_run, output):
+    if not _run_apply(console, migration, dry_run, output, progress_yaml=progress_yaml):
         sys.exit(1)
 
 

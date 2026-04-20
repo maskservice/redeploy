@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-20
+
+### Added
+- `redeploy/__init__.py` — formal public API with `__all__` (semver contract from 0.2.0)
+  - Exports: `MigrationSpec`, `MigrationPlan`, `MigrationStep`, `InfraState`, `TargetConfig`,
+    `DeployStrategy`, `StepAction`, `StepStatus`, `ConflictSeverity`, `Detector`, `Planner`,
+    `Executor`, `SshClient`, `SshResult`, `DeviceRegistry`, `KnownDevice`, `FleetConfig`,
+    `FleetDevice`, `Stage`, `StepLibrary`
+- `DeployStrategy.KIOSK_APPLIANCE` — new strategy for doql kiosk-station projects
+- `Planner._plan_kiosk_appliance()` — full install flow: rsync build → installer → systemd service → verify
+- `_STRATEGY_ALIASES` + `TargetConfig._accept_strategy_aliases` — accept doql/external aliases:
+  `docker-compose` → `docker_full`, `quadlet` → `podman_quadlet`,
+  `kiosk-appliance` → `kiosk_appliance`, `kubernetes`/`k8s` → `k3s`
+- `examples/13-kiosk-appliance.yaml` — end-to-end kiosk appliance example
+- `test_public_api.py` (28 tests) — smoke tests for every name in `__all__`,
+  alias resolution, `KIOSK_APPLIANCE` planner steps
+
+### Changed
+- `TargetConfig.app` default: `"c2004"` → `""` (no hardcoded project name)
+- `TargetConfig.remote_dir` default: `"~/c2004"` → `""` (resolved at plan time from app)
+- `pyproject.toml` version: `0.1.7` → `0.2.0`
+
+### Fixed
+- `pydantic.field_validator` added to imports in `models.py`
+
 ## [0.1.7] - 2026-04-20
 
 ### Added
