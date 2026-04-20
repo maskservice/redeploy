@@ -32,10 +32,12 @@ def probe_runtime(p: RemoteProbe) -> RuntimeInfo:
 
     os_info = ver("cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"'")
     arch = ver("uname -m")
+    chromium = ver("which chromium chromium-browser 2>/dev/null | head -1")
 
     return RuntimeInfo(
         docker=docker, docker_compose=dc, k3s=k3s, k3s_namespaces=k3s_ns,
         podman=podman, systemd=systemd, os=os_info, arch=arch,
+        chromium=chromium,
     )
 
 
@@ -143,11 +145,14 @@ def probe_k3s_services(p: RemoteProbe, namespaces: list[str]) -> list[ServiceInf
 
 
 def probe_systemd_services(p: RemoteProbe, app: str) -> list[ServiceInfo]:
-    """List app-related systemd units."""
+    """List app-related systemd units (also catches kiosk/chromium/openbox)."""
     services = []
+    # Build grep chain: app name + kiosk-related patterns
+    patterns = [pat for pat in [app, "kiosk", "chromium", "openbox"] if pat]
+    grep_chain = " | ".join(f"grep -i {pat}" for pat in patterns)
     r = p.run(
         f"systemctl list-units --type=service --state=active --no-pager 2>/dev/null"
-        f" | grep -i {app} | awk '{{print $1\"|\"$3\"|\"$4}}'"
+        f" | ({grep_chain}) | awk '{{print $1\"|\"$3\"|\"$4}}'"
     )
     if not r.ok:
         return services

@@ -90,6 +90,7 @@ class RuntimeInfo(BaseModel):
     systemd: Optional[str] = None
     os: Optional[str] = None
     arch: Optional[str] = None
+    chromium: Optional[str] = None
 
 
 class AppHealthInfo(BaseModel):

@@ -125,7 +125,8 @@ def build_context(
         # services
         "all_services": all_svc_lower,
         "has_nginx":    any("nginx" in s for s in all_svc_lower),
-        "has_chromium": (probe.has_chromium if probe else False)
+        "has_chromium": bool(rt.chromium)
+                        or (probe.has_chromium if probe else False)
                         or any("chromium" in s for s in all_svc_lower),
         "has_kiosk_svc": any("kiosk" in s for s in all_svc_lower),
         "has_app_svc":  any(state.app.lower() in s for s in all_svc_lower),

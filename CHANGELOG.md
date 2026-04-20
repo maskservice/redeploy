@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `_overlay_device_onto_spec()` — device values → spec target config
   - `_run_detect_for_spec()` — conditional detect + planner creation
 
+## [0.1.6] - 2026-04-20
+
+### Docs
+- Update README.md
+
+### Other
+- Update redeploy/detect/probes.py
+- Update redeploy/detect/templates.py
+- Update redeploy/models.py
+
 ## [0.1.5] - 2026-04-20
 
 ### Docs
