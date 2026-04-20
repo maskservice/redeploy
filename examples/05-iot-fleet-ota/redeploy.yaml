@@ -1,0 +1,5 @@
+spec: migration.yaml
+host: pi@192.168.1.42
+app: iot-agent
+remote_dir: ~/iot-agent
+env_file: .env

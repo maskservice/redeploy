@@ -1,0 +1,6 @@
+spec: migration.yaml
+host: root@87.106.87.183
+app: c2004
+domain: c2004.mask.services
+remote_dir: ~/c2004
+env_file: envs/vps.env

@@ -1,0 +1,28 @@
+# 10-multienv/dev.yaml
+# Local dev rebuild — host: local, no SSH
+# Usage: redeploy run examples/10-multienv/dev.yaml
+
+name: "c2004 dev — local rebuild 1.0.20"
+description: "Local docker compose build+up for dev iteration"
+
+source:
+  strategy: docker_full
+  host: local
+  app: c2004
+  version: "1.0.19"
+
+target:
+  strategy: docker_full
+  host: local
+  app: c2004
+  version: "1.0.20"
+  compose_files:
+    - c2004/docker-compose.yml
+  env_file: envs/local.env
+  verify_url: http://localhost:8000/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps: []
+
+notes:
+  - "host: local — runs docker compose locally without SSH"

@@ -1,0 +1,5 @@
+spec: migration.yaml
+host: tom@192.168.188.154
+app: c2004
+remote_dir: /home/pi/c2004
+env_file: envs/rpi3.env

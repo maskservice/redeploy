@@ -1,0 +1,33 @@
+# 10-multienv/staging.yaml
+# Deploy to staging VPS
+# Usage: redeploy run examples/10-multienv/staging.yaml --detect
+
+name: "c2004 staging — deploy 1.0.20"
+description: "Deploy to staging VPS; verify before promoting to prod"
+
+source:
+  strategy: docker_full
+  host: root@10.0.0.10
+  app: c2004
+  version: "1.0.19"
+  domain: staging.c2004.example.com
+  remote_dir: ~/c2004
+
+target:
+  strategy: docker_full
+  host: root@10.0.0.10
+  app: c2004
+  version: "1.0.20"
+  domain: staging.c2004.example.com
+  remote_dir: ~/c2004
+  compose_files:
+    - docker-compose.vps.yml
+  env_file: envs/staging.env
+  verify_url: https://staging.c2004.example.com/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps:
+  - id: flush_k3s_iptables
+
+notes:
+  - "After staging passes: run prod.yaml"

@@ -1,0 +1,3 @@
+spec: migration.yaml
+app: c2004
+env_file: .env

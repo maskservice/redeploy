@@ -1,0 +1,34 @@
+# 10-multienv/prod.yaml
+# Deploy to production VPS (after staging validated)
+# Usage: redeploy run examples/10-multienv/prod.yaml --detect
+
+name: "c2004 prod — deploy 1.0.20"
+description: "Deploy validated image to production VPS"
+
+source:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.19"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+
+target:
+  strategy: docker_full
+  host: root@87.106.87.183
+  app: c2004
+  version: "1.0.20"
+  domain: c2004.mask.services
+  remote_dir: ~/c2004
+  compose_files:
+    - docker-compose.vps.yml
+  env_file: envs/vps.env
+  verify_url: https://c2004.mask.services/api/v1/health
+  verify_version: "1.0.20"
+
+extra_steps:
+  - id: flush_k3s_iptables
+
+notes:
+  - "Run staging.yaml first and verify it passes"
+  - "redeploy.yaml points spec: prod.yaml and local_spec: dev.yaml"

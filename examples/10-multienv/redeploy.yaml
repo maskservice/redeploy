@@ -1,0 +1,5 @@
+spec: prod.yaml
+local_spec: dev.yaml
+app: c2004
+domain: c2004.mask.services
+ssh_key: ~/.ssh/id_ed25519
