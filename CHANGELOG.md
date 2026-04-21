@@ -32,6 +32,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Migration specs can now use inline_script for cleaner deployment scripts (no base64 encoding in YAML)
 
+## [0.2.38] - 2026-04-21
+
+### Docs
+- Update README.md
+
+### Other
+- Update .redeploy/state/test-local-9cc88960.yaml
+- Update redeploy/cli/commands/hardware.py
+
 ## [0.2.37] - 2026-04-21
 
 ### Docs

@@ -212,7 +212,7 @@ def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
 
 
 @click.command()
-@click.argument("host")
+@click.argument("host", required=False, default=None)
 @click.option(
     "--format", "output_fmt",
     default="rich",
@@ -276,6 +276,9 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_pan
             t.add_row(p.id, p.name, p.vendor, res, p.overlay)
         console.print(t)
         return
+
+    if not host:
+        raise click.UsageError("HOST argument is required unless --list-panels is used.")
 
     hw, p = _probe_hardware(host, ssh_key, console)
 
