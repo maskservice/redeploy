@@ -42,10 +42,6 @@ class JsonAdapter(BaseAdapter):
 
         return current
 
-    def write(self, path: Path, config: SourceConfig, new_version: str) -> None:
-        temp = self.stage(path, config, new_version)
-        temp.rename(path)
-
     def stage(self, path: Path, config: SourceConfig, new_version: str) -> Path:
         """Stage JSON update preserving formatting."""
         if not config.key:

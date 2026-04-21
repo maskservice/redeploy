@@ -53,10 +53,6 @@ class YamlAdapter(BaseAdapter):
 
         return current
 
-    def write(self, path: Path, config: SourceConfig, new_version: str) -> None:
-        temp = self.stage(path, config, new_version)
-        temp.rename(path)
-
     def stage(self, path: Path, config: SourceConfig, new_version: str) -> Path:
         """Stage YAML update preserving formatting."""
         if not config.key:

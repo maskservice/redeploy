@@ -134,34 +134,47 @@ def print_inspect_templates(console: "Console", result) -> None:
                     console.print(f"    [dim]→ {note}[/dim]")
 
 
+def _get_plugin_hint(steps) -> str:
+    """Build plugin hint string from workflow steps."""
+    plugin_steps = [s for s in steps if s.plugin_type]
+    if plugin_steps:
+        return f"  [dim](plugins: " + ", ".join(s.plugin_type for s in plugin_steps) + ")[/dim]"
+    return ""
+
+
+def _format_workflow_header(wf, plugin_hint: str) -> str:
+    """Format workflow header string."""
+    return (
+        f"  [cyan]{wf.name}[/cyan]  "
+        f"[dim]{wf.trigger}[/dim]  "
+        f"{len(wf.steps)} steps"
+        + (f"  [dim]{wf.description}[/dim]" if wf.description else "")
+        + plugin_hint
+    )
+
+
+def _print_workflow_step(console: "Console", step) -> None:
+    """Print a single workflow step."""
+    if step.plugin_type:
+        params_str = "  ".join(f"{k}={v}" for k, v in step.plugin_params.items())
+        console.print(
+            f"    step-{step.index}: [yellow]plugin[/yellow] "
+            f"[cyan]{step.plugin_type}[/cyan]"
+            + (f"  [dim]{params_str}[/dim]" if params_str else "")
+        )
+    else:
+        console.print(f"    step-{step.index}: [dim]{step.command[:80]}[/dim]")
+
+
 def print_inspect_workflows(console: "Console", result) -> None:
     """Print workflows from inspect result."""
     if result.workflows:
         console.print(f"\n[bold]Workflows ({len(result.workflows)})[/bold]")
         for wf in result.workflows:
-            plugin_steps = [s for s in wf.steps if s.plugin_type]
-            plugin_hint = (
-                f"  [dim](plugins: " + ", ".join(s.plugin_type for s in plugin_steps) + ")[/dim]"
-                if plugin_steps
-                else ""
-            )
-            console.print(
-                f"  [cyan]{wf.name}[/cyan]  "
-                f"[dim]{wf.trigger}[/dim]  "
-                f"{len(wf.steps)} steps"
-                + (f"  [dim]{wf.description}[/dim]" if wf.description else "")
-                + plugin_hint
-            )
+            plugin_hint = _get_plugin_hint(wf.steps)
+            console.print(_format_workflow_header(wf, plugin_hint))
             for step in wf.steps:
-                if step.plugin_type:
-                    params_str = "  ".join(f"{k}={v}" for k, v in step.plugin_params.items())
-                    console.print(
-                        f"    step-{step.index}: [yellow]plugin[/yellow] "
-                        f"[cyan]{step.plugin_type}[/cyan]"
-                        + (f"  [dim]{params_str}[/dim]" if params_str else "")
-                    )
-                else:
-                    console.print(f"    step-{step.index}: [dim]{step.command[:80]}[/dim]")
+                _print_workflow_step(console, step)
 
 
 def print_inspect_devices(console: "Console", result) -> None:
@@ -236,34 +249,48 @@ def print_workflow_summary_table(console: "Console", result) -> None:
     console.print(f"\n  {len(result.reachable)}/{len(result.hosts)} reachable")
 
 
+def _print_host_header(console: "Console", h) -> None:
+    """Print host header line."""
+    console.print(
+        f"\n[bold]-- {h.host} --[/bold]  [cyan]{h.environment}[/cyan]  {h.strategy.value}"
+    )
+
+
+def _print_template_match(console: "Console", best) -> None:
+    """Print template match details."""
+    console.print(f"  Template:   {best.template.name}")
+    console.print(
+        f"  Confidence: {best.score:.1f}/{best.max_score:.1f}  ({best.confidence_label})"
+    )
+    if best.matched_conditions:
+        console.print(f"  [green]✓[/green] " + "  ".join(best.matched_conditions[:5]))
+    if best.failed_conditions:
+        console.print(f"  [dim]✗ " + "  ".join(best.failed_conditions[:4]) + "[/dim]")
+    if best.template.notes:
+        for note in best.template.notes[:2]:
+            console.print(f"  [dim]→ {note}[/dim]")
+
+
+def _print_alternatives(console: "Console", ranked) -> None:
+    """Print alternative template matches."""
+    alts = [m for m in ranked[1:4] if m.score > 0]
+    if alts:
+        console.print(
+            f"  [dim]alternatives: "
+            + " | ".join(f"{m.template.id} ({m.score:.1f})" for m in alts)
+            + "[/dim]"
+        )
+
+
 def print_workflow_host_details(console: "Console", result) -> None:
     """Print detailed host information from workflow result."""
     for h in result.reachable:
         if not h.template_result:
             continue
         best = h.template_result.best
-        console.print(
-            f"\n[bold]── {h.host} ──[/bold]  [cyan]{h.environment}[/cyan]  {h.strategy.value}"
-        )
-        console.print(f"  Template:   {best.template.name}")
-        console.print(
-            f"  Confidence: {best.score:.1f}/{best.max_score:.1f}  ({best.confidence_label})"
-        )
-        if best.matched_conditions:
-            console.print(f"  [green]✓[/green] " + "  ".join(best.matched_conditions[:5]))
-        if best.failed_conditions:
-            console.print(f"  [dim]✗ " + "  ".join(best.failed_conditions[:4]) + "[/dim]")
-        if best.template.notes:
-            for note in best.template.notes[:2]:
-                console.print(f"  [dim]→ {note}[/dim]")
-
-        alts = [m for m in h.template_result.ranked[1:4] if m.score > 0]
-        if alts:
-            console.print(
-                f"  [dim]alternatives: "
-                + " | ".join(f"{m.template.id} ({m.score:.1f})" for m in alts)
-                + "[/dim]"
-            )
+        _print_host_header(console, h)
+        _print_template_match(console, best)
+        _print_alternatives(console, h.template_result.ranked)
 
 
 def generate_workflow_output_css(
@@ -307,13 +334,49 @@ def generate_workflow_output_yaml(
         console.print(f"  [dim]saved → {save_yaml}[/dim]")
 
 
-def print_import_spec(console: "Console", spec) -> None:
-    """Print a ParsedSpec summary to the Rich console."""
+def _get_status_color(confidence: float) -> str:
+    """Get color based on confidence level."""
+    return "green" if confidence >= 0.8 else "yellow" if confidence >= 0.5 else "red"
+
+
+def _print_services_table(console: "Console", services) -> None:
+    """Print services table."""
     from rich.table import Table
 
-    status_color = (
-        "green" if spec.confidence >= 0.8 else "yellow" if spec.confidence >= 0.5 else "red"
-    )
+    t = Table(show_header=True, box=None, padding=(0, 2))
+    t.add_column("Service", style="bold")
+    t.add_column("Image")
+    t.add_column("Ports", style="cyan")
+    t.add_column("Volumes", style="dim")
+    t.add_column("Restart", style="dim")
+    for svc in services:
+        ports_str = ", ".join(str(p) for p in svc.ports[:3])
+        if len(svc.ports) > 3:
+            ports_str += f" (+{len(svc.ports) - 3})"
+        vols_str = str(len(svc.volumes)) if svc.volumes else "—"
+        t.add_row(
+            svc.name,
+            svc.image or f"[dim]build:{svc.build_context or '.'}[/dim]",
+            ports_str or "—",
+            vols_str,
+            svc.restart or "—",
+        )
+    console.print(t)
+
+
+def _print_spec_metadata(console: "Console", spec) -> None:
+    """Print spec metadata (networks, runtime, secrets)."""
+    if spec.networks:
+        console.print(f"  networks: {', '.join(spec.networks)}")
+    if spec.runtime_hints:
+        console.print(f"  runtime:  {', '.join(spec.runtime_hints)}")
+    if spec.secrets_referenced:
+        console.print(f"  [dim]secrets referenced: {', '.join(spec.secrets_referenced)}[/dim]")
+
+
+def print_import_spec(console: "Console", spec) -> None:
+    """Print a ParsedSpec summary to the Rich console."""
+    status_color = _get_status_color(spec.confidence)
     console.print(
         f"\n  [bold]{spec.source_file.name}[/bold]  "
         f"[cyan]{spec.source_format}[/cyan]  "
@@ -321,29 +384,6 @@ def print_import_spec(console: "Console", spec) -> None:
     )
 
     if spec.services:
-        t = Table(show_header=True, box=None, padding=(0, 2))
-        t.add_column("Service", style="bold")
-        t.add_column("Image")
-        t.add_column("Ports", style="cyan")
-        t.add_column("Volumes", style="dim")
-        t.add_column("Restart", style="dim")
-        for svc in spec.services:
-            ports_str = ", ".join(str(p) for p in svc.ports[:3])
-            if len(svc.ports) > 3:
-                ports_str += f" (+{len(svc.ports) - 3})"
-            vols_str = str(len(svc.volumes)) if svc.volumes else "—"
-            t.add_row(
-                svc.name,
-                svc.image or f"[dim]build:{svc.build_context or '.'}[/dim]",
-                ports_str or "—",
-                vols_str,
-                svc.restart or "—",
-            )
-        console.print(t)
+        _print_services_table(console, spec.services)
 
-    if spec.networks:
-        console.print(f"  networks: {', '.join(spec.networks)}")
-    if spec.runtime_hints:
-        console.print(f"  runtime:  {', '.join(spec.runtime_hints)}")
-    if spec.secrets_referenced:
-        console.print(f"  [dim]secrets referenced: {', '.join(spec.secrets_referenced)}[/dim]")
+    _print_spec_metadata(console, spec)

@@ -22,7 +22,9 @@ Architecture::
 """
 from __future__ import annotations
 
+import yaml
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 from ..models import DeployStrategy
@@ -177,177 +179,89 @@ def _port(p: int) -> ConditionFn:
     return lambda ctx: p in ctx["ports"]
 
 
+def _load_templates_from_yaml() -> list[DetectionTemplate]:
+    """Load templates from builtin/templates.yaml."""
+    yaml_path = Path(__file__).parent / "builtin" / "templates.yaml"
+    if not yaml_path.exists():
+        return []
+
+    data = yaml.safe_load(yaml_path.read_text())
+    templates: list[DetectionTemplate] = []
+
+    # Condition function registry (inline lambdas for compactness)
+    _COND_FNS: dict[str, ConditionFn] = {
+        "is_arm": lambda ctx: ctx["is_arm"],
+        "not has_docker": lambda ctx: not ctx["has_docker"],
+        "has_chromium": lambda ctx: ctx["has_chromium"],
+        "has_kiosk_svc": lambda ctx: ctx["has_kiosk_svc"],
+        "has_nginx": lambda ctx: ctx["has_nginx"],
+        "port_8100": lambda ctx: 8100 in ctx["ports"],
+        "systemd_active": lambda ctx: ctx["systemd_active"],
+        "is_raspberry": lambda ctx: ctx["is_raspberry"],
+        "ssh_user_pi": lambda ctx: ctx["ssh_user"] == "pi",
+        "not has_chromium": lambda ctx: not ctx["has_chromium"],
+        "port_8000": lambda ctx: 8000 in ctx["ports"],
+        "docker_active": lambda ctx: ctx["docker_active"],
+        "is_x86": lambda ctx: ctx["is_x86"],
+        "port_80_or_443": lambda ctx: ctx["port_80"] or ctx["port_443"],
+        "not has_k3s": lambda ctx: not ctx["has_k3s"],
+        "ssh_user_root": lambda ctx: ctx["ssh_user"] == "root",
+        "is_ubuntu_or_debian": lambda ctx: ctx["is_ubuntu"] or ctx["is_debian"],
+        "has_health": lambda ctx: ctx["has_health"],
+        "k3s_active": lambda ctx: ctx["k3s_active"],
+        "port_steal": lambda ctx: ctx["port_steal"],
+        "dual_runtime": lambda ctx: ctx["dual_runtime"],
+        "has_podman": lambda ctx: ctx["has_podman"],
+        "is_local": lambda ctx: ctx["is_local"],
+        "has_systemd": lambda ctx: ctx["has_systemd"],
+        "has_app_svc": lambda ctx: ctx["has_app_svc"],
+    }
+
+    for tmpl_data in data.get("templates", []):
+        conditions = []
+        for cond_data in tmpl_data.get("conditions", []):
+            fn_name = cond_data["fn"]
+            fn = _COND_FNS.get(fn_name)
+            if fn is None:
+                raise ValueError(f"Unknown condition function: {fn_name}")
+            conditions.append(Condition(
+                description=cond_data["description"],
+                fn=fn,
+                weight=cond_data.get("weight", 1.0),
+            ))
+
+        required = []
+        for req_data in tmpl_data.get("required", []):
+            fn_name = req_data["fn"]
+            fn = _COND_FNS.get(fn_name)
+            if fn is None:
+                raise ValueError(f"Unknown condition function: {fn_name}")
+            required.append(Condition(
+                description=req_data["description"],
+                fn=fn,
+                weight=req_data.get("weight", 1.0),
+            ))
+
+        strategy_str = tmpl_data["strategy"]
+        strategy = DeployStrategy(strategy_str)
+
+        templates.append(DetectionTemplate(
+            id=tmpl_data["id"],
+            name=tmpl_data["name"],
+            strategy=strategy,
+            environment=tmpl_data["environment"],
+            conditions=conditions,
+            required=required,
+            spec_template=tmpl_data.get("spec_template", "migration.yaml"),
+            notes=tmpl_data.get("notes", []),
+        ))
+
+    return templates
+
+
 def _build_templates() -> list[DetectionTemplate]:
-    return [
-
-        # ── RPi kiosk (native systemd + Chromium, no Docker) ─────────────────
-        DetectionTemplate(
-            id="rpi-native-kiosk",
-            name="RPi Kiosk (systemd + Chromium, no Docker)",
-            strategy=DeployStrategy.NATIVE_KIOSK,
-            environment="kiosk",
-            spec_template="04-rpi-kiosk/migration-rpi5.yaml",
-            conditions=[
-                Condition("aarch64 arch",    lambda ctx: ctx["is_arm"],        2.0),
-                Condition("no Docker",        lambda ctx: not ctx["has_docker"], 2.0),
-                Condition("Chromium present", lambda ctx: ctx["has_chromium"],  2.0),
-                Condition("kiosk service",    lambda ctx: ctx["has_kiosk_svc"], 1.5),
-                Condition("nginx present",    lambda ctx: ctx["has_nginx"],     1.0),
-                Condition("port 8100",        _port(8100),                      1.0),
-                Condition("systemd active",   lambda ctx: ctx["systemd_active"],1.0),
-                Condition("Raspberry OS",     lambda ctx: ctx["is_raspberry"],  1.0),
-                Condition("pi ssh user",      lambda ctx: ctx["ssh_user"] == "pi", 1.0),
-            ],
-            notes=[
-                "RPi Kiosk: systemd + uvicorn + nginx + Chromium (Wayland)",
-                "Sync: rsync --exclude db venv node_modules",
-                "Service: c2004-services.service",
-            ],
-        ),
-
-        # ── RPi systemd (no kiosk / no Chromium) ─────────────────────────────
-        DetectionTemplate(
-            id="rpi-systemd",
-            name="RPi systemd backend (no GUI)",
-            strategy=DeployStrategy.SYSTEMD,
-            environment="rpi5",
-            spec_template="04-rpi-kiosk/migration-rpi5.yaml",
-            conditions=[
-                Condition("aarch64 arch",   lambda ctx: ctx["is_arm"],         2.0),
-                Condition("no Docker",       lambda ctx: not ctx["has_docker"], 2.0),
-                Condition("no Chromium",     lambda ctx: not ctx["has_chromium"],1.0),
-                Condition("systemd active",  lambda ctx: ctx["systemd_active"], 1.0),
-                Condition("port 8000",       _port(8000),                       1.0),
-                Condition("pi ssh user",     lambda ctx: ctx["ssh_user"] == "pi", 1.0),
-            ],
-            notes=[
-                "RPi systemd backend: uvicorn on :8000 via systemd unit",
-                "No X/Wayland — headless mode",
-            ],
-        ),
-
-        # ── VPS Docker production ─────────────────────────────────────────────
-        DetectionTemplate(
-            id="vps-docker-prod",
-            name="VPS Docker production",
-            strategy=DeployStrategy.DOCKER_FULL,
-            environment="prod",
-            spec_template="01-vps-version-bump/migration.yaml",
-            conditions=[
-                Condition("Docker running",  lambda ctx: ctx["docker_active"],  3.0),
-                Condition("x86_64",          lambda ctx: ctx["is_x86"],         2.0),
-                Condition("port 80/443",     lambda ctx: ctx["port_80"] or ctx["port_443"], 2.0),
-                Condition("no k3s",          lambda ctx: not ctx["has_k3s"],    1.0),
-                Condition("root ssh user",   lambda ctx: ctx["ssh_user"] == "root", 1.0),
-                Condition("Ubuntu/Debian",   lambda ctx: ctx["is_ubuntu"] or ctx["is_debian"], 1.0),
-                Condition("health endpoint", lambda ctx: ctx["has_health"],     1.0),
-            ],
-            notes=[
-                "VPS Docker: docker compose up --build -d",
-                "Verify: curl https://{domain}/api/v1/health",
-            ],
-        ),
-
-        # ── VPS k3s ───────────────────────────────────────────────────────────
-        DetectionTemplate(
-            id="vps-k3s",
-            name="VPS k3s Kubernetes",
-            strategy=DeployStrategy.K3S,
-            environment="prod",
-            spec_template="03-k3s-migration/migration.yaml",
-            conditions=[
-                Condition("k3s running",    lambda ctx: ctx["k3s_active"],    3.0),
-                Condition("x86_64",         lambda ctx: ctx["is_x86"],        1.5),
-                Condition("port 80/443",    lambda ctx: ctx["port_80"] or ctx["port_443"], 1.5),
-                Condition("port steal",     lambda ctx: ctx["port_steal"],    1.0),
-            ],
-            notes=[
-                "k3s: kubectl apply or helm upgrade",
-                "Check iptables DNAT rules if port conflicts",
-            ],
-        ),
-
-        # ── VPS Docker + k3s conflict ─────────────────────────────────────────
-        DetectionTemplate(
-            id="vps-dual-runtime-conflict",
-            name="VPS dual runtime conflict (Docker + k3s)",
-            strategy=DeployStrategy.DOCKER_FULL,
-            environment="prod",
-            spec_template="02-k3s-to-docker/migration.yaml",
-            conditions=[
-                Condition("dual runtime",   lambda ctx: ctx["dual_runtime"],   5.0),
-                Condition("Docker present", lambda ctx: ctx["docker_active"],  2.0),
-                Condition("k3s present",    lambda ctx: ctx["k3s_active"],     2.0),
-                Condition("port steal",     lambda ctx: ctx["port_steal"],     2.0),
-            ],
-            required=[
-                Condition("dual runtime required", lambda ctx: ctx["dual_runtime"], 1.0),
-            ],
-            notes=[
-                "CONFLICT: k3s + Docker both running, port DNAT may intercept traffic",
-                "Plan: stop k3s → migrate services to docker compose",
-                "Spec: examples/02-k3s-to-docker/migration.yaml",
-            ],
-        ),
-
-        # ── Podman Quadlet ────────────────────────────────────────────────────
-        DetectionTemplate(
-            id="podman-quadlet",
-            name="Podman Quadlet (rootless containers)",
-            strategy=DeployStrategy.PODMAN_QUADLET,
-            environment="staging",
-            spec_template="05-podman-quadlet/migration.yaml",
-            conditions=[
-                Condition("Podman installed", lambda ctx: ctx["has_podman"],  3.0),
-                Condition("no Docker",        lambda ctx: not ctx["has_docker"], 2.0),
-                Condition("systemd active",   lambda ctx: ctx["systemd_active"], 1.0),
-                Condition("x86_64",           lambda ctx: ctx["is_x86"],      1.0),
-            ],
-            notes=[
-                "Podman Quadlet: .container units in ~/.config/containers/systemd/",
-                "Deploy: systemctl --user daemon-reload && systemctl --user restart app.service",
-            ],
-        ),
-
-        # ── Local dev ─────────────────────────────────────────────────────────
-        DetectionTemplate(
-            id="local-dev",
-            name="Local development (docker compose)",
-            strategy=DeployStrategy.DOCKER_FULL,
-            environment="dev",
-            spec_template="migration.yaml",
-            required=[
-                Condition("is local host", lambda ctx: ctx["is_local"], 1.0),
-            ],
-            conditions=[
-                Condition("is local host", lambda ctx: ctx["is_local"],       5.0),
-                Condition("Docker running", lambda ctx: ctx["docker_active"],  2.0),
-                Condition("port 8000",     _port(8000),                        1.0),
-            ],
-            notes=[
-                "Local dev: docker compose up (no SSH)",
-                "env_file: .env.local",
-            ],
-        ),
-
-        # ── Generic systemd (unknown device) ─────────────────────────────────
-        DetectionTemplate(
-            id="generic-systemd",
-            name="Generic systemd (unknown device)",
-            strategy=DeployStrategy.SYSTEMD,
-            environment="device",
-            spec_template="migration.yaml",
-            conditions=[
-                Condition("systemd present",  lambda ctx: ctx["has_systemd"],  2.0),
-                Condition("no Docker",        lambda ctx: not ctx["has_docker"], 1.0),
-                Condition("no k3s",           lambda ctx: not ctx["has_k3s"],  1.0),
-                Condition("app service",      lambda ctx: ctx["has_app_svc"],  1.0),
-            ],
-            notes=[
-                "Generic systemd — check unit file names with: systemctl list-units",
-            ],
-        ),
-    ]
+    """Load templates from YAML file."""
+    return _load_templates_from_yaml()
 
 
 TEMPLATES: list[DetectionTemplate] = _build_templates()

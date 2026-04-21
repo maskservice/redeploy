@@ -42,3 +42,8 @@ class BaseAdapter:
         """Write to temp then atomically rename."""
         temp_path.write_text(content, encoding="utf-8")
         temp_path.rename(final_path)  # Atomic on POSIX
+
+    def write(self, path: Path, config: SourceConfig, new_version: str) -> None:
+        """Stage and atomically write version to file."""
+        temp = self.stage(path, config, new_version)
+        temp.rename(path)

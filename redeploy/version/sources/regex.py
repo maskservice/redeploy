@@ -30,10 +30,6 @@ class RegexAdapter(BaseAdapter):
         content = path.read_text(encoding="utf-8")
         return self._extract_version(content, config.pattern)
 
-    def write(self, path: Path, config: SourceConfig, new_version: str) -> None:
-        temp = self.stage(path, config, new_version)
-        temp.rename(path)
-
     def stage(self, path: Path, config: SourceConfig, new_version: str) -> Path:
         """Stage regex-based update."""
         if not config.pattern:

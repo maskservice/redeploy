@@ -6,6 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
+import yaml
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 
@@ -37,6 +38,8 @@ class StepAction(str, Enum):
     WAIT = "wait"
     PLUGIN = "plugin"              # custom plugin action
     INLINE_SCRIPT = "inline_script"  # multiline bash script from YAML
+    ENSURE_CONFIG_LINE = "ensure_config_line"  # idempotent config.txt editing
+    RASPI_CONFIG = "raspi_config"  # raspi-config nonint wrapper
 
 
 class StepStatus(str, Enum):
@@ -69,6 +72,27 @@ _STRATEGY_ALIASES: dict[str, str] = {
     "native-kiosk":    "native_kiosk",
     "docker-kiosk":    "docker_kiosk",
 }
+
+
+# ── PersistedModel mixin ────────────────────────────────────────────────────────
+
+class PersistedModel(BaseModel):
+    """Mixin for models that can be persisted to/from YAML files."""
+
+    def to_yaml(self) -> str:
+        """Serialize model to YAML string."""
+        return yaml.dump(
+            self.model_dump(mode="json"),
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+        )
+
+    @classmethod
+    def load(cls, path: Path) -> Self:
+        """Load model from YAML file."""
+        raw = yaml.safe_load(path.read_text())
+        return cls(**raw)
 
 
 # ── InfraState (output of detect) ─────────────────────────────────────────────
@@ -669,7 +693,7 @@ class KnownDevice(BaseModel):
 _DEFAULT_DEVICE_MAP_DIR = Path.home() / ".config" / "redeploy" / "device-maps"
 
 
-class DeviceMap(BaseModel):
+class DeviceMap(PersistedModel):
     """Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
 
     Standardized format analogous to source/target/InfraState — can be saved
@@ -719,26 +743,11 @@ class DeviceMap(BaseModel):
             return f"DSI {dsi.connector} {dsi.status} {mode} backlight={bl}"
         return "no DSI"
 
-    def to_yaml(self) -> str:
-        import yaml
-        return yaml.dump(
-            self.model_dump(mode="json"),
-            allow_unicode=True,
-            sort_keys=False,
-            default_flow_style=False,
-        )
-
     def save(self, path: Optional[Path] = None) -> Path:
         p = path or _DEFAULT_DEVICE_MAP_DIR / f"{self.id.replace('/', '_').replace('@', '_at_')}.yaml"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(self.to_yaml())
         return p
-
-    @classmethod
-    def load(cls, path: Path) -> "DeviceMap":
-        import yaml
-        raw = yaml.safe_load(path.read_text())
-        return cls(**raw)
 
     @classmethod
     def load_for(cls, device_id: str) -> Optional["DeviceMap"]:
@@ -815,7 +824,7 @@ class BlueprintSource(BaseModel):
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-class DeviceBlueprint(BaseModel):
+class DeviceBlueprint(PersistedModel):
     """Self-contained, portable deployment recipe.
 
     A DeviceBlueprint captures everything needed to reproduce a deployment on
@@ -863,26 +872,11 @@ class DeviceBlueprint(BaseModel):
     def service(self, name: str) -> Optional[ServiceSpec]:
         return next((s for s in self.services if s.name == name), None)
 
-    def to_yaml(self) -> str:
-        import yaml
-        return yaml.dump(
-            self.model_dump(mode="json"),
-            allow_unicode=True,
-            sort_keys=False,
-            default_flow_style=False,
-        )
-
     def save(self, path: Optional[Path] = None) -> Path:
         p = path or _DEFAULT_BLUEPRINT_DIR / f"{self.name}.blueprint.yaml"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(self.to_yaml())
         return p
-
-    @classmethod
-    def load(cls, path: Path) -> "DeviceBlueprint":
-        import yaml
-        raw = yaml.safe_load(path.read_text())
-        return cls(**raw)
 
     @classmethod
     def list_saved(cls) -> list[Path]:

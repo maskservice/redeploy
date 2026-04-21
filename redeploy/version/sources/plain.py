@@ -17,10 +17,6 @@ class PlainAdapter(BaseAdapter):
             return ""  # Optional file not found
         return path.read_text(encoding="utf-8").strip()
 
-    def write(self, path: Path, config: SourceConfig, new_version: str) -> None:
-        temp = self.stage(path, config, new_version)
-        temp.rename(path)
-
     def stage(self, path: Path, config: SourceConfig, new_version: str) -> Path:
         """Create temp file with new version."""
         temp = self._create_temp(path)

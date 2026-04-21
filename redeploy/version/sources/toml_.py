@@ -62,10 +62,6 @@ class TomlAdapter(BaseAdapter):
 
         return current
 
-    def write(self, path: Path, config: SourceConfig, new_version: str) -> None:
-        temp = self.stage(path, config, new_version)
-        temp.rename(path)
-
     def stage(self, path: Path, config: SourceConfig, new_version: str) -> Path:
         """Stage TOML update (preserves formatting with simple regex replace)."""
         if not config.key:

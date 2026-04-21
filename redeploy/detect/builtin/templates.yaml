@@ -1,0 +1,215 @@
+# Built-in detection templates
+# Each template defines a signature for device + environment + strategy combination
+
+templates:
+  - id: rpi-native-kiosk
+    name: RPi Kiosk (systemd + Chromium, no Docker)
+    strategy: native_kiosk
+    environment: kiosk
+    spec_template: 04-rpi-kiosk/migration-rpi5.yaml
+    conditions:
+      - description: aarch64 arch
+        weight: 2.0
+        fn: is_arm
+      - description: no Docker
+        weight: 2.0
+        fn: not has_docker
+      - description: Chromium present
+        weight: 2.0
+        fn: has_chromium
+      - description: kiosk service
+        weight: 1.5
+        fn: has_kiosk_svc
+      - description: nginx present
+        weight: 1.0
+        fn: has_nginx
+      - description: port 8100
+        weight: 1.0
+        fn: port_8100
+      - description: systemd active
+        weight: 1.0
+        fn: systemd_active
+      - description: Raspberry OS
+        weight: 1.0
+        fn: is_raspberry
+      - description: pi ssh user
+        weight: 1.0
+        fn: ssh_user_pi
+    notes:
+      - RPi Kiosk: systemd + uvicorn + nginx + Chromium (Wayland)
+      - Sync: rsync --exclude db venv node_modules
+      - Service: c2004-services.service
+
+  - id: rpi-systemd
+    name: RPi systemd backend (no GUI)
+    strategy: systemd
+    environment: rpi5
+    spec_template: 04-rpi-kiosk/migration-rpi5.yaml
+    conditions:
+      - description: aarch64 arch
+        weight: 2.0
+        fn: is_arm
+      - description: no Docker
+        weight: 2.0
+        fn: not has_docker
+      - description: no Chromium
+        weight: 2.0
+        fn: not has_chromium
+      - description: systemd active
+        weight: 1.0
+        fn: systemd_active
+      - description: port 8000
+        weight: 1.0
+        fn: port_8000
+      - description: pi ssh user
+        weight: 1.0
+        fn: ssh_user_pi
+    notes:
+      - RPi systemd backend: uvicorn on :8000 via systemd unit
+      - No X/Wayland — headless mode
+
+  - id: vps-docker-prod
+    name: VPS Docker production
+    strategy: docker_full
+    environment: prod
+    spec_template: 01-vps-version-bump/migration.yaml
+    conditions:
+      - description: Docker running
+        weight: 3.0
+        fn: docker_active
+      - description: x86_64
+        weight: 2.0
+        fn: is_x86
+      - description: port 80/443
+        weight: 2.0
+        fn: port_80_or_443
+      - description: no k3s
+        weight: 1.0
+        fn: not has_k3s
+      - description: root ssh user
+        weight: 1.0
+        fn: ssh_user_root
+      - description: Ubuntu/Debian
+        weight: 1.0
+        fn: is_ubuntu_or_debian
+      - description: health endpoint
+        weight: 1.0
+        fn: has_health
+    notes:
+      - VPS Docker: docker compose up --build -d
+      - Verify: curl https://{domain}/api/v1/health
+
+  - id: vps-k3s
+    name: VPS k3s Kubernetes
+    strategy: k3s
+    environment: prod
+    spec_template: 03-k3s-migration/migration.yaml
+    conditions:
+      - description: k3s running
+        weight: 3.0
+        fn: k3s_active
+      - description: x86_64
+        weight: 1.5
+        fn: is_x86
+      - description: port 80/443
+        weight: 1.5
+        fn: port_80_or_443
+      - description: port steal
+        weight: 1.0
+        fn: port_steal
+    notes:
+      - k3s: kubectl apply or helm upgrade
+      - Check iptables DNAT rules if port conflicts
+
+  - id: vps-dual-runtime-conflict
+    name: VPS dual runtime conflict (Docker + k3s)
+    strategy: docker_full
+    environment: prod
+    spec_template: 02-k3s-to-docker/migration.yaml
+    conditions:
+      - description: dual runtime
+        weight: 5.0
+        fn: dual_runtime
+      - description: Docker present
+        weight: 2.0
+        fn: docker_active
+      - description: k3s present
+        weight: 2.0
+        fn: k3s_active
+      - description: port steal
+        weight: 2.0
+        fn: port_steal
+    required:
+      - description: dual runtime required
+        weight: 1.0
+        fn: dual_runtime
+    notes:
+      - CONFLICT: k3s + Docker both running, port DNAT may intercept traffic
+      - Plan: stop k3s → migrate services to docker compose
+      - Spec: examples/02-k3s-to-docker/migration.yaml
+
+  - id: podman-quadlet
+    name: Podman Quadlet (rootless containers)
+    strategy: podman_quadlet
+    environment: staging
+    spec_template: 05-podman-quadlet/migration.yaml
+    conditions:
+      - description: Podman installed
+        weight: 3.0
+        fn: has_podman
+      - description: no Docker
+        weight: 2.0
+        fn: not has_docker
+      - description: systemd active
+        weight: 1.0
+        fn: systemd_active
+      - description: x86_64
+        weight: 1.0
+        fn: is_x86
+    notes:
+      - Podman Quadlet: .container units in ~/.config/containers/systemd/
+      - Deploy: systemctl --user daemon-reload && systemctl --user restart app.service
+
+  - id: local-dev
+    name: Local development (docker compose)
+    strategy: docker_full
+    environment: dev
+    spec_template: migration.yaml
+    required:
+      - description: is local host
+        weight: 1.0
+        fn: is_local
+    conditions:
+      - description: is local host
+        weight: 5.0
+        fn: is_local
+      - description: Docker running
+        weight: 2.0
+        fn: docker_active
+      - description: port 8000
+        weight: 1.0
+        fn: port_8000
+    notes:
+      - Local dev: docker compose up (no SSH)
+      - env_file: .env.local
+
+  - id: generic-systemd
+    name: Generic systemd (unknown device)
+    strategy: systemd
+    environment: device
+    spec_template: migration.yaml
+    conditions:
+      - description: systemd present
+        weight: 2.0
+        fn: has_systemd
+      - description: no Docker
+        weight: 1.0
+        fn: not has_docker
+      - description: no k3s
+        weight: 1.0
+        fn: not has_k3s
+      - description: app service
+        weight: 1.0
+        fn: has_app_svc
+    notes:
+      - Generic systemd — check unit file names with: systemctl list-units

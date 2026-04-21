@@ -77,51 +77,8 @@ def run_docker_build(
     emitter: ProgressEmitter | None,
 ) -> None:
     """Run docker compose build on remote with periodic progress polling."""
-    cmd = step.command
-    if not cmd:
-        raise StepError(step, "No command specified")
-
-    timeout = step.timeout or 1800  # 30 min default for first ARM64 build
-    poll_interval = 15              # seconds between progress snapshots
-    done_event = threading.Event()
-    result_holder: list = []
-
-    def _ssh_build() -> None:
-        r = probe.run(cmd, timeout=timeout)
-        result_holder.append(r)
-        done_event.set()
-
-    thread = threading.Thread(target=_ssh_build, daemon=True)
-    thread.start()
-
-    elapsed = 0
-    while not done_event.wait(timeout=poll_interval):
-        elapsed += poll_interval
-        snap = probe.run(
-            "docker system df 2>/dev/null | grep -E 'Image|Cache' | "
-            "awk '{print $1, $3, $4}'",
-            timeout=10,
-        )
-        if snap.ok and snap.out.strip():
-            lines = " | ".join(snap.out.strip().splitlines())
-            msg = f"[{elapsed}s] build cache: {lines}"
-            logger.debug(f"    {msg}")
-            if emitter:
-                emitter.progress(step.id, msg)
-        else:
-            msg = f"[{elapsed}s] build in progress..."
-            logger.debug(f"    {msg}")
-            if emitter:
-                emitter.progress(step.id, msg)
-
-    if not result_holder:
-        raise StepError(step, "Build thread did not return a result")
-    r = result_holder[0]
-    step.result = r.out[:500]
-    if not r.ok:
-        raise StepError(step, f"exit={r.exit_code}: {r.stderr[:300]}")
-    logger.debug(f"    build completed in {elapsed + poll_interval}s")
-    step.status = StepStatus.DONE
+    from .utils import run_container_build
+    run_container_build(step, probe, emitter, engine="docker")
 
 
 def run_podman_build(
@@ -130,51 +87,8 @@ def run_podman_build(
     emitter: ProgressEmitter | None,
 ) -> None:
     """Run podman build on remote with periodic progress polling."""
-    cmd = step.command
-    if not cmd:
-        raise StepError(step, "No command specified")
-
-    timeout = step.timeout or 1800  # 30 min default for ARM64 builds
-    poll_interval = 15              # seconds between progress snapshots
-    done_event = threading.Event()
-    result_holder: list = []
-
-    def _ssh_build() -> None:
-        r = probe.run(cmd, timeout=timeout)
-        result_holder.append(r)
-        done_event.set()
-
-    thread = threading.Thread(target=_ssh_build, daemon=True)
-    thread.start()
-
-    elapsed = 0
-    while not done_event.wait(timeout=poll_interval):
-        elapsed += poll_interval
-        snap = probe.run(
-            "podman system df 2>/dev/null | grep -E 'Image|Cache' | "
-            "awk '{print $1, $3, $4}'",
-            timeout=10,
-        )
-        if snap.ok and snap.out.strip():
-            lines = " | ".join(snap.out.strip().splitlines())
-            msg = f"[{elapsed}s] podman cache: {lines}"
-            logger.debug(f"    {msg}")
-            if emitter:
-                emitter.progress(step.id, msg)
-        else:
-            msg = f"[{elapsed}s] podman build in progress..."
-            logger.debug(f"    {msg}")
-            if emitter:
-                emitter.progress(step.id, msg)
-
-    if not result_holder:
-        raise StepError(step, "Podman build thread did not return a result")
-    r = result_holder[0]
-    step.result = r.out[:500]
-    if not r.ok:
-        raise StepError(step, f"exit={r.exit_code}: {r.stderr[:300]}")
-    logger.debug(f"    podman build completed in {elapsed + poll_interval}s")
-    step.status = StepStatus.DONE
+    from .utils import run_container_build
+    run_container_build(step, probe, emitter, engine="podman")
 
 
 def run_docker_health_wait(
