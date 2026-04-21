@@ -157,6 +157,30 @@ def _apply_blueprint_config(bp, config_path):
         print("[yellow]Nothing to apply[/yellow]")
 
 
+def _execute_query_blueprint(bp, query_expr, output_fmt):
+    """Execute JMESPath query on DeviceBlueprint model and output result."""
+    import jmespath
+    import json as _json
+
+    data = bp.model_dump(mode="json")
+
+    try:
+        result = jmespath.search(query_expr, data)
+    except jmespath.exceptions.JMESPathError as e:
+        print(f"[red]✗ JMESPath error:[/red] {e}")
+        sys.exit(1)
+
+    if result is None:
+        print("[dim]No match found for query[/dim]")
+        return
+
+    if output_fmt == "json":
+        click.echo(_json.dumps(result, indent=2, default=str))
+    else:
+        import yaml
+        click.echo(yaml.safe_dump(result, sort_keys=False, default_flow_style=False))
+
+
 # ── twin ──────────────────────────────────────────────────────────────────────
 
 @blueprint_cmd.command("twin")
@@ -250,7 +274,13 @@ def deploy(blueprint_file, target_host, out_path, remote_dir, no_transfer,
 @click.option("--apply-config", "apply_config", default=None,
               type=click.Path(exists=True, dir_okay=False),
               help="Apply blueprint settings from YAML config file to the remote host")
-def show(blueprint_file, fmt, apply_config):
+@click.option(
+    "--query", "query_expr",
+    default=None,
+    metavar="EXPR",
+    help="Extract specific values using JMESPath query (e.g. 'hardware.drm_outputs[0].transform', 'host')",
+)
+def show(blueprint_file, fmt, apply_config, query_expr):
     """Display a saved DeviceBlueprint.
 
     \b

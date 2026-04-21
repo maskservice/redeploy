@@ -72,6 +72,12 @@ def device_map_cmd(
         redeploy device-map pi@192.168.188.109 > device-map.yaml
         # edit device-map.yaml: set hardware.drm_outputs[0].transform: '270'
         redeploy device-map pi@192.168.188.109 --apply-config device-map.yaml
+
+    \b
+    Query examples (JMESPath):
+        redeploy device-map pi@192.168.188.109 --query "hardware.drm_outputs[0].transform"
+        redeploy device-map pi@192.168.188.109 --query "host"
+        redeploy device-map pi@192.168.188.109 --query "tags" --format json
     """
     from ...models import DeviceMap
 
@@ -155,6 +161,11 @@ def device_map_cmd(
         infra=infra_state,
         issues=issues,
     )
+
+    # ── --query: extract specific values with JMESPath ─────────────────────────
+    if query_expr:
+        _execute_query_device_map(console, dm, query_expr, output_fmt)
+        return
 
     # ── output ────────────────────────────────────────────────────────────────
     if output_fmt == "json":

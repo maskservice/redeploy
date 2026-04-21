@@ -379,6 +379,30 @@ def _update_kanshi_from_cfg(console, p, dsi_outputs: list):
     p.run("pkill -SIGUSR1 kanshi 2>/dev/null || true")
 
 
+def _execute_query(hw, query_expr, output_fmt):
+    """Execute JMESPath query on hardware model and output result."""
+    import jmespath
+    import json as _json
+
+    data = hw.model_dump(mode="json")
+
+    try:
+        result = jmespath.search(query_expr, data)
+    except jmespath.exceptions.JMESPathError as e:
+        click.echo(f"[red]✗ JMESPath error:[/red] {e}", err=True)
+        sys.exit(1)
+
+    if result is None:
+        click.echo("[dim]No match found for query[/dim]")
+        return
+
+    if output_fmt == "json":
+        click.echo(_json.dumps(result, indent=2, default=str))
+    else:
+        import yaml
+        click.echo(yaml.safe_dump(result, sort_keys=False, default_flow_style=False))
+
+
 def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
     """Apply fix for a specific component using fix plan generator."""
     from ...hardware.fixes import generate_fix_plan
@@ -470,8 +494,14 @@ def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
     type=click.Path(exists=True, dir_okay=False),
     help="Apply display settings (transform, backlight) from a YAML/JSON hardware config file to the remote host.",
 )
+@click.option(
+    "--query", "query_expr",
+    default=None,
+    metavar="EXPR",
+    help="Extract specific values using JMESPath query (e.g. 'drm_outputs[0].transform', 'backlights[?name==`11-0045`].brightness')",
+)
 @click.option("--ssh-key", default=None, type=click.Path(), help="SSH private key path")
-def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_panels, ssh_key, set_transform, apply_config):
+def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_panels, ssh_key, set_transform, apply_config, query_expr):
     """Probe and diagnose hardware on a remote host.
 
     Checks DSI display, DRM connectors, backlight controller, I2C buses,
@@ -489,6 +519,12 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_pan
         redeploy hardware pi@192.168.188.109 > hardware.yaml
         # edit hardware.yaml: set drm_outputs[0].transform: '270'
         redeploy hardware pi@192.168.188.109 --apply-config hardware.yaml
+
+    \b
+    Query examples (JMESPath):
+        redeploy hardware pi@192.168.188.109 --query "drm_outputs[0].transform"
+        redeploy hardware pi@192.168.188.109 --query "backlights[?name==`11-0045`].brightness"
+        redeploy hardware pi@192.168.188.109 --query "kernel" --format json
     """
     console = Console()
 
@@ -521,6 +557,11 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_pan
     # --set-transform: apply rotation immediately and update kanshi config
     if set_transform is not None:
         _apply_transform(console, p, hw, set_transform)
+        return
+
+    # --query: extract specific values with JMESPath
+    if query_expr is not None:
+        _execute_query(hw, query_expr, output_fmt)
         return
 
     if output_fmt == "json":
