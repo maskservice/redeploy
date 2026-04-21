@@ -1,26 +1,26 @@
-# redup/duplication | 7 groups | 93f 17804L | 2026-04-21
+# redup/duplication | 9 groups | 104f 20683L | 2026-04-21
 
 SUMMARY:
-  files_scanned: 93
-  total_lines:   17804
-  dup_groups:    7
-  dup_fragments: 17
-  saved_lines:   134
-  scan_ms:       5519
+  files_scanned: 104
+  total_lines:   20683
+  dup_groups:    9
+  dup_fragments: 21
+  saved_lines:   146
+  scan_ms:       4028
 
 HOTSPOTS[7] (files with most duplication):
-  redeploy/apply/handlers.py  dup=110L  groups=2  frags=4  (0.6%)
+  redeploy/apply/handlers.py  dup=110L  groups=2  frags=4  (0.5%)
   redeploy/version.py  dup=77L  groups=4  frags=4  (0.4%)
-  redeploy/version/__init__.py  dup=67L  groups=4  frags=4  (0.4%)
+  redeploy/version/__init__.py  dup=67L  groups=4  frags=4  (0.3%)
+  redeploy/models.py  dup=24L  groups=2  frags=4  (0.1%)
   redeploy/version/sources/json_.py  dup=3L  groups=1  frags=1  (0.0%)
   redeploy/version/sources/plain.py  dup=3L  groups=1  frags=1  (0.0%)
   redeploy/version/sources/regex.py  dup=3L  groups=1  frags=1  (0.0%)
-  redeploy/version/sources/toml_.py  dup=3L  groups=1  frags=1  (0.0%)
 
-DUPLICATES[7] (ranked by impact):
+DUPLICATES[9] (ranked by impact):
   [56acbb246cf8c2ad] ! STRU  run_docker_build  L=51 N=2 saved=51 sim=1.00
-      redeploy/apply/handlers.py:70-120  (run_docker_build)
-      redeploy/apply/handlers.py:123-173  (run_podman_build)
+      redeploy/apply/handlers.py:74-124  (run_docker_build)
+      redeploy/apply/handlers.py:127-177  (run_podman_build)
   [2260446c0ed30fbb] ! STRU  check_version_http  L=40 N=2 saved=40 sim=1.00
       redeploy/version/__init__.py:69-108  (check_version_http)
       redeploy/version.py:52-96  (check_version_http)
@@ -36,14 +36,20 @@ DUPLICATES[7] (ranked by impact):
   [7f61e5aca9b95c89]   EXAC  check_version  L=9 N=2 saved=9 sim=1.00
       redeploy/version/__init__.py:58-66  (check_version)
       redeploy/version.py:41-49  (check_version)
+  [176bf0935b9e1846]   EXAC  to_yaml  L=8 N=2 saved=8 sim=1.00
+      redeploy/models.py:722-729  (to_yaml)
+      redeploy/models.py:866-873  (to_yaml)
   [f269e2bd5ad747d0]   STRU  read_remote_version  L=7 N=2 saved=7 sim=1.00
       redeploy/version/__init__.py:49-55  (read_remote_version)
       redeploy/version.py:27-38  (read_remote_version)
   [44a7054400014003]   EXAC  _ssh_build  L=4 N=2 saved=4 sim=1.00
-      redeploy/apply/handlers.py:85-88  (_ssh_build)
-      redeploy/apply/handlers.py:138-141  (_ssh_build)
+      redeploy/apply/handlers.py:89-92  (_ssh_build)
+      redeploy/apply/handlers.py:142-145  (_ssh_build)
+  [2ffafbd29f2bce76]   STRU  load  L=4 N=2 saved=4 sim=1.00
+      redeploy/models.py:738-741  (load)
+      redeploy/models.py:882-885  (load)
 
-REFACTOR[7] (ranked by priority):
+REFACTOR[9] (ranked by priority):
   [1] ○ extract_module     → redeploy/apply/utils/run_docker_build.py
       WHY: 2 occurrences of 51-line block across 1 files — saves 51 lines
       FILES: redeploy/apply/handlers.py
@@ -59,14 +65,20 @@ REFACTOR[7] (ranked by priority):
   [5] ○ extract_function   → redeploy/utils/check_version.py
       WHY: 2 occurrences of 9-line block across 2 files — saves 9 lines
       FILES: redeploy/version.py, redeploy/version/__init__.py
-  [6] ○ extract_function   → redeploy/utils/read_remote_version.py
+  [6] ○ extract_function   → redeploy/utils/to_yaml.py
+      WHY: 2 occurrences of 8-line block across 1 files — saves 8 lines
+      FILES: redeploy/models.py
+  [7] ○ extract_function   → redeploy/utils/read_remote_version.py
       WHY: 2 occurrences of 7-line block across 2 files — saves 7 lines
       FILES: redeploy/version.py, redeploy/version/__init__.py
-  [7] ○ extract_function   → redeploy/apply/utils/_ssh_build.py
+  [8] ○ extract_function   → redeploy/apply/utils/_ssh_build.py
       WHY: 2 occurrences of 4-line block across 1 files — saves 4 lines
       FILES: redeploy/apply/handlers.py
+  [9] ○ extract_function   → redeploy/utils/load.py
+      WHY: 2 occurrences of 4-line block across 1 files — saves 4 lines
+      FILES: redeploy/models.py
 
-QUICK_WINS[5] (low risk, high savings — do first):
+QUICK_WINS[6] (low risk, high savings — do first):
   [1] extract_module     saved=51L  → redeploy/apply/utils/run_docker_build.py
       FILES: handlers.py
   [3] extract_function   saved=12L  → redeploy/version/sources/utils/write.py
@@ -75,18 +87,22 @@ QUICK_WINS[5] (low risk, high savings — do first):
       FILES: version.py, __init__.py
   [5] extract_function   saved=9L  → redeploy/utils/check_version.py
       FILES: version.py, __init__.py
-  [6] extract_function   saved=7L  → redeploy/utils/read_remote_version.py
+  [6] extract_function   saved=8L  → redeploy/utils/to_yaml.py
+      FILES: models.py
+  [7] extract_function   saved=7L  → redeploy/utils/read_remote_version.py
       FILES: version.py, __init__.py
 
-EFFORT_ESTIMATE (total ≈ 6.0h):
+EFFORT_ESTIMATE (total ≈ 6.4h):
   hard   run_docker_build                    saved=51L  ~153min
   hard   check_version_http                  saved=40L  ~120min
   easy   write                               saved=12L  ~24min
   easy   read_local_version                  saved=11L  ~22min
   easy   check_version                       saved=9L  ~18min
+  easy   to_yaml                             saved=8L  ~16min
   easy   read_remote_version                 saved=7L  ~14min
   easy   _ssh_build                          saved=4L  ~8min
+  easy   load                                saved=4L  ~8min
 
 METRICS-TARGET:
-  dup_groups:  7 → 0
-  saved_lines: 134 lines recoverable
+  dup_groups:  9 → 0
+  saved_lines: 146 lines recoverable

@@ -36,6 +36,10 @@ def run_scp(step: MigrationStep, probe: RemoteProbe, plan: MigrationPlan) -> Non
     """Copy file via SCP."""
     if not step.src or not step.dst:
         raise StepError(step, "scp requires src and dst")
+    if probe.is_local and Path(step.src).resolve() == Path(step.dst).resolve():
+        step.status = StepStatus.DONE
+        step.result = "skipped (same file)"
+        return
     if probe.is_local:
         cmd = ["cp", step.src, step.dst]
     else:

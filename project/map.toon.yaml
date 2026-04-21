@@ -1,37 +1,428 @@
-# redeploy | 17f 2084L | shell:2,python:15 | 2026-04-20
-# stats: 83 func | 0 cls | 17 mod | CC̄=4.3 | critical:1 | cycles:0
-# alerts[5]: fan-out run=26; fan-out detect=20; fan-out migrate=20; fan-out Detector.run=19; fan-out plan=18
-# hotspots[5]: run fan=26; detect fan=20; migrate fan=20; Detector.run fan=19; plan fan=18
+# redeploy | 144f 32760L | python:141,shell:2,less:1 | 2026-04-21
+# stats: 489 func | 307 cls | 144 mod | CC̄=5.6 | critical:80 | cycles:0
+# alerts[5]: CC hardware=47; CC _analyze=44; CC _render=38; CC build_context=36; CC extract_blueprint=31
+# hotspots[5]: hardware fan=27; device_map_cmd fan=26; version_init fan=26; audit fan=22; import_cmd fan=22
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[17]:
+M[144]:
+  app.doql.less,60
   project.sh,35
-  redeploy/__init__.py,2
-  redeploy/apply/__init__.py,4
-  redeploy/apply/executor.py,200
-  redeploy/cli.py,378
-  redeploy/data_sync.py,45
-  redeploy/detect/__init__.py,4
-  redeploy/detect/detector.py,96
-  redeploy/detect/probes.py,272
-  redeploy/detect/remote.py,4
-  redeploy/models.py,271
-  redeploy/plan/__init__.py,4
-  redeploy/plan/planner.py,310
-  redeploy/ssh.py,271
-  redeploy/verify.py,92
-  redeploy/version.py,95
-  tree.sh,1
+  redeploy/__init__.py,150
+  redeploy/apply/__init__.py,50
+  redeploy/apply/exceptions.py,13
+  redeploy/apply/executor.py,262
+  redeploy/apply/handlers.py,427
+  redeploy/apply/progress.py,108
+  redeploy/apply/rollback.py,45
+  redeploy/apply/state.py,162
+  redeploy/audit.py,610
+  redeploy/blueprint/__init__.py,12
+  redeploy/blueprint/extractor.py,329
+  redeploy/blueprint/generators/__init__.py,1
+  redeploy/blueprint/generators/docker_compose.py,191
+  redeploy/blueprint/generators/migration.py,180
+  redeploy/cli/__init__.py,114
+  redeploy/cli/commands/__init__.py,45
+  redeploy/cli/commands/audit.py,127
+  redeploy/cli/commands/blueprint.py,299
+  redeploy/cli/commands/detect.py,119
+  redeploy/cli/commands/device_map.py,377
+  redeploy/cli/commands/devices.py,227
+  redeploy/cli/commands/diagnose.py,89
+  redeploy/cli/commands/diff.py,38
+  redeploy/cli/commands/exec_.py,252
+  redeploy/cli/commands/export.py,127
+  redeploy/cli/commands/hardware.py,231
+  redeploy/cli/commands/import_.py,251
+  redeploy/cli/commands/init.py,112
+  redeploy/cli/commands/inspect.py,74
+  redeploy/cli/commands/patterns.py,105
+  redeploy/cli/commands/plan_apply.py,437
+  redeploy/cli/commands/plugin.py,80
+  redeploy/cli/commands/probe.py,145
+  redeploy/cli/commands/state.py,119
+  redeploy/cli/commands/status.py,56
+  redeploy/cli/commands/target.py,98
+  redeploy/cli/commands/version.py,1406
+  redeploy/cli/commands/workflow.py,88
+  redeploy/cli/core.py,180
+  redeploy/cli/display.py,350
+  redeploy/cli.py,94
+  redeploy/data_sync.py,46
+  redeploy/detect/__init__.py,6
+  redeploy/detect/detector.py,105
+  redeploy/detect/hardware.py,443
+  redeploy/detect/probes.py,278
+  redeploy/detect/remote.py,5
+  redeploy/detect/templates.py,461
+  redeploy/detect/workflow.py,419
+  redeploy/discovery.py,790
+  redeploy/dsl/__init__.py,31
+  redeploy/dsl/loader.py,404
+  redeploy/dsl/parser.py,262
+  redeploy/dsl_python/__init__.py,78
+  redeploy/dsl_python/context.py,40
+  redeploy/dsl_python/decorators.py,138
+  redeploy/dsl_python/docker_steps.py,212
+  redeploy/dsl_python/exceptions.py,45
+  redeploy/dsl_python/runner.py,206
+  redeploy/dsl_python/steps.py,295
+  redeploy/fleet.py,397
+  redeploy/iac/__init__.py,48
+  redeploy/iac/base.py,276
+  redeploy/iac/docker_compose.py,419
+  redeploy/iac/parsers/__init__.py,2
+  redeploy/iac/parsers/compose.py,288
+  redeploy/iac/registry.py,38
+  redeploy/markpact/__init__.py,25
+  redeploy/markpact/compiler.py,178
+  redeploy/markpact/models.py,27
+  redeploy/markpact/parser.py,281
+  redeploy/models.py,953
+  redeploy/observe.py,314
+  redeploy/parse.py,191
+  redeploy/patterns.py,408
+  redeploy/plan/__init__.py,5
+  redeploy/plan/planner.py,621
+  redeploy/plugins/__init__.py,181
+  redeploy/plugins/builtin/__init__.py,2
+  redeploy/plugins/builtin/browser_reload.py,121
+  redeploy/plugins/builtin/hardware_diagnostic.py,283
+  redeploy/plugins/builtin/notify.py,169
+  redeploy/plugins/builtin/process_control.py,124
+  redeploy/plugins/builtin/systemd_reload.py,99
+  redeploy/spec_loader.py,48
+  redeploy/ssh.py,302
+  redeploy/steps.py,329
+  redeploy/tests/__init__.py,1
+  redeploy/tests/test_audit.py,245
+  redeploy/tests/test_cli.py,329
+  redeploy/tests/test_data_sync.py,118
+  redeploy/tests/test_discovery.py,232
+  redeploy/tests/test_dsl.py,355
+  redeploy/tests/test_examples.py,519
+  redeploy/tests/test_executor.py,733
+  redeploy/tests/test_fleet.py,526
+  redeploy/tests/test_git_integration.py,326
+  redeploy/tests/test_iac.py,462
+  redeploy/tests/test_manifest.py,339
+  redeploy/tests/test_markpact_compiler.py,148
+  redeploy/tests/test_markpact_parser.py,94
+  redeploy/tests/test_models.py,225
+  redeploy/tests/test_observe.py,370
+  redeploy/tests/test_parse.py,269
+  redeploy/tests/test_patterns.py,288
+  redeploy/tests/test_planner_edge.py,351
+  redeploy/tests/test_plugins.py,411
+  redeploy/tests/test_probes.py,347
+  redeploy/tests/test_public_api.py,244
+  redeploy/tests/test_resume.py,272
+  redeploy/tests/test_spec_loader.py,106
+  redeploy/tests/test_ssh.py,259
+  redeploy/tests/test_templates.py,430
+  redeploy/tests/test_verify.py,219
+  redeploy/tests/test_version.py,220
+  redeploy/tests/test_version_changelog.py,357
+  redeploy/tests/test_version_cli.py,887
+  redeploy/tests/test_version_manifest.py,659
+  redeploy/tests/test_version_sources.py,518
+  redeploy/tests/test_workflow.py,287
+  redeploy/verify.py,93
+  redeploy/version/__init__.py,149
+  redeploy/version/bump.py,285
+  redeploy/version/changelog.py,205
+  redeploy/version/commits.py,219
+  redeploy/version/diff.py,119
+  redeploy/version/git_integration.py,143
+  redeploy/version/git_transaction.py,106
+  redeploy/version/manifest.py,170
+  redeploy/version/sources/__init__.py,66
+  redeploy/version/sources/base.py,45
+  redeploy/version/sources/json_.py,95
+  redeploy/version/sources/plain.py,29
+  redeploy/version/sources/regex.py,70
+  redeploy/version/sources/toml_.py,109
+  redeploy/version/sources/yaml_.py,99
+  redeploy/version/transaction.py,163
+  redeploy/version.py,97
+  tests/test_iac.py,512
+  tests/test_parse.py,158
+  tests/test_redeploy.py,12
+  tree.sh,2
 D:
-  redeploy/cli.py:
-    e: _setup_logging,cli,detect,plan,apply,migrate,run
+  redeploy/__init__.py:
+  redeploy/apply/__init__.py:
+  redeploy/apply/exceptions.py:
+    e: StepError
+    StepError: __init__(2)  # Exception raised when a migration step fails.
+  redeploy/apply/executor.py:
+    e: Executor
+    Executor: __init__(11),completed_steps(0),state(0),state_path(0),run(0),_execute_steps_loop(1),_skip_step(2),_handle_step_failure(3),_handle_completion(2),_compute_skip_set(0),_write_audit(0),_execute_step(1),_rollback(0),summary(0),from_file(1),save_results(1)  # Execute MigrationPlan steps on a remote host.
+  redeploy/apply/handlers.py:
+    e: run_ssh,run_scp,run_rsync,run_docker_build,run_podman_build,run_docker_health_wait,_parse_container_statuses,_all_containers_healthy,run_container_log_tail,run_http_check,run_version_check,run_plugin,run_wait,run_inline_script,_resolve_command_ref
+    run_ssh(step;probe)
+    run_scp(step;probe;plan)
+    run_rsync(step;probe;plan)
+    run_docker_build(step;probe;emitter)
+    run_podman_build(step;probe;emitter)
+    run_docker_health_wait(step;probe)
+    _parse_container_statuses(output)
+    _all_containers_healthy(statuses)
+    run_container_log_tail(step;probe)
+    run_http_check(step;probe;retries;delay)
+    run_version_check(step;probe)
+    run_plugin(step;probe;plan;emitter;dry_run)
+    run_wait(step)
+    run_inline_script(step;probe;plan)
+    _resolve_command_ref(command_ref;step;plan)
+  redeploy/apply/progress.py:
+    e: ProgressEmitter
+    ProgressEmitter: __init__(1),_ts(0),_elapsed(0),_emit(1),start(1),step_start(2),step_done(2),step_fail(3),progress(2),done(1),failed(3)  # Emits YAML-formatted progress events to a stream (default: s
+  redeploy/apply/rollback.py:
+    e: rollback_steps
+    rollback_steps(completed_steps;probe;state)
+  redeploy/apply/state.py:
+    e: _now_iso,_slug,state_key,default_state_path,filter_resumable,ResumeState
+    ResumeState: load(2),load_or_new(2),save(1),remove(0),mark_done(1),mark_failed(2),reset(0),is_done(1),completed_count(0),remaining(0)  # Checkpoint for a single MigrationPlan execution.
+    _now_iso()
+    _slug(value)
+    state_key(spec_path;host)
+    default_state_path(spec_path;host;base_dir)
+    filter_resumable(step_ids;state)
+  redeploy/audit.py:
+    e: _extract_port,_normalize_path,_strip_remote_dir,audit_spec,AuditCheck,AuditReport,_Expect,_Extractor,_Probe,Auditor
+    AuditCheck: ok(0)  # Outcome of a single audit probe.
+    AuditReport: add(1),passed(0),failed(0),warned(0),skipped(0),ok(0),summary(0),to_dict(0)
+    _Expect: extras(0)
+    _Extractor: __init__(1),collect(0),_from_target(0),_from_step(1),_from_command(2)  # Walk a MigrationSpec and emit Expect tuples.
+    _Probe: __init__(1),has_binary(1),has_path(1),port_listening(1),has_image(1),has_systemd_unit(1),apt_package(1),disk_free_gib(1)  # Thin wrapper around SshClient with sensible audit timeouts.
+    Auditor: __init__(2),run(0),_dispatch(2),_probe_one(1),_probe_binary(1),_probe_directory(1),_probe_file(1),_probe_local_file(1),_probe_port_listening(1),_probe_container_image(1),_probe_systemd_unit(2),_probe_apt_package(1)  # Compare a MigrationSpec's expectations against a live target
+    _extract_port(url)
+    _normalize_path(path)
+    _strip_remote_dir(path)
+    audit_spec(spec_path)
+  redeploy/blueprint/__init__.py:
+  redeploy/blueprint/extractor.py:
+    e: extract_blueprint,_merge_compose,_parse_compose_ports,_parse_compose_volumes,_parse_compose_env,_parse_compose_healthcheck,_parse_migration_meta,_build_hw_requirements
+    extract_blueprint()
+    _merge_compose(path;services;seen)
+    _parse_compose_ports(raw)
+    _parse_compose_volumes(raw)
+    _parse_compose_env(raw)
+    _parse_compose_healthcheck(raw)
+    _parse_migration_meta(path)
+    _build_hw_requirements(hw)
+  redeploy/blueprint/generators/__init__.py:
+  redeploy/blueprint/generators/docker_compose.py:
+    e: generate_twin,_build_service
+    generate_twin(blueprint)
+    _build_service(svc)
+  redeploy/blueprint/generators/migration.py:
+    e: generate_migration
+    generate_migration(blueprint)
+  redeploy/cli/__init__.py:
+    e: _setup_logging,cli,_resolve_device
     _setup_logging(verbose)
     cli(ctx;verbose)
-    detect(ctx;host;app;domain;output)
+    _resolve_device(console;device_id)
+  redeploy/cli/commands/__init__.py:
+  redeploy/cli/commands/audit.py:
+    e: audit
+    audit(last;host;app;only_failed;only_ok;log;as_json;show_report;do_clear)
+  redeploy/cli/commands/blueprint.py:
+    e: blueprint_cmd,capture,twin,deploy,show,list_blueprints,_print_blueprint
+    blueprint_cmd()
+    capture(host;name;compose_files;migration_file;device_map_file;live;save;out_path;fmt;tags)
+    twin(blueprint_file;out_path;platform;port_offset;no_mock_display;print_output)
+    deploy(blueprint_file;target_host;out_path;remote_dir;no_transfer;strategy;run_migration;print_output)
+    show(blueprint_file;fmt)
+    list_blueprints()
+    _print_blueprint(console;bp;fmt)
+  redeploy/cli/commands/detect.py:
+    e: detect
+    detect(ctx;host;app;domain;output;run_workflow;scan_subnet;no_deep;save_yaml;output_fmt)
+  redeploy/cli/commands/device_map.py:
+    e: device_map_cmd,_render,_print_list,_diff
+    device_map_cmd(host;name;tags;save;out_path;output_fmt;no_infra;list_saved;show_file;diff_files;ssh_key)
+    _render(console;dm;fmt)
+    _print_list(console)
+    _diff(console;a;b)
+  redeploy/cli/commands/devices.py:
+    e: devices,scan,device_add,device_rm
+    devices(tag;strategy;rpi;reachable;as_json)
+    scan(subnet;ssh_users;ssh_port;ping;no_mdns;timeout;no_save)
+    device_add(host;device_id;name;tags;strategy;app;ssh_port;ssh_key)
+    device_rm(device_id)
+  redeploy/cli/commands/diagnose.py:
+    e: diagnose
+    diagnose(ctx;spec;host;ssh_key;output_fmt;exit_on_fail)
+  redeploy/cli/commands/diff.py:
+    e: diff
+    diff(ci_file;host;from_src;to_src;out_format)
+  redeploy/cli/commands/exec_.py:
+    e: exec_cmd,exec_multi_cmd,_extract_all_scripts,_extract_script_for_ref,_execute_single_script,_print_execution_results
+    exec_cmd(ctx;ref;host;markdown_file;dry_run;timeout)
+    exec_multi_cmd(ctx;refs;host;markdown_file;dry_run;timeout;parallel)
+    _extract_all_scripts(md_path;ref_list;console)
+    _extract_script_for_ref(md_content;ref_id)
+    _execute_single_script(ref_id;script;host;timeout)
+    _print_execution_results(console;results)
+  redeploy/cli/commands/export.py:
+    e: export_cmd,_find_export_source,_load_manifest_from_css,_load_manifest_from_yaml,_export_to_css,_export_to_yaml
+    export_cmd(ctx;fmt;output;src_file)
+    _find_export_source(src_file;console)
+    _load_manifest_from_css(src)
+    _load_manifest_from_yaml(src)
+    _export_to_css(manifest;templates)
+    _export_to_yaml(manifest)
+  redeploy/cli/commands/hardware.py:
+    e: hardware
+    hardware(host;output_fmt;show_fix;apply_fix_component;ssh_key)
+  redeploy/cli/commands/import_.py:
+    e: import_cmd,_print_import_spec,_default_output,_spec_to_migration_yaml
+    import_cmd(source;output;target_host;target_strategy;dry_run;out_format;parser)
+    _print_import_spec(console;spec)
+    _default_output(src;spec)
+    _spec_to_migration_yaml(spec)
+  redeploy/cli/commands/init.py:
+    e: init
+    init(host;app;domain;strategy;force)
+  redeploy/cli/commands/inspect.py:
+    e: _find_css_path,inspect
+    _find_css_path(css_file;console)
+    inspect(ctx;css_file)
+  redeploy/cli/commands/patterns.py:
+    e: patterns
+    patterns(name)
+  redeploy/cli/commands/plan_apply.py:
+    e: plan,apply,migrate,run,_apply_manifest_to_spec,_print_spec_summary,_perform_live_detect,_run_apply
     plan(ctx;infra;target;strategy;domain;target_version;compose;env_file;output)
     apply(ctx;plan_file;dry_run;step;output)
     migrate(ctx;host;app;domain;target;strategy;target_version;compose;env_file;dry_run;infra_out;plan_out)
-    run(ctx;spec_file;dry_run;plan_only;do_detect;plan_out;output)
+    run(ctx;spec_file;dry_run;plan_only;do_detect;plan_out;output;env_name;progress_yaml;resume;from_step;state_file;no_state)
+    _apply_manifest_to_spec(console;manifest;spec;env_name)
+    _print_spec_summary(console;spec)
+    _perform_live_detect(console;spec)
+    _run_apply(console;migration;dry_run;output;ssh_key;progress_yaml;resume;from_step;state_file;no_state;spec_path)
+  redeploy/cli/commands/plugin.py:
+    e: plugin_cmd
+    plugin_cmd(ctx;subcommand;name)
+  redeploy/cli/commands/probe.py:
+    e: probe
+    probe(hosts;subnet;users;ssh_port;app_hint;timeout;no_save;as_json)
+  redeploy/cli/commands/state.py:
+    e: _get_state_path,_list_checkpoints,_show_checkpoint,state_cmd
+    _get_state_path(spec_file;host;state_file;console)
+    _list_checkpoints(console)
+    _show_checkpoint(console;path)
+    state_cmd(ctx;action;spec_file;host;state_file)
+  redeploy/cli/commands/status.py:
+    e: status
+    status(spec_file)
+  redeploy/cli/commands/target.py:
+    e: target
+    target(device_id;spec_file;dry_run;plan_only;do_detect;plan_out)
+  redeploy/cli/commands/version.py:
+    e: version_cmd,version_current,version_list,version_verify,version_bump,version_set,version_init,version_diff,_resolve_monorepo_targets,_build_package_version_manifest,_resolve_package_release_git_config,_resolve_package_release_changelog_config,_print_verify_result,_print_source_drift_status,_load_spec_version_diff,_load_live_version_diff,_run_version_diff_for_manifest,_bump_single,_format_release_tag,_update_release_changelog,_set_monorepo_version,_print_monorepo_set_dry_run,_create_version_set_git,_create_version_set_taggers,_create_release_tags,_finalize_monorepo_version_set,_update_monorepo_release_changelogs,_version_scan_specs,_regex_version_scan_specs,_is_scannable_version_path,_normalize_scan_exclusions,_detect_version_sources_in_dir,_detect_source_version,_read_detected_source_versions,_report_version_scan_conflict,_print_version_scan_review,_classify_version_scan_source_confidence,_format_version_scan_source_status,_default_keep_scanned_source,_summarize_version_scan_group,_print_version_scan_group,_iter_version_scan_groups,_review_detected_sources_interactively,_derive_scanned_package_name,_scan_package_version_manifests
+    version_cmd()
+    version_current(manifest;package_name;all_packages)
+    version_list(manifest;package_name;all_packages)
+    version_verify(manifest;package_name;all_packages)
+    version_bump(type;manifest;package;all_packages;dry_run;analyze;commit;tag;push;sign;allow_dirty;changelog)
+    version_set(version;manifest_path_str;package_name;all_packages;dry_run;commit;tag;push;sign;allow_dirty;changelog)
+    version_init(scan;review;interactive;excluded_paths;force)
+    version_diff(manifest;package_name;all_packages;spec;live;app)
+    _resolve_monorepo_targets(manifest_model;package_name;all_packages;console)
+    _build_package_version_manifest(manifest_model;package_name)
+    _resolve_package_release_git_config(manifest_model;package_name)
+    _resolve_package_release_changelog_config(manifest_model;package_name)
+    _print_verify_result(console;result;expected_version)
+    _print_source_drift_status(console;result;expected_version)
+    _load_spec_version_diff(manifest_model;spec)
+    _load_live_version_diff(manifest_model;live;app)
+    _run_version_diff_for_manifest(console;manifest_model;spec;live;app)
+    _bump_single(m;bump_type;dry_run;analyze;commit;tag;push;sign;allow_dirty;changelog)
+    _format_release_tag(git_config;version)
+    _update_release_changelog(manifest_model;repo_path;version;console)
+    _set_monorepo_version(manifest_model;version;targets;manifest_path;dry_run;commit;tag;push;sign;allow_dirty;changelog;console)
+    _print_monorepo_set_dry_run(manifest_model;targets;version;console)
+    _create_version_set_git(manifest_model;repo_path;package_name;commit;tag;push;allow_dirty)
+    _create_version_set_taggers(manifest_model;repo_path;targets)
+    _create_release_tags(taggers;version;sign)
+    _finalize_monorepo_version_set(git;version;touched_files;commit;tag;push;sign;console;package_count)
+    _update_monorepo_release_changelogs(manifest_model;repo_path;version;targets;console)
+    _version_scan_specs()
+    _regex_version_scan_specs()
+    _is_scannable_version_path(path)
+    _normalize_scan_exclusions(excluded_paths)
+    _detect_version_sources_in_dir(directory;workspace_root)
+    _detect_source_version(sources)
+    _read_detected_source_versions(sources)
+    _report_version_scan_conflict(console;label;sources;chosen_version)
+    _print_version_scan_review(console;root_sources;packages)
+    _classify_version_scan_source_confidence(source)
+    _format_version_scan_source_status(confidence)
+    _default_keep_scanned_source(confidence)
+    _summarize_version_scan_group(sources)
+    _print_version_scan_group(console;label;sources)
+    _iter_version_scan_groups(root_sources;packages)
+    _review_detected_sources_interactively(console;root_sources;packages)
+    _derive_scanned_package_name(package_dir;workspace_root;used_names)
+    _scan_package_version_manifests(workspace_root)
+  redeploy/cli/commands/workflow.py:
+    e: workflow_cmd,_list_workflows,_execute_workflow
+    workflow_cmd(ctx;name;css_file;dry_run;list_only)
+    _list_workflows(console;css_path;result)
+    _execute_workflow(console;wf;dry_run;css_path)
+  redeploy/cli/core.py:
+    e: load_spec_or_exit,find_manifest_path,resolve_device,load_spec_with_manifest,overlay_device_onto_spec,run_detect_for_spec,run_detect_workflow
+    load_spec_or_exit(console;path)
+    find_manifest_path()
+    resolve_device(console;device_id)
+    load_spec_with_manifest(console;spec_file;dev)
+    overlay_device_onto_spec(spec;dev;console)
+    run_detect_for_spec(console;spec;do_detect)
+    run_detect_workflow(console;hosts;manifest;app;scan_subnet;deep;save_yaml;fmt)
+  redeploy/cli/display.py:
+    e: print_plan_table,print_infrastructure_summary,print_docker_services,print_k3s_pods,print_conflicts,print_inspect_app_metadata,print_inspect_environments,print_inspect_templates,print_inspect_workflows,print_inspect_devices,print_inspect_raw_nodes_summary,print_workflow_summary_table,print_workflow_host_details,generate_workflow_output_css,generate_workflow_output_yaml,print_import_spec
+    print_plan_table(console;migration)
+    print_infrastructure_summary(console;state;host)
+    print_docker_services(console;state)
+    print_k3s_pods(console;state)
+    print_conflicts(console;state)
+    print_inspect_app_metadata(console;result)
+    print_inspect_environments(console;result)
+    print_inspect_templates(console;result)
+    print_inspect_workflows(console;result)
+    print_inspect_devices(console;result)
+    print_inspect_raw_nodes_summary(console;result)
+    print_workflow_summary_table(console;result)
+    print_workflow_host_details(console;result)
+    generate_workflow_output_css(console;result;app;save_yaml)
+    generate_workflow_output_yaml(console;result;save_yaml)
+    print_import_spec(console;spec)
+  redeploy/cli.py:
+  redeploy/data_sync.py:
+    e: collect_sqlite_counts,rsync_timeout_for_path
+    collect_sqlite_counts(app_root;db_specs)
+    rsync_timeout_for_path(path;minimum;base;per_mb)
+  redeploy/detect/__init__.py:
+  redeploy/detect/detector.py:
+    e: Detector
+    Detector: __init__(3),run(0),save(2),probe_hardware(0)  # Probe infrastructure and produce InfraState.
+  redeploy/detect/hardware.py:
+    e: _lines,probe_board,probe_config_txt,probe_drm_outputs,probe_wlr_randr,probe_backlights,probe_framebuffers,probe_i2c_buses,probe_dsi_dmesg,_analyze,probe_hardware
+    _lines(text)
+    probe_board(p)
+    probe_config_txt(p)
+    probe_drm_outputs(p)
+    probe_wlr_randr(p)
+    probe_backlights(p)
+    probe_framebuffers(p)
+    probe_i2c_buses(p)
+    probe_dsi_dmesg(p)
+    _analyze(hw)
+    probe_hardware(p)
   redeploy/detect/probes.py:
     e: probe_runtime,probe_ports,probe_iptables_dnat,probe_docker_services,probe_k3s_services,probe_systemd_services,probe_health,detect_conflicts,detect_strategy
     probe_runtime(p)
@@ -43,63 +434,781 @@ D:
     probe_health(host;app;domain)
     detect_conflicts(ports;iptables_dnat;runtime;docker_services;k3s_services)
     detect_strategy(runtime;docker_services;k3s_services;systemd_services)
-  redeploy/detect/detector.py:
-    e: Detector
-    Detector: __init__(3),run(0),save(2)  # Probe infrastructure and produce InfraState...
-  redeploy/apply/executor.py:
-    e: StepError,Executor
-    StepError(Exception): __init__(2)
-    Executor: __init__(2),run(0),_execute_step(1),_run_ssh(1),_run_scp(1),_run_rsync(1),_run_http_check(3),_run_version_check(1),_run_wait(1),_rollback(0),summary(0),from_file(0),save_results(1)  # Execute MigrationPlan steps on a remote host...
+  redeploy/detect/remote.py:
+  redeploy/detect/templates.py:
+    e: build_context,_svc,_port,_build_templates,Condition,DetectionTemplate,TemplateMatch,DetectionResult,TemplateEngine
+    Condition:  # A single scoreable condition.
+    DetectionTemplate: score(1),max_score(0)  # Named template for a device+environment+strategy combination
+    TemplateMatch: confidence(0),confidence_label(0)  # Scored template match.
+    DetectionResult: strategy(0),environment(0),spec_template(0),generated_env_block(2),generated_notes(0)  # Full result of template-based detection.
+    TemplateEngine: __init__(1),score_all(1),detect(3)  # Score all templates against a context and return ranked matc
+    build_context(state;probe;manifest)
+    _svc(name)
+    _port(p)
+    _build_templates()
+  redeploy/detect/workflow.py:
+    e: HostDetectionResult,WorkflowResult,DetectionWorkflow
+    HostDetectionResult: strategy(0),environment(0),confidence(0),template_name(0),spec_template(0),env_block(0),notes(0)  # Full detection result for a single host.
+    WorkflowResult: reachable(0),unreachable(0),by_env(0),summary(0),generated_redeploy_yaml(0),generated_migration_yaml(1)  # Aggregated result across all probed hosts.
+    DetectionWorkflow: __init__(3),_collect_hosts(4),_probe_ssh(1),_deep_detect(1),_score_template(2),run(5)  # Multi-host detection workflow with template scoring.
+  redeploy/discovery.py:
+    e: _is_raspberry_pi_mac,_scan_known_hosts,_scan_arp_cache,_scan_mdns,_ping_sweep,_probe_ssh,_detect_local_subnet,_merge,discover,update_registry,_run,_is_ip,_collect_ssh_keys,_tcp_reachable,_try_ssh_credentials,_detect_strategy_remote,_build_probe_command,_build_ssh_command,_run_ssh_probe,_parse_probe_output,_infer_strategy,_parse_probe_input,_detect_app_from_services,_update_existing_device,_create_new_device,auto_probe,DiscoveredHost,ProbeResult
+    DiscoveredHost:
+    ProbeResult:  # Full autonomous probe result for a single host.
+    _is_raspberry_pi_mac(mac)
+    _scan_known_hosts(ssh_user)
+    _scan_arp_cache()
+    _scan_mdns(timeout)
+    _ping_sweep(subnet;timeout)
+    _probe_ssh(hosts;users;port;timeout;max_workers)
+    _detect_local_subnet()
+    _merge(hosts)
+    discover(subnet;ssh_users;ssh_port;ping;mdns;probe_ssh;timeout)
+    update_registry(hosts;registry;save)
+    _run(cmd;timeout)
+    _is_ip(s)
+    _collect_ssh_keys()
+    _tcp_reachable(ip;port;timeout)
+    _try_ssh_credentials(ip;users;keys;port;timeout)
+    _detect_strategy_remote(host;key;port;timeout)
+    _build_probe_command()
+    _build_ssh_command(host;port;timeout;key_opts;probe_cmd)
+    _run_ssh_probe(cmd;timeout)
+    _parse_probe_output(out)
+    _infer_strategy(info;services)
+    _parse_probe_input(ip_or_host;users)
+    _detect_app_from_services(services;app_hint)
+    _update_existing_device(existing;result;ssh_user;ssh_key;ip;host_str;port;now)
+    _create_new_device(result;ssh_user;ssh_key;ip;host_str;port;now)
+    auto_probe(ip_or_host;users;port;timeout;app_hint;save)
+  redeploy/dsl/__init__.py:
+  redeploy/dsl/loader.py:
+    e: _build_condition,load_css,load_css_text,_build_from_nodes,_build_manifest,_build_templates,_build_workflows,manifest_to_css,_condition_key,templates_to_css,WorkflowStep,WorkflowDef,LoadResult
+    WorkflowStep: from_command(3)
+    WorkflowDef: as_shell(0)  # Named deployment workflow parsed from ``workflow[name="…"] {
+    LoadResult:  # Full result of loading a ``redeploy.css`` file.
+    _build_condition(key;weight)
+    load_css(path)
+    load_css_text(text;source_file)
+    _build_from_nodes(nodes;at_rules;source_file)
+    _build_manifest(nodes;at_rules)
+    _build_templates(nodes)
+    _build_workflows(nodes)
+    manifest_to_css(manifest;app)
+    _condition_key(c)
+    templates_to_css(templates)
+  redeploy/dsl/parser.py:
+    e: _strip_comments,DSLNode,RedeployDSLParser
+    DSLNode: name(0),get(2),__repr__(0)  # One parsed block from the CSS-like file.
+    RedeployDSLParser: __init__(0),parse(1),_collect_body(2),_parse_props(1),at_rules(0),nodes_of_type(1)  # Parse a ``redeploy.css`` or ``redeploy.less`` file into a li
+    _strip_comments(text)
+  redeploy/dsl_python/__init__.py:
+  redeploy/dsl_python/context.py:
+    e: StepContext
+    StepContext: log(1),set_output(2),complete(2),duration_seconds(0)  # Tracks the execution of a single step.
+  redeploy/dsl_python/decorators.py:
+    e: migration,MigrationMeta,MigrationRegistry,StepManager,step
+    MigrationMeta:  # Metadata for a migration.
+    MigrationRegistry: register(3),get(2),list(1)  # Global registry of migration functions.
+    StepManager: begin(4),end(3)  # Manages step execution and tracking.
+    step: __enter__(0),__exit__(3)  # Context manager for a deployment step.
+    migration(name;version;description;author)
+  redeploy/dsl_python/docker_steps.py:
+    e: DockerComposeResult,DockerDSL
+    DockerComposeResult:  # Result of docker compose command.
+    DockerDSL: compose_up(7),compose_down(4),wait_healthy(4),logs(4),_run_ssh(3),_run_local(3)  # Docker-related DSL actions.
+  redeploy/dsl_python/exceptions.py:
+    e: DSLException,StepError,TimeoutError,VerificationError,ConnectionError,RollbackError
+    DSLException:  # Base exception for DSL errors.
+    StepError: __init__(3)  # Raised when a step fails.
+    TimeoutError: __init__(2)  # Raised when a step times out.
+    VerificationError: __init__(3)  # Raised when verification fails.
+    ConnectionError:  # Raised when SSH/connection fails.
+    RollbackError: __init__(2)  # Raised when rollback fails.
+  redeploy/dsl_python/runner.py:
+    e: main,PythonMigrationRunner
+    PythonMigrationRunner: __init__(2),run_file(2),_find_migrations(1),list_migrations(1)  # Runner for Python-based migrations.
+    main()
+  redeploy/dsl_python/steps.py:
+    e: ssh,ssh_available,rsync,scp,wait,http_expect,version_check
+    ssh(host;command;timeout;check)
+    ssh_available(host;timeout;interval)
+    rsync(src;dst;exclude;delete;timeout)
+    scp(src;dst;timeout)
+    wait(seconds;message)
+    http_expect(url;expect;timeout;retries;method)
+    version_check(manifest_path;expect;host;url)
+  redeploy/fleet.py:
+    e: DeviceArch,Stage,DeviceExpectation,FleetDevice,FleetConfig,Fleet
+    DeviceArch:
+    Stage:
+    DeviceExpectation:  # Declarative assertions about required infrastructure on a de
+    FleetDevice: ssh_user(0),ssh_ip(0),is_local(0),is_prod(0),has_tag(1),has_expectation(1),verify_expectations(1)  # Generic device descriptor — superset of ``deploy``'s DeviceC
+    FleetConfig: get_device(1),by_tag(1),by_stage(1),by_strategy(1),prod_devices(0),from_file(3)  # Top-level fleet manifest — list of devices with stage / tag 
+    Fleet: __init__(1),from_file(2),from_registry(2),from_config(2),devices(0),get(1),by_tag(1),by_stage(1),by_strategy(1),prod(0),reachable(1),merge(1),__len__(0),__iter__(0),__repr__(0)  # Unified first-class fleet — wraps FleetConfig and/or DeviceR
+  redeploy/iac/__init__.py:
+  redeploy/iac/base.py:
+    e: PortInfo,VolumeInfo,ServiceInfo,ConversionWarning,ParsedSpec,Parser,ParserRegistry
+    PortInfo: __str__(0)  # A published / exposed port mapping.
+    VolumeInfo:  # A volume or bind-mount.
+    ServiceInfo:  # One logical service / container / pod / deployment.
+    ConversionWarning: __str__(0)  # A warning emitted by a parser or converter about lossy / unc
+    ParsedSpec: add_warning(4),all_images(0),all_ports(0),summary(0)  # Common intermediate representation from any IaC/CI-CD parser
+    Parser: can_parse(1),parse(1)  # Protocol every format-specific parser must satisfy.
+    ParserRegistry: __init__(0),register(1),parser_for(1),parse(1),parse_dir(3),registered(0)  # Dispatch file → registered parser.
+  redeploy/iac/docker_compose.py:
+    e: _resolve_var,_parse_port,_parse_volume,_env_dict,_deep_merge,DockerComposeParser
+    DockerComposeParser: can_parse(1),parse(1),_load_merged(2),_find_override(1),_load_dotenv(1),_parse_service(4)  # Parser for docker-compose.yml / compose.yaml files.
+    _resolve_var(value;env)
+    _parse_port(raw)
+    _parse_volume(raw)
+    _env_dict(raw)
+    _deep_merge(base;override)
+  redeploy/iac/parsers/__init__.py:
+  redeploy/iac/parsers/compose.py:
+    e: DockerComposeParser
+    DockerComposeParser: can_parse(1),parse(1),_parse_service(3),_parse_build(1),_parse_command(1),_parse_ports(2),_parse_port_entry(1),_parse_volumes(2),_parse_volume_entry(1),_parse_env(2),_parse_depends_on(1),_parse_labels(1),_parse_healthcheck(1)  # Parser for Docker Compose files (v2 + v3 schema, Compose Spe
+  redeploy/iac/registry.py:
+    e: parse_file,parse_dir
+    parse_file(path)
+    parse_dir(root;recursive;skip_errors)
+  redeploy/markpact/__init__.py:
+  redeploy/markpact/compiler.py:
+    e: compile_markpact_document,compile_markpact_document_to_data,_load_block_payload,_normalize_config_payload,_extract_steps,_deep_merge,MarkpactCompileError
+    MarkpactCompileError:  # Raised when a markpact document cannot be compiled to Migrat
+    compile_markpact_document(document)
+    compile_markpact_document_to_data(document)
+    _load_block_payload(path;block)
+    _normalize_config_payload(payload;path;block)
+    _extract_steps(payload;path;block)
+    _deep_merge(target;incoming)
+  redeploy/markpact/models.py:
+    e: MarkpactBlock,MarkpactDocument
+    MarkpactBlock: label(0)
+    MarkpactDocument:
+  redeploy/markpact/parser.py:
+    e: parse_markpact_file,parse_markpact_text,_parse_markpact_fence_info,parse_markpact_file_with_refs,extract_script_by_ref,extract_script_from_markdown,_normalize_section_id,_check_heading,_handle_fence_line,MarkpactParseError
+    MarkpactParseError:  # Raised when a markdown markpact document cannot be parsed.
+    parse_markpact_file(path)
+    parse_markpact_text(text)
+    _parse_markpact_fence_info(info)
+    parse_markpact_file_with_refs(path)
+    extract_script_by_ref(text;ref_id;language)
+    extract_script_from_markdown(text;section_id;language)
+    _normalize_section_id(section_id)
+    _check_heading(line;in_target_section;normalized_id;section_id)
+    _handle_fence_line(line;code_block_lang;language;script_lines)
+  redeploy/models.py:
+    e: ConflictSeverity,StepAction,StepStatus,DeployStrategy,ServiceInfo,PortInfo,ConflictInfo,RuntimeInfo,AppHealthInfo,DrmOutput,BacklightInfo,I2CBusInfo,HardwareDiagnostic,HardwareInfo,InfraState,TargetConfig,MigrationStep,InfraSpec,MigrationSpec,MigrationPlan,EnvironmentConfig,ProjectManifest,DeployRecord,KnownDevice,DeviceMap,ServicePort,VolumeMount,ServiceSpec,HardwareRequirements,BlueprintSource,DeviceBlueprint,DeviceRegistry
+    ConflictSeverity:
+    StepAction:
+    StepStatus:
+    DeployStrategy:
+    ServiceInfo:
+    PortInfo:
+    ConflictInfo:
+    RuntimeInfo:
+    AppHealthInfo:
+    DrmOutput:  # One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1).
+    BacklightInfo:  # Sysfs backlight device.
+    I2CBusInfo:
+    HardwareDiagnostic:  # Problem found during hardware probe.
+    HardwareInfo: has_dsi(0),dsi_connected(0),dsi_enabled(0),backlight_on(0),errors(0),warnings(0)  # Hardware state produced by hardware probe.
+    InfraState:  # Full detected state of infrastructure — output of `detect`.
+    TargetConfig: _accept_strategy_aliases(2)  # Desired infrastructure state — input to `plan`.
+    MigrationStep:
+    InfraSpec:  # Declarative description of one infrastructure state (from OR
+    MigrationSpec: from_file(2),resolve_versions(1),to_infra_state(0),to_target_config(0)  # Single YAML file describing full migration: from-state → to-
+    MigrationPlan:  # Full migration plan — output of `plan`, input to `apply`.
+    EnvironmentConfig:  # One named environment (prod / dev / rpi5 / staging …) in red
+    ProjectManifest: find_and_load(2),find_css(2),env(1),resolve_env(1),from_dotenv(2),apply_to_spec(2)  # Per-project redeploy.yaml — replaces repetitive Makefile var
+    DeployRecord:  # Single deployment event recorded for a device.
+    KnownDevice: last_deploy(0),is_reachable(0),record_deploy(1)  # Device known to redeploy — persisted in ~/.config/redeploy/d
+    DeviceMap: has_errors(0),display_summary(0),to_yaml(0),save(1),load(2),load_for(2),list_saved(1)  # Full, persisted snapshot of a device: identity + InfraState 
+    ServicePort:  # A single port mapping for a container service.
+    VolumeMount:
+    ServiceSpec:  # Complete specification of a single containerised service.
+    HardwareRequirements:  # Hardware capabilities required to run the blueprint.
+    BlueprintSource:  # Where the blueprint was extracted from — audit trail.
+    DeviceBlueprint: service(1),to_yaml(0),save(1),load(2),list_saved(1)  # Self-contained, portable deployment recipe.
+    DeviceRegistry: get(1),upsert(1),remove(1),by_tag(1),by_strategy(1),reachable(0),default_path(1),load(2),save(1)  # Persistent device registry — stored at ~/.config/redeploy/de
+  redeploy/observe.py:
+    e: AuditEntry,DeployAuditLog,DeployReport
+    AuditEntry: __init__(1),ts(0),host(0),app(0),from_strategy(0),to_strategy(0),ok(0),elapsed_s(0),steps_total(0),steps_ok(0),steps_failed(0),pattern(0),version(0),dry_run(0),steps(0),error(0),to_dict(0),__repr__(0)  # Single audit log entry — immutable snapshot of one deploymen
+    DeployAuditLog: __init__(1),record(2),_append(1),load(1),tail(1),filter(4),clear(0)  # Persistent audit log — newline-delimited JSON at ``path``.
+    DeployReport: __init__(1),text(0),yaml(0),summary_line(0)  # Human-readable post-deploy report from an AuditEntry.
+  redeploy/parse.py:
+    e: parse_docker_ps,parse_container_line,parse_system_info,parse_diagnostics,_apply_system_line,_apply_git_line,_apply_health_line,_apply_network_line,_parse_section_line,parse_health_info
+    parse_docker_ps(output)
+    parse_container_line(line)
+    parse_system_info(output)
+    parse_diagnostics(output)
+    _apply_system_line(sys;line)
+    _apply_git_line(git;line)
+    _apply_health_line(result;line)
+    _apply_network_line(result;line)
+    _parse_section_line(section;result;line)
+    parse_health_info(output)
+  redeploy/patterns.py:
+    e: _step,get_pattern,list_patterns,DeployPattern,BlueGreenPattern,CanaryPattern,RollbackOnFailurePattern
+    DeployPattern: expand(0),__repr__(0)  # Base class for all deploy patterns.
+    BlueGreenPattern: __init__(7),expand(0)  # Zero-downtime blue/green deploy via Traefik (or any label-ba
+    CanaryPattern: __init__(7),expand(0)  # Gradual canary rollout: deploy new version, scale up in stag
+    RollbackOnFailurePattern: __init__(5),expand(0)  # Capture pre-deploy image tag, roll back automatically on fai
+    _step(id;action;description)
+    get_pattern(name)
+    list_patterns()
+  redeploy/plan/__init__.py:
   redeploy/plan/planner.py:
     e: Planner
-    Planner: __init__(2),run(0),_plan_conflict_fixes(0),_plan_stop_old_services(0),_plan_deploy_new(0),_plan_docker_full(0),_plan_podman_quadlet(0),_plan_systemd(0),_plan_verify(0),_compose_cmd(0),_compose_file(0),_add_step(1),_assess_risk(0),_estimate_downtime(0),from_files(1),from_spec(0),_append_extra_steps(1),save(2)  # Generate a MigrationPlan from detected infra + desired targe...
+    Planner: __init__(2),run(0),_plan_conflict_fixes(0),_plan_stop_old_services(0),_plan_deploy_new(0),_plan_docker_full(0),_plan_podman_quadlet(0),_plan_kiosk(1),_plan_kiosk_appliance(0),_plan_systemd(0),_plan_pattern(0),_plan_verify(0),_compose_cmd(0),_compose_file(0),_add_step(1),_assess_risk(0),_estimate_downtime(0),from_files(2),from_spec(1),_append_extra_steps(1),save(2)  # Generate a MigrationPlan from detected infra + desired targe
+  redeploy/plugins/__init__.py:
+    e: register_plugin,_load_builtin_plugins,load_user_plugins,PluginContext,PluginRegistry
+    PluginContext:  # Passed to every plugin handler.
+    PluginRegistry: __init__(0),register(2),__call__(1),get(1),names(0),_ensure_builtins(0),load_directory(1)  # Central registry mapping plugin_type strings to handler call
+    register_plugin(name)
+    _load_builtin_plugins()
+    load_user_plugins()
+  redeploy/plugins/builtin/__init__.py:
+  redeploy/plugins/builtin/browser_reload.py:
+    e: browser_reload,_cdp_reload_script,_sh_quote
+    browser_reload(ctx)
+    _cdp_reload_script(port;ws_path;ignore_cache)
+    _sh_quote(s)
+  redeploy/plugins/builtin/hardware_diagnostic.py:
+    e: _run_command,_detect_platform,_get_cpu_info,_get_memory_mb,_get_storage_gb,_check_gpio,_get_usb_devices,_get_audio_devices,_get_network_interfaces,_analyze_hardware,hardware_diagnostic,HardwareInfo
+    HardwareInfo:  # Hardware diagnostic information.
+    _run_command(cmd)
+    _detect_platform()
+    _get_cpu_info()
+    _get_memory_mb()
+    _get_storage_gb()
+    _check_gpio()
+    _get_usb_devices()
+    _get_audio_devices()
+    _get_network_interfaces()
+    _analyze_hardware(platform;verbose)
+    hardware_diagnostic(ctx)
+  redeploy/plugins/builtin/notify.py:
+    e: notify,_notify_slack,_notify_webhook,_http_post,_http_get,_resolve_env,_fmt
+    notify(ctx)
+    _notify_slack(ctx)
+    _notify_webhook(ctx)
+    _http_post(ctx;url;payload;headers)
+    _http_get(ctx;url;headers)
+    _resolve_env(value)
+    _fmt(template;ctx)
+  redeploy/plugins/builtin/process_control.py:
+    e: _find_pid_on_port,_kill_process,process_control
+    _find_pid_on_port(port)
+    _kill_process(pid;force)
+    process_control(ctx)
+  redeploy/plugins/builtin/systemd_reload.py:
+    e: systemd_reload,_wait_for_active
+    systemd_reload(ctx)
+    _wait_for_active(ctx;unit;timeout)
+  redeploy/spec_loader.py:
+    e: load_migration_spec,SpecLoaderError,UnsupportedSpecFormatError
+    SpecLoaderError:  # Base error raised when a deployment spec cannot be loaded.
+    UnsupportedSpecFormatError:  # Raised when the spec file uses an unsupported format.
+    load_migration_spec(path)
+  redeploy/ssh.py:
+    e: SshResult,SshClient,RemoteProbe,RemoteExecutor
+    SshResult: ok(0),success(0),out(0)
+    SshClient: __init__(4),key(0),key(1),run(2),rsync(5),scp(3),put_file(3),is_reachable(1),is_ssh_ready(0),ping(0),_run_local(2),_ssh_opts(0),_scp_opts(0),_detect_ssh_key(0),_detect_key(0)  # Execute commands on a remote host via SSH (or locally).
+    RemoteProbe: __init__(1),is_local(0),is_local(1)  # Thin wrapper kept for redeploy.detect compatibility.
+    RemoteExecutor: __init__(1),ssh_target(0),ssh_opts(0),scp_opts(0)  # Thin wrapper kept for deploy.core compatibility.
+  redeploy/steps.py:
+    e: _step,StepLibrary
+    StepLibrary: get(1),list(0),all(0),resolve_from_spec(1)  # Registry of pre-defined named MigrationSteps.
+    _step(id;action;description)
+  redeploy/tests/__init__.py:
+  redeploy/tests/test_audit.py:
+    e: _spec,TestExtractor,TestExtractPort,_FakeProbe,TestAuditor,TestReport,TestAuditSpec
+    TestExtractor: test_strategy_binaries_for_podman(0),test_target_remote_dir_emits_directory(0),test_verify_url_emits_port(0),test_extra_step_podman_build_image(0),test_extra_step_apt_install(0),test_rsync_dst_emits_directory(0),test_dedup(0)
+    TestExtractPort: test_cases(2)
+    _FakeProbe: __init__(0),has_binary(1),has_path(2),port_listening(1),has_image(1),has_systemd_unit(2),apt_package(1),disk_free_gib(1)  # Replaces Auditor.probe with a scriptable fake.
+    TestAuditor: test_unreachable_short_circuits(0),test_all_pass(0),test_missing_binary_fails(0),test_low_disk_fails(0),test_image_missing_is_warn_not_fail(0)
+    TestReport: test_summary_counts(0),test_to_dict_serializable(0)
+    TestAuditSpec: test_loads_yaml_spec(2)
+    _spec()
+  redeploy/tests/test_cli.py:
+    e: _migration_yaml,_migration_markdown_supported,_migration_markdown_with_unsupported_block,_runner,TestRunPlanOnly,TestStatus,TestInit,TestDevices,TestTarget,TestApply
+    TestRunPlanOnly: test_plan_only_exit_zero(1),test_plan_only_shows_steps(1),test_plan_only_missing_spec_exits_1(1),test_plan_only_k3s_to_docker(1),test_plan_only_saves_plan_out(1),test_run_dry_run(1),test_env_unknown_warns(1),test_env_prod_applied_from_manifest(1),test_run_plan_only_supports_markdown_subset(1),test_run_plan_only_rejects_unsupported_markdown_block(1)
+    TestStatus: test_status_no_manifest(1),test_status_with_manifest(1),test_status_supports_markdown_subset(1)
+    TestInit: test_init_creates_migration_yaml(1),test_init_idempotent(1)
+    TestDevices: test_devices_empty_registry(0),test_devices_lists_known(0),test_devices_filter_by_tag(0),test_devices_json_output(0)
+    TestTarget: test_target_supports_markdown_subset(1)
+    TestApply: _plan_file(2),test_apply_dry_run(1),test_apply_unknown_step_id(1)
+    _migration_yaml(strategy;host)
+    _migration_markdown_supported()
+    _migration_markdown_with_unsupported_block()
+    _runner()
+  redeploy/tests/test_data_sync.py:
+    e: TestCollectSqliteCounts,TestRsyncTimeoutForPath
+    TestCollectSqliteCounts: _db(3),test_basic_counts(1),test_missing_db_skipped(1),test_missing_table_skipped(1),test_empty_table(1),test_multiple_dbs(1),test_empty_specs(1),test_large_row_count(1)
+    TestRsyncTimeoutForPath: _file(2),test_minimum_respected(1),test_scales_with_size(1),test_custom_minimum(1),test_custom_per_mb(1),test_base_added(1),test_returns_int(1)
+  redeploy/tests/test_discovery.py:
+    e: TestIsIp,TestMerge,TestScanKnownHosts,TestUpdateRegistry
+    TestIsIp: test_valid_ipv4(0),test_hostname_not_ip(0),test_partial_ip_not_ip(0),test_empty_string(0),test_ipv6_not_matched(0)
+    TestMerge: test_deduplicates_by_ip(0),test_merges_mac_from_second(0),test_merges_hostname_from_second(0),test_existing_hostname_not_overwritten(0),test_ssh_ok_propagates(0),test_distinct_ips_kept_separate(0),test_empty_list(0),test_source_updated_from_unknown(0),test_known_source_not_overwritten(0)
+    TestScanKnownHosts: _results(2),test_parses_plain_host(1),test_skips_hashed_entries(1),test_skips_comment_lines(1),test_missing_known_hosts_returns_empty(1),test_ip_address_entry(1),test_bracketed_port_format(1)  # _scan_known_hosts uses __import__('pathlib').Path.home() int
+    TestUpdateRegistry: _empty_reg(0),test_adds_ssh_ok_device(0),test_does_not_add_non_ssh_device(0),test_updates_existing_device_last_seen(0),test_updates_existing_mac(0),test_device_id_uses_user_at_ip(0),test_device_id_without_user_uses_ip(0),test_discovered_tag_added(0),test_skips_device_with_empty_ip(0),test_multiple_hosts(0)
+  redeploy/tests/test_dsl.py:
+    e: parse,test_nodes_of_type,test_manifest_to_css_roundtrip,test_templates_to_css,test_load_css_file,TestDSLNode,TestAtRules,TestBlocks,TestComments,TestLoadCssText
+    TestDSLNode: test_name_from_name_attr(0),test_name_from_id_attr(0),test_get_default(0),test_get_existing(0),test_repr(0)
+    TestAtRules: test_app_at_rule(0),test_multiple_at_rules(0),test_at_rules_dict(0)
+    TestBlocks: test_environment_block(0),test_template_block(0),test_workflow_block(0),test_app_block(0),test_empty_block(0),test_multiple_blocks(0)
+    TestComments: test_line_comment_before_block_becomes_doc(0),test_block_comment_stripped(0),test_inline_comment_in_body_ignored(0)
+    TestLoadCssText: test_manifest_app(0),test_manifest_environments(0),test_templates(0),test_workflows(0),test_workflow_as_shell(0),test_no_manifest_when_empty(0),test_raw_nodes(0)
+    parse(text)
+    test_nodes_of_type()
+    test_manifest_to_css_roundtrip()
+    test_templates_to_css()
+    test_load_css_file(tmp_path)
+  redeploy/tests/test_examples.py:
+    e: _load_spec,_plan_from_spec,TestMigrationYaml,TestSupportedMarkdownMigration,TestRedeployYaml,TestMultienvYamls,TestScenario01VpsVersionBump,TestScenario02K3sToDocker,TestScenario03DockerToQuadlet,TestScenario07StagingToProd,TestScenario08Rollback,TestFleetYaml,TestScenario09FleetYaml,TestStepLibraryCompleteness,TestScenario10Multienv,TestScenario11TraefikTls,TestScenario12CiPipeline,TestScenario13Monorepo
+    TestMigrationYaml: test_parses_without_error(1),test_has_source_and_target(1),test_plan_generates_steps(1),test_plan_has_no_duplicate_step_ids(1),test_all_steps_have_valid_action(1),test_has_readme(1),test_readme_has_run_section(1),test_has_redeploy_yaml(1)
+    TestSupportedMarkdownMigration: test_parses_without_error(1),test_plan_generates_steps(1),test_has_readme(1),test_readme_has_run_section(1)
+    TestRedeployYaml: test_parses_as_yaml(1),test_has_app_field(1),test_spec_field_points_to_existing_file_or_env_spec(1)
+    TestMultienvYamls: test_parses_without_error(1),test_plan_generates_steps(1),test_same_app_across_envs(1),test_same_version_across_envs(1)
+    TestScenario01VpsVersionBump: _spec(0),test_same_strategy(0),test_version_bumped(0),test_plan_has_health_check(0),test_plan_has_version_check(0),test_flush_iptables_in_plan(0),test_flush_iptables_resolved_from_library(0)
+    TestScenario02K3sToDocker: _spec(0),test_strategy_change(0),test_plan_has_stop_k3s(0),test_plan_has_disable_k3s(0),test_plan_has_docker_compose_up(0),test_plan_risk_is_medium_or_higher(0)
+    TestScenario03DockerToQuadlet: _spec(0),test_strategy_change(0),test_plan_has_daemon_reload(0),test_plan_has_wait(0),test_extra_steps_present(0)
+    TestScenario07StagingToProd: _spec(0),test_insert_before_smoke_test(0),test_notify_steps_present(0)
+    TestScenario08Rollback: _spec(0),test_version_goes_down(0),test_plan_has_version_check(0)
+    TestFleetYaml: test_parses_without_error(1),test_all_devices_have_id(1),test_all_devices_have_stage(1),test_all_devices_have_expectations(1)
+    TestScenario09FleetYaml: _config(0),test_prod_devices_have_no_k3s_expectation(0),test_by_tag(0),test_by_stage(0),test_local_device_has_no_ssh_host(0),test_iot_node_has_disk_ok_expectation(0),test_has_readme(0)
+    TestStepLibraryCompleteness: test_all_named_steps_in_examples_are_in_library(0),test_library_step_commands_are_non_empty(0),test_library_has_expected_ids(0),test_named_steps_checked_in_all_spec_yamls(0)
+    TestScenario10Multienv: test_all_three_specs_exist(0),test_redeploy_yaml_has_local_spec(0),test_prod_has_domain(0),test_dev_host_is_local(0),test_staging_has_different_host_than_prod(0)
+    TestScenario11TraefikTls: _dir(0),test_tls_yml_exists(0),test_tls_yml_has_cert_and_key(0),test_plan_has_recreate_traefik(0),test_plan_has_upload_steps(0)
+    TestScenario12CiPipeline: _dir(0),test_github_workflow_exists(0),test_gitlab_ci_exists(0),test_github_workflow_has_redeploy_run(0),test_gitlab_ci_has_redeploy_run(0),test_github_workflow_has_ssh_key_secret(0),test_plan_has_audit_step(0)
+    TestScenario13Monorepo: _dir(0),test_has_fleet_yaml(0),test_fleet_has_three_envs(0),test_fleet_prod_has_traefik_expectation(0),test_plan_has_rsync_steps(0),test_plan_has_promote_compose(0)
+    _load_spec(path)
+    _plan_from_spec(spec)
+  redeploy/tests/test_executor.py:
+    e: _make_step,_make_plan,_executor,TestDryRun,TestExecutorRun,TestRunSsh,TestRunScp,TestRunRsync,TestRunHttpCheck,TestRunVersionCheck,TestRunWait,TestRollback,TestExecutorFromFile,TestRunDockerBuild,TestRunDockerHealthWait,TestRunContainerLogTail,TestRunWait,TestRunInlineScript
+    TestDryRun: test_dry_run_returns_true(0),test_dry_run_marks_steps_done(0),test_dry_run_does_not_call_probe(0)
+    TestExecutorRun: test_all_steps_pass(0),test_step_failure_stops_execution(0),test_unknown_action_raises_step_error(0),test_summary_all_done(0),test_summary_with_failure(0)
+    TestRunSsh: test_success(0),test_no_command_raises(0),test_result_stored(0),test_uses_step_timeout(0)
+    TestRunScp: test_local_scp_uses_cp(0),test_remote_scp(0),test_scp_missing_src_fails(0),test_scp_failure_propagates(0)
+    TestRunRsync: test_local_rsync(0),test_remote_rsync_prefixes_host(0),test_rsync_failure_propagates(0)
+    TestRunHttpCheck: _http_step(2),test_success_no_expect(0),test_success_with_expect(0),test_missing_url_fails(0),test_retries_then_fails(0),test_expect_found_in_output(0)
+    TestRunVersionCheck: test_version_found(0),test_version_not_found_fails(0),test_curl_failure_fails(0),test_missing_url_or_expect_fails(0)
+    TestRunWait: test_wait_calls_sleep(0),test_zero_seconds(0)
+    TestRollback: test_rollback_called_on_failure(0),test_no_rollback_without_rollback_command(0),test_dry_run_no_rollback(0)
+    TestExecutorFromFile: test_save_results(1)
+    TestRunDockerBuild: test_success_logs_progress(0),test_build_failure_raises(0),test_no_command_raises(0)
+    TestRunDockerHealthWait: test_all_healthy_immediately(0),test_timeout_does_not_fail(0),test_no_command_raises(0)
+    TestRunContainerLogTail: test_logs_fetched_and_stored(0),test_empty_output_handled(0)
+    TestRunWait: test_zero_seconds(0),test_positive_seconds(0)
+    TestRunInlineScript: test_multiline_script_success(0),test_script_failure_raises(0),test_no_command_raises(0),test_uses_step_timeout(0),test_command_ref_resolves_from_markdown(1),test_command_ref_missing_section_fails(1)
+    _make_step(step_id;action;command)
+    _make_plan(steps;host)
+    _executor(plan;dry_run)
+  redeploy/tests/test_fleet.py:
+    e: TestFleetDevice,TestStageDefaults,TestFleetConfigFromFile,TestStepLibrary,TestTargetConfigHost,TestFleet
+    TestFleetDevice: test_basic(0),test_local_device(0),test_is_prod_via_stage(0),test_is_prod_via_tag(0),test_has_tag(0),test_has_expectation(0),test_verify_expectations_pass(0),test_verify_expectations_fail_docker(0),test_verify_expectations_no_k3s_fail(0)
+    TestStageDefaults: test_prod_has_no_k3s(0),test_local_minimal(0)
+    TestFleetConfigFromFile: test_load_deploy_fleet_yaml(1),test_by_tag(1),test_by_strategy(1)
+    TestStepLibrary: test_list(0),test_get_known(0),test_get_unknown(0),test_get_with_overrides(0),test_get_returns_copy(0),test_resolve_from_spec_with_library_match(0),test_resolve_from_spec_override_action(0),test_resolve_from_spec_unknown_uses_raw(0),test_all_returns_copies(0),test_new_steps_registered(0),test_stop_podman_has_rollback(0),test_git_pull_has_rollback(0),test_systemctl_restart_action(0),test_systemctl_daemon_reload_command(0),test_enable_podman_unit_command(0)
+    TestTargetConfigHost: _make_planner(2),test_uses_state_host_when_target_host_none(0),test_target_host_overrides_state_host(0),test_app_fallback_from_state(0),test_target_app_used_when_set(0)
+    TestFleet: _yaml(2),test_from_file_basic(1),test_from_file_iter(1),test_by_tag(1),test_by_stage(1),test_by_strategy(1),test_prod_shortcut(1),test_merge_other_wins(1),test_from_registry_empty(1),test_from_registry_converts_known_device(1),test_from_config_wraps_fleet_config(1),test_repr(1)
+  redeploy/tests/test_git_integration.py:
+    e: _config,_ok,_fail,TestGitIntegrationRun,TestCleanState,TestCommit,TestTag,TestPush,TestQueryMethods,TestGitVersionBumpTransaction
+    TestGitIntegrationRun: test_success(1),test_raises_on_called_process_error(1),test_raises_when_git_not_found(1),test_check_false_does_not_raise_on_nonzero(1)
+    TestCleanState: test_require_clean_passes_on_empty_output(1),test_require_clean_raises_on_dirty(1),test_is_clean_true_when_empty(1),test_is_clean_false_when_dirty(1),test_get_dirty_files_empty(1),test_get_dirty_files_returns_paths(1)
+    TestCommit: test_commit_uses_message_format(1),test_commit_returns_hash(1),test_commit_stages_files(1)
+    TestTag: test_tag_name_uses_format(1),test_tag_default_format_v_prefix(1),test_tag_with_sign(1),test_tag_without_sign(1),test_tag_exists_true(1),test_tag_exists_false(1)
+    TestPush: test_push_with_follow_tags(1),test_push_without_follow_tags(1)
+    TestQueryMethods: test_get_last_tag(1),test_get_last_tag_none_when_no_tags(1),test_get_commits_since(1),test_get_commits_since_empty(1),test_get_current_branch(1)
+    TestGitVersionBumpTransaction: _manifest(2),test_prepare_stages_files(1),test_prepare_fails_on_dirty_when_require_clean(1),test_prepare_bypasses_dirty_with_allow_dirty(1),test_commit_and_tag_returns_result(1),test_rollback_cleans_staged_files(1),test_push_calls_git_push(1),test_git_transaction_result_fields(0)
+    _config()
+    _ok(stdout;stderr)
+    _fail(stdout;stderr)
+  redeploy/tests/test_iac.py:
+    e: _write,test_parse_file,test_parse_dir,test_parse_dir_skip_errors,test_warning_str_with_location,test_warning_str_no_location,TestCanParse,TestDockerComposeParse,TestParserRegistry
+    TestCanParse: _p(1),test_canonical_names(0),test_override_files(0),test_rejects_other_yaml(0)
+    TestDockerComposeParse: _parse(2),test_empty_file(1),test_single_service_image(1),test_service_with_build(1),test_service_build_context_dict(1),test_ports_string_form(1),test_ports_no_host(1),test_ports_with_protocol(1),test_ports_long_form(1),test_volumes_named(1),test_volumes_bind_mount(1),test_volumes_read_only(1),test_env_dict(1),test_env_list(1),test_depends_on_list(1),test_depends_on_dict(1),test_networks(1),test_secrets_referenced(1),test_healthcheck_list(1),test_labels_dict(1),test_labels_list(1),test_command_string(1),test_command_list(1),test_restart_policy(1),test_replicas_from_deploy(1),test_version_hint(1),test_multiple_services(1),test_all_images_deduped(1),test_summary(1),test_corrupt_top_level(1)
+    TestParserRegistry: test_registered(0),test_parser_for_compose(1),test_parser_for_unknown(1),test_parse_raises_for_unknown(1)
+    _write(tmp_path;name;content)
+    test_parse_file(tmp_path)
+    test_parse_dir(tmp_path)
+    test_parse_dir_skip_errors(tmp_path)
+    test_warning_str_with_location()
+    test_warning_str_no_location()
+  redeploy/tests/test_manifest.py:
+    e: _spec,_manifest,TestFindAndLoad,TestFromDotenv,TestResolveEnv,TestApplyToSpec,TestDeviceRegistry,TestKnownDevice
+    TestFindAndLoad: test_finds_in_cwd(1),test_finds_in_parent(1),test_returns_none_when_missing(1),test_parses_environments(1)
+    TestFromDotenv: test_reads_deploy_vars(1),test_returns_none_without_deploy_vars(1),test_returns_none_when_no_dotenv(1),test_strips_quotes(1),test_skips_comment_lines(1),test_reads_ssh_key(1)
+    TestResolveEnv: _manifest_with_envs(0),test_returns_env_with_overrides(0),test_falls_back_to_manifest_defaults(0),test_unknown_env_returns_base(0),test_env_file_overridden(0),test_global_env_returns_manifest_defaults(0)
+    TestApplyToSpec: test_sets_host(0),test_sets_domain_when_unset(0),test_does_not_override_existing_domain(0),test_sets_env_file(0),test_env_name_applied(0),test_env_strategy_applied(0),test_invalid_strategy_ignored(0)
+    TestDeviceRegistry: _reg(0),_device(1),test_get_returns_device(0),test_get_returns_none_for_missing(0),test_upsert_adds_new(0),test_upsert_updates_existing(0),test_remove(0),test_remove_missing_returns_false(0),test_by_tag(0),test_by_strategy(0),test_save_and_load(1),test_load_missing_returns_empty(1)
+    TestKnownDevice: _device(0),test_is_reachable_recent(0),test_is_reachable_old(0),test_is_reachable_none(0),test_last_deploy_none_when_empty(0),test_record_deploy(0),test_record_deploy_capped_at_50(0)
+    _spec()
+    _manifest()
+  redeploy/tests/test_markpact_compiler.py:
+    e: test_compile_markpact_document_yaml_subset_to_spec,test_compile_markpact_document_supports_toml_config_and_steps,test_compile_markpact_document_rejects_unsupported_block_kind,test_compile_markpact_document_rejects_unsupported_step_keys
+    test_compile_markpact_document_yaml_subset_to_spec()
+    test_compile_markpact_document_supports_toml_config_and_steps()
+    test_compile_markpact_document_rejects_unsupported_block_kind()
+    test_compile_markpact_document_rejects_unsupported_step_keys()
+  redeploy/tests/test_markpact_parser.py:
+    e: test_parse_markpact_text_extracts_blocks_and_lines,test_parse_markpact_text_requires_markpact_blocks,test_extract_script_by_ref_markpact_ref,test_extract_script_by_ref_not_found,test_parse_markpact_text_with_ref_id
+    test_parse_markpact_text_extracts_blocks_and_lines()
+    test_parse_markpact_text_requires_markpact_blocks()
+    test_extract_script_by_ref_markpact_ref()
+    test_extract_script_by_ref_not_found()
+    test_parse_markpact_text_with_ref_id()
+  redeploy/tests/test_models.py:
+    e: _make_state,test_plan_k3s_to_docker_generates_stop_k3s,test_plan_no_conflicts_no_stop_k3s,test_plan_risk_elevated_when_stop_steps,test_plan_downtime_rolling_when_same_strategy,test_plan_downtime_includes_seconds_for_cross_strategy,test_infra_state_serializes,_make_spec,test_spec_to_infra_state,test_spec_to_target_config,test_planner_from_spec_generates_steps,test_planner_from_spec_appends_notes,test_planner_from_spec_extra_steps,test_spec_roundtrip_yaml,test_migration_plan_step_count_sane
+    _make_state(strategy;conflicts;k3s;docker)
+    test_plan_k3s_to_docker_generates_stop_k3s()
+    test_plan_no_conflicts_no_stop_k3s()
+    test_plan_risk_elevated_when_stop_steps()
+    test_plan_downtime_rolling_when_same_strategy()
+    test_plan_downtime_includes_seconds_for_cross_strategy()
+    test_infra_state_serializes()
+    _make_spec(from_strategy;to_strategy;extra_steps)
+    test_spec_to_infra_state()
+    test_spec_to_target_config()
+    test_planner_from_spec_generates_steps()
+    test_planner_from_spec_appends_notes()
+    test_planner_from_spec_extra_steps()
+    test_spec_roundtrip_yaml(tmp_path)
+    test_migration_plan_step_count_sane()
+  redeploy/tests/test_observe.py:
+    e: _plan,_step,test_public_api_all_importable,test_executor_writes_audit,test_executor_audit_disabled,TestAuditEntry,TestDeployAuditLog,TestDeployReport
+    TestAuditEntry: _entry(0),test_accessors_ok(0),test_accessor_failed(0),test_pattern_none(0),test_pattern_set(0),test_to_dict_roundtrip(0),test_repr_ok(0),test_repr_fail(0)
+    TestDeployAuditLog: _log(1),test_empty_load(1),test_record_creates_file(1),test_record_ok_entry(1),test_record_failed_entry(1),test_record_dry_run(1),test_load_after_record(1),test_tail(1),test_filter_by_ok(1),test_filter_by_host(1),test_filter_by_app(1),test_filter_by_since(1),test_clear(1),test_file_is_jsonl(1),test_corrupt_line_skipped(1),test_creates_parent_dirs(1)
+    TestDeployReport: _entry(1),test_text_contains_host(0),test_text_contains_result_success(0),test_text_contains_result_failed(0),test_text_contains_step_ids(0),test_text_shows_strategy(0),test_text_elapsed(0),test_text_pattern_shown(0),test_text_no_pattern_line_when_none(0),test_yaml_output(0),test_summary_line_ok(0),test_summary_line_fail(0),test_dry_run_in_text(0)
+    _plan(host;app)
+    _step(id;status)
+    test_public_api_all_importable()
+    test_executor_writes_audit(tmp_path)
+    test_executor_audit_disabled(tmp_path)
+  redeploy/tests/test_parse.py:
+    e: TestParseDockerPs,TestParseContainerLine,TestParseSystemInfo,TestParseDiagnostics,TestParseHealthInfo
+    TestParseDockerPs: _out(0),test_returns_list(0),test_count(0),test_name(0),test_image(0),test_status(0),test_state(0),test_empty_output(0),test_no_prefix_line_skipped(0),test_partial_line_two_parts(0),test_multiple_containers(0)
+    TestParseContainerLine: test_full_line(0),test_two_parts(0),test_single_part_returns_none(0),test_empty_string_returns_none(0)
+    TestParseSystemInfo: _out(0),test_hostname(0),test_uptime(0),test_load(0),test_kernel(0),test_cpu_cores(0),test_disk_parsed(0),test_memory_parsed(0),test_empty_output(0),test_unknown_lines_ignored(0)
+    TestParseDiagnostics: _diag(0),test_system_hostname(0),test_system_disk(0),test_containers_count(0),test_container_names(0),test_git_branch(0),test_git_commit(0),test_health_code(0),test_listening_ports(0),test_empty_output_defaults(0),test_no_prefix_lines_skipped(0),test_invalid_health_code_ignored(0),test_docker_section_alias(0)
+    TestParseHealthInfo: _out(0),test_hostname(0),test_uptime(0),test_health_code(0),test_disk(0),test_load(0),test_empty_output_defaults(0),test_invalid_health_ignored(0),test_unknown_lines_ignored(0)
+  redeploy/tests/test_patterns.py:
+    e: test_list_patterns,test_get_pattern_known,test_get_pattern_unknown,test_pattern_registry_keys,TestBlueGreen,TestCanary,TestRollbackOnFailure,TestPlannerPatternIntegration
+    TestBlueGreen: _pattern(0),test_expand_returns_steps(0),test_step_ids_present(0),test_with_env_file_adds_scp_step(0),test_without_env_file_no_scp(0),test_green_dir_suffix(0),test_swap_step_has_rollback(0),test_deploy_step_timeout(0),test_all_steps_pending(0),test_repr(0)
+    TestCanary: _pattern(0),test_expand_returns_steps(0),test_default_stages(0),test_health_check_per_stage(0),test_wait_between_stages(0),test_no_wait_when_zero(0),test_promote_step_present(0),test_promote_has_rollback(0),test_canary_clone_step(0),test_custom_suffix(0),test_retire_old_step(0)
+    TestRollbackOnFailure: _pattern(0),test_expand_returns_steps(0),test_step_ids(0),test_snapshot_step_tees_to_file(0),test_custom_snapshot_file(0),test_deploy_step_has_rollback(0),test_cleanup_is_last(0)
+    TestPlannerPatternIntegration: _make_state(0),test_blue_green_via_planner(0),test_canary_via_planner(0),test_rollback_pattern_via_planner(0),test_unknown_pattern_falls_back(0),test_no_pattern_uses_standard_deploy(0),test_pattern_config_passed_through(0)
+    test_list_patterns()
+    test_get_pattern_known()
+    test_get_pattern_unknown()
+    test_pattern_registry_keys()
+  redeploy/tests/test_planner_edge.py:
+    e: _state,_target,_infra_spec,_plan,TestStepOrdering,TestInsertBefore,TestRiskEscalation,TestVerifySteps,TestK3sConflictFixes,TestPodmanQuadletPlanning,TestNotesAndMetadata,TestPlannerFromSpec
+    TestStepOrdering: test_first_step_is_not_verify(0),test_last_steps_are_verify(0),test_wait_appears_before_health_check(0),test_sync_env_before_docker_build(0)
+    TestInsertBefore: test_extra_step_appended_at_end_without_insert_before(0),test_insert_before_places_step_correctly(0),test_multiple_extra_steps_order_preserved(0)
+    TestRiskEscalation: test_k3s_to_docker_risk_elevated_with_conflict(0),test_same_strategy_bump_low_risk(0),test_podman_quadlet_target_risk(0)
+    TestVerifySteps: test_no_verify_url_no_http_check(0),test_verify_url_produces_http_check(0),test_verify_version_produces_version_check(0),test_no_duplicate_verify_steps(0)
+    TestK3sConflictFixes: _k3s_state_with_conflict(0),test_stop_k3s_generated_for_k3s_source(0),test_stop_k3s_not_generated_for_docker_source(0),test_stop_k3s_before_docker_compose_up(0)
+    TestPodmanQuadletPlanning: test_podman_daemon_reload_in_plan(0),test_docker_compose_down_before_podman_start(0)
+    TestNotesAndMetadata: test_notes_propagated(0),test_plan_has_from_to_strategy(0),test_plan_host_matches_state(0)
+    TestPlannerFromSpec: _spec(0),test_from_spec_builds_planner(0),test_from_spec_plan_has_steps(0),test_from_spec_with_extra_steps(0),test_from_spec_named_step_resolved(0)
+    _state(strategy;k3s;docker;host)
+    _target(strategy;version;host;verify_url;verify_version)
+    _infra_spec(strategy;host;version)
+    _plan(state;target;extra_steps;notes)
+  redeploy/tests/test_plugins.py:
+    e: _ctx,test_load_user_plugins_empty_dirs,TestPluginRegistry,TestRegisterPlugin,TestPluginContext,TestBrowserReloadPlugin,TestSystemdReloadPlugin,TestNotifyPlugin,TestBuiltinsAutoLoaded
+    TestPluginRegistry: test_register_and_get(0),test_get_missing_returns_none(0),test_names_returns_registered(0),test_decorator_syntax(0),test_override_logs_debug(1),test_load_directory_imports_py_files(1),test_load_directory_skips_underscored(1),test_load_directory_missing(1),test_load_directory_bad_syntax_does_not_crash(1)
+    TestRegisterPlugin: test_registers_in_global_registry(0),test_handler_callable(0)
+    TestPluginContext: test_fields(0),test_dry_run_default_false(0)
+    TestBrowserReloadPlugin: _get_handler(0),test_dry_run_sets_done(0),test_live_cdp_not_reachable(0),test_live_no_tabs(0),test_live_reload_success(0)
+    TestSystemdReloadPlugin: _get_handler(0),test_dry_run(0),test_daemon_reload_failure_raises(0),test_restart_success_no_wait(0),test_units_as_comma_string(0),test_wait_active_polls_until_active(0),test_wait_active_timeout_raises(0)
+    TestNotifyPlugin: _get_handler(0),test_dry_run(0),test_unknown_backend_raises(0),test_slack_missing_webhook_raises(0),test_webhook_missing_url_raises(0),test_slack_success(0),test_webhook_post_success(0),test_env_var_expansion(1)
+    TestBuiltinsAutoLoaded: test_browser_reload_in_registry(0),test_systemd_reload_in_registry(0),test_notify_in_registry(0),test_names_include_builtins(0)
+    _ctx(params;dry_run)
+    test_load_user_plugins_empty_dirs(tmp_path)
+  redeploy/tests/test_probes.py:
+    e: _probe,TestProbeRuntime,TestProbePorts,TestProbeIptablesDnat,TestProbeDockerServices,TestProbeK3sServices,TestProbeSystemdServices,TestDetectConflicts,TestDetectStrategy
+    TestProbeRuntime: test_docker_present(0),test_k3s_present_with_namespaces(0),test_k3s_absent(0),test_podman_present(0),test_nothing_installed(0),test_arch_detected(0)
+    TestProbePorts: _ss_output(0),test_parses_ports(0),test_process_name(0),test_pid_parsed(0),test_empty_if_command_fails(0),test_empty_output(0)
+    TestProbeIptablesDnat: _iptables_output(0),test_finds_dnat_rules(0),test_returns_empty_if_no_dnat(0),test_returns_empty_on_failure(0)
+    TestProbeDockerServices: test_parses_containers(0),test_healthy_flag(0),test_empty_if_no_docker(0),test_ports_from_inspect(0)
+    TestProbeK3sServices: test_skips_system_namespaces(0),test_empty_namespaces(0),test_all_system_namespaces_skipped(0)
+    TestProbeSystemdServices: test_parses_active_units(0),test_empty_on_failure(0)
+    TestDetectConflicts: _rt(2),test_no_conflicts_clean_state(0),test_port_steal_from_dnat(0),test_dual_runtime_conflict(0),test_unexpected_port_owner(0),test_expected_port_owners_no_conflict(0),test_conflict_severity_port_steal_is_high(0)
+    TestDetectStrategy: _rt(3),test_k3s_only(0),test_docker_only(0),test_k3s_wins_over_docker_when_both_running(0),test_podman_quadlet(0),test_systemd_without_podman(0),test_nothing_running(0)
+    _probe(responses)
+  redeploy/tests/test_public_api.py:
+    e: test_all_names_importable,test_version_string,test_deploy_strategy_values,test_step_action_values,test_step_status_values,test_conflict_severity_values,test_migration_step_construct,test_target_config_defaults,test_target_config_strategy_alias_docker_compose,test_target_config_strategy_alias_kiosk_appliance,test_target_config_strategy_alias_quadlet,test_target_config_strategy_alias_kubernetes,test_target_config_strategy_alias_k8s,test_target_config_strategy_canonical_passthrough,test_infra_state_construct,test_migration_plan_construct,test_planner_importable,test_executor_importable,test_detector_importable,test_ssh_client_local,test_ssh_result_ok,test_ssh_result_fail,test_device_registry_empty,test_known_device_construct,test_fleet_config_importable,test_step_library_importable,test_fleet_importable,test_fleet_empty,test_fleet_from_registry_empty,test_fleet_merge,test_planner_kiosk_appliance_generates_steps,test_planner_docker_compose_alias
+    test_all_names_importable()
+    test_version_string()
+    test_deploy_strategy_values()
+    test_step_action_values()
+    test_step_status_values()
+    test_conflict_severity_values()
+    test_migration_step_construct()
+    test_target_config_defaults()
+    test_target_config_strategy_alias_docker_compose()
+    test_target_config_strategy_alias_kiosk_appliance()
+    test_target_config_strategy_alias_quadlet()
+    test_target_config_strategy_alias_kubernetes()
+    test_target_config_strategy_alias_k8s()
+    test_target_config_strategy_canonical_passthrough()
+    test_infra_state_construct()
+    test_migration_plan_construct()
+    test_planner_importable()
+    test_executor_importable()
+    test_detector_importable()
+    test_ssh_client_local()
+    test_ssh_result_ok()
+    test_ssh_result_fail()
+    test_device_registry_empty()
+    test_known_device_construct()
+    test_fleet_config_importable()
+    test_step_library_importable()
+    test_fleet_importable()
+    test_fleet_empty()
+    test_fleet_from_registry_empty()
+    test_fleet_merge()
+    test_planner_kiosk_appliance_generates_steps()
+    test_planner_docker_compose_alias()
+  redeploy/tests/test_resume.py:
+    e: _step,_plan,_make_executor,TestStateKey,TestResumeStateIO,TestExecutorCheckpoint
+    TestStateKey: test_stable_for_same_inputs(0),test_changes_with_host(0),test_changes_with_path(0),test_path_safe(0),test_default_state_path_uses_default_dir(0)
+    TestResumeStateIO: test_load_or_new_creates_when_missing(1),test_mark_done_persists(1),test_mark_done_idempotent(1),test_mark_failed_records_error(1),test_remove_deletes_file(1),test_remove_when_missing_is_safe(1),test_save_atomic(1)
+    TestExecutorCheckpoint: test_writes_checkpoint_after_each_success(1),test_checkpoint_persists_on_failure(1),test_resume_skips_completed_and_runs_remainder(1),test_from_step_skips_earlier_steps(1),test_from_step_unknown_runs_full_plan(1),test_resume_without_checkpoint_runs_all(1),test_dry_run_does_not_touch_state(1),test_rollback_clears_rolled_back_steps(1)
+    _step(sid;command)
+    _plan(steps)
+    _make_executor(plan)
+  redeploy/tests/test_spec_loader.py:
+    e: _migration_yaml,_migration_markdown,test_load_migration_spec_reads_yaml,test_load_migration_spec_reads_supported_markdown,test_load_migration_spec_rejects_unsupported_markdown_block
+    _migration_yaml()
+    _migration_markdown()
+    test_load_migration_spec_reads_yaml(tmp_path)
+    test_load_migration_spec_reads_supported_markdown(tmp_path)
+    test_load_migration_spec_rejects_unsupported_markdown_block(tmp_path)
+  redeploy/tests/test_ssh.py:
+    e: test_ssh_result_ok,test_ssh_result_success_alias,test_ssh_result_out_strips,test_local_run_echo,test_local_is_reachable,test_ssh_opts_with_key,test_ssh_opts_no_key,test_run_success,test_run_failure,test_run_timeout,test_remote_probe_is_local,test_remote_probe_not_local,test_check_version_match,test_check_version_mismatch,test_check_version_no_local,test_read_local_version,test_collect_sqlite_counts,test_collect_sqlite_missing_db,test_verify_context_pass,test_verify_context_fail,test_verify_data_integrity_ok,test_verify_data_integrity_mismatch,TestPutFile
+    TestPutFile: test_local_writes_file(1),test_local_creates_parent_dirs(1),test_local_applies_chmod(1),test_local_write_error_returns_failure(1),test_remote_calls_ssh(0),test_remote_failure_returned(0),test_remote_exception_returns_failure(0)
+    test_ssh_result_ok()
+    test_ssh_result_success_alias()
+    test_ssh_result_out_strips()
+    test_local_run_echo()
+    test_local_is_reachable()
+    test_ssh_opts_with_key()
+    test_ssh_opts_no_key()
+    test_run_success(mock_run)
+    test_run_failure(mock_run)
+    test_run_timeout(mock_run)
+    test_remote_probe_is_local()
+    test_remote_probe_not_local()
+    test_check_version_match()
+    test_check_version_mismatch()
+    test_check_version_no_local()
+    test_read_local_version(tmp_path)
+    test_collect_sqlite_counts(tmp_path)
+    test_collect_sqlite_missing_db(tmp_path)
+    test_verify_context_pass()
+    test_verify_context_fail()
+    test_verify_data_integrity_ok()
+    test_verify_data_integrity_mismatch()
+  redeploy/tests/test_templates.py:
+    e: _state,_probe,TestBuildContext,TestDetectionTemplateScore,TestTemplateEngine,TestTemplateMatchConfidence,TestBuiltinTemplates,TestDetectionResult
+    TestBuildContext: test_has_docker_true(0),test_has_docker_false(0),test_has_k3s(0),test_has_podman(0),test_is_arm(0),test_is_x86(0),test_is_ubuntu(0),test_is_debian(0),test_is_raspberry(0),test_port_mapping(0),test_docker_active_from_services(0),test_k3s_active_from_services(0),test_has_nginx(0),test_has_health(0),test_has_version(0),test_is_local(0),test_probe_ssh_user(0),test_probe_chromium(0),test_dual_runtime_conflict(0),test_port_steal_conflict(0),test_manifest_envs(0)
+    TestDetectionTemplateScore: _tpl(2),test_all_conditions_met(0),test_partial_conditions(0),test_required_fail_returns_minus_one(0),test_required_pass_continues_to_conditions(0),test_max_score(0),test_no_conditions_zero_score(0)
+    TestTemplateEngine: test_score_all_returns_sorted(0),test_disqualified_excluded(0),test_detect_returns_none_when_all_disqualified(0),test_detect_returns_best(0),test_matched_conditions_populated(0)
+    TestTemplateMatchConfidence: _match(2),test_high_confidence(0),test_medium_confidence(0),test_low_confidence(0),test_zero_max_score(0)
+    TestBuiltinTemplates: test_vps_docker_wins_for_docker_x86(0),test_k3s_template_wins_for_k3s(0),test_rpi_kiosk_wins_for_arm_chromium(0),test_dual_runtime_conflict_wins_with_required(0),test_podman_template(0),test_all_templates_have_unique_ids(0)  # Smoke-test that built-in templates score plausibly for expec
+    TestDetectionResult: _result(3),test_strategy(0),test_environment(0),test_spec_template(0),test_generated_env_block_contains_host(0),test_generated_notes(0)
+    _state(host;app;docker;k3s;podman;systemd;arch;os;docker_svcs;k3s_svcs;systemd_svcs;ports;health;conflicts;version)
+    _probe(ssh_user;arch;os_info;strategy;app;has_chromium;running_services)
+  redeploy/tests/test_verify.py:
+    e: _remote,TestVerifyContextCheck,TestVerifyContextManual,TestVerifyContextSummary,TestVerifyDataIntegrity
+    TestVerifyContextCheck: test_pass_without_expect(0),test_pass_with_expect_found(0),test_fail_expect_not_found(0),test_fail_remote_error(0),test_non_critical_fail_not_in_errors(0),test_check_returns_true_on_pass(0),test_check_returns_false_on_fail(0),test_checks_list_has_pass_marker(0),test_checks_list_has_fail_marker(0)
+    TestVerifyContextManual: test_add_pass(0),test_add_fail(0),test_add_fail_no_detail(0),test_add_warn(0),test_add_info(0),test_mixed_results(0)
+    TestVerifyContextSummary: test_ok_true_when_no_failures(0),test_ok_false_when_has_failure(0),test_summary_all_pass(0),test_summary_with_failures(0),test_summary_with_warnings(0),test_empty_context_summary(0)
+    TestVerifyDataIntegrity: test_matching_counts_pass(0),test_mismatch_fails(0),test_remote_empty_fails(0),test_missing_remote_table_fails(0),test_empty_local_counts(0),test_dict_local_count_uses_local_key(0),test_multiple_tables_partial_fail(0)
+    _remote(ok;stdout;stderr)
+  redeploy/tests/test_version.py:
+    e: _mock_urlopen,TestReadLocalVersion,TestReadRemoteVersion,TestCheckVersion,TestCheckVersionHttp
+    TestReadLocalVersion: test_reads_app_subdir_version(1),test_reads_root_version_fallback(1),test_strips_whitespace(1),test_returns_none_when_missing(1),test_returns_none_for_empty_version(1),test_app_subdir_takes_priority(1)
+    TestReadRemoteVersion: _remote(1),test_reads_app_subdir_path(0),test_reads_root_path_fallback(0),test_strips_whitespace(0),test_returns_none_when_not_found(0)
+    TestCheckVersion: test_match(0),test_mismatch(0),test_local_none_returns_true(0),test_remote_none_returns_false(0),test_both_none_local_wins(0)
+    TestCheckVersionHttp: _payload(4),test_success_match(0),test_mismatch_in_api(0),test_expected_version_mismatch(0),test_http_error(0),test_connection_error(0),test_no_expected_version_passed(0),test_payload_returned(0),test_trailing_slash_stripped_in_url(0),test_versions_in_summary(0)
+    _mock_urlopen(payload;status)
+  redeploy/tests/test_version_changelog.py:
+    e: TestParseConventional,TestAnalyzeCommits,TestFormatAnalysisReport,TestChangelogManager,TestGetCommitsSinceTag
+    TestParseConventional: test_simple_feat(0),test_with_scope(0),test_breaking_bang(0),test_breaking_bang_with_scope(0),test_breaking_change_in_body(0),test_breaking_change_hyphen_in_body(0),test_chore(0),test_docs(0),test_non_conventional_returns_none(0),test_multi_word_description(0),test_body_captured(0),test_raw_preserved(0),test_perf_type(0),test_test_type(0)
+    TestAnalyzeCommits: _mock_git(1),test_feat_gives_minor(1),test_fix_gives_patch(1),test_breaking_gives_major(1),test_major_wins_over_minor(1),test_minor_wins_over_patch(1),test_chore_no_bump(1),test_no_commits_no_bump(1),test_git_error_returns_none_bump(1),test_git_not_found_returns_gracefully(1),test_commits_analyzed_count(1),test_custom_config_changes_rules(1)
+    TestFormatAnalysisReport: test_report_with_bump(0),test_report_no_bump(0)
+    TestChangelogManager: test_exists_false_when_missing(1),test_exists_true_when_present(1),test_read_returns_default_template_when_missing(1),test_read_returns_file_content(1),test_write_creates_file(1),test_get_unreleased_section_empty(1),test_get_unreleased_section_with_content(1),test_prepare_release_replaces_unreleased(1),test_prepare_release_date_defaults_to_today(1),test_prepare_release_auto_categorize_from_commits(1),test_prepare_release_breaking_change_in_commits(1),test_prepare_release_no_commits_no_unreleased(1),test_preview_release(1),test_preview_release_empty_shows_placeholder(1),test_scope_formatted_bold_in_release(1)
+    TestGetCommitsSinceTag: test_returns_commit_messages(1),test_returns_empty_on_git_error(1),test_returns_empty_on_exception(1)
+  redeploy/tests/test_version_cli.py:
+    e: _runner,_write_version_workspace,_write_monorepo_version_workspace,TestVersionSet,TestVersionList,TestVersionCurrent,TestVersionInit,TestVersionVerify,TestVersionBump,TestVersionDiff
+    TestVersionSet: test_set_updates_manifest_and_sources(1),test_set_dry_run_does_not_modify_files(1),test_set_package_updates_only_selected_package(1)
+    TestVersionList: test_list_all_packages_shows_package_sources(1),test_list_package_shows_only_selected_package(1),test_list_all_packages_returns_error_on_drift(1)
+    TestVersionCurrent: test_current_shows_manifest_version(1),test_current_package_shows_selected_package_version(1),test_current_all_packages_shows_package_versions(1)
+    TestVersionInit: test_init_scan_creates_synced_manifest_from_root_sources(1),test_init_scan_creates_independent_manifest_from_package_dirs(1),test_init_scan_detects_regex_source_in_nested_package(1),test_init_scan_reports_conflict_between_scanned_sources(1),test_init_scan_review_lists_detected_sources_without_writing_manifest(1),test_init_scan_interactive_can_reject_source_and_write_manifest(1),test_init_scan_interactive_rejects_heuristic_source_by_default(1),test_init_interactive_requires_scan(1),test_init_scan_exclude_omits_detected_source_from_manifest(1)
+    TestVersionVerify: test_verify_all_packages_succeeds_when_in_sync(1),test_verify_package_checks_only_selected_package(1),test_verify_all_packages_returns_error_on_drift(1),test_set_all_packages_updates_all_packages(1),test_set_package_dry_run_does_not_modify_monorepo(1),test_set_package_with_commit_and_tag_uses_git_integration(1),test_set_all_packages_with_push_allow_dirty_skips_clean_check(1),test_set_all_packages_changelog_skips_global_default_without_package_configs(1),test_set_all_packages_changelog_updates_package_changelogs(1)
+    TestVersionBump: test_bump_package_with_tag_uses_package_tag_format(1),test_bump_all_packages_changelog_updates_package_changelogs(1)
+    TestVersionDiff: test_diff_all_packages_shows_package_source_status(1),test_diff_package_spec_mismatch_returns_nonzero(1),test_diff_all_packages_rejects_spec_without_package(1),test_diff_spec_match_returns_zero(1),test_diff_spec_manifest_reference_returns_zero(1),test_diff_spec_mismatch_returns_nonzero(1),test_diff_missing_spec_returns_nonzero(1)
+    _runner()
+    _write_version_workspace(base;version)
+    _write_monorepo_version_workspace(base)
+  redeploy/tests/test_version_manifest.py:
+    e: TestVersionManifest,TestCalculateBump,TestVerifySources,TestPlainAdapter,TestVersionBumpTransaction,TestLegacyFunctions,TestJsonAdapter,TestTomlAdapter,TestYamlAdapter,TestRegexAdapter,TestC2004StyleManifest
+    TestVersionManifest: test_minimal_manifest(0),test_with_source(1),test_git_config_defaults(0),test_format_version(0),test_format_version_custom(0),test_load_from_file(1),test_load_flat_format(1),test_load_missing_file(1),test_save_and_reload(1),test_get_source_paths(1),test_source_config_accepts_toml_with_key(1),test_source_config_accepts_regex_with_pattern(1)
+    TestCalculateBump: _manifest(2),test_patch_bump(1),test_minor_bump(1),test_major_bump(1),test_prerelease_bump_fresh(1),test_prerelease_bump_increment(1),test_explicit_version(1),test_invalid_bump_type(1),test_non_semver_raises(1),test_file_updated_after_bump(1)
+    TestVerifySources: test_all_match(1),test_mismatch(1),test_missing_optional_file(1)
+    TestPlainAdapter: test_read_write(1),test_read_optional_missing(1)
+    TestVersionBumpTransaction: test_prepare_commit(1),test_rollback_cleans_temp_files(1)
+    TestLegacyFunctions: test_read_local_version_from_root(1),test_read_local_version_from_app_subdir(1),test_read_local_version_missing(1),test_check_version_match(0),test_check_version_mismatch(0),test_check_version_no_local(0),test_check_version_no_remote(0),test_check_version_http_unreachable(0)
+    TestJsonAdapter: test_read_simple_key(1),test_read_nested_key(1),test_write_updates_version(1),test_write_preserves_other_fields(1),test_read_missing_key_raises(1),test_write_pattern(1)
+    TestTomlAdapter: test_read_pyproject(1),test_write_pyproject(1),test_write_preserves_other_content(1),test_read_missing_key_raises(1),test_stage_without_commit(1)
+    TestYamlAdapter: test_read_simple_key(1),test_write_simple_key(1),test_read_with_value_pattern(1),test_write_with_write_pattern(1),test_read_missing_key_raises(1),test_read_optional_missing(1)
+    TestRegexAdapter: test_read_python_version(1),test_read_const_version(1),test_write_replaces_version(1),test_read_no_match_raises(1),test_write_no_match_raises(1),test_stage_does_not_modify_original(1)
+    TestC2004StyleManifest: test_multi_source_manifest(1),test_bump_multiple_sources(1),test_load_from_c2004_style_yaml(1)  # Integration tests mirroring c2004/.redeploy/version.yaml str
+  redeploy/tests/test_version_sources.py:
+    e: src,TestGetAdapter,TestPlainAdapter,TestJsonAdapter,TestTomlAdapter,TestYamlAdapter,TestRegexAdapter,TestVersionDiff,TestBumpPackageMonorepo
+    TestGetAdapter: test_known_formats(0),test_unknown_format_raises(0),test_register_custom_adapter(0)
+    TestPlainAdapter: test_read_version(1),test_read_strips_whitespace(1),test_read_missing_raises(1),test_read_missing_optional_returns_empty(1),test_stage_creates_temp_with_newline(1),test_write_updates_file(1),test_stage_is_in_same_directory(1)
+    TestJsonAdapter: _write_pkg(2),test_read_top_level_key(1),test_read_nested_key(1),test_read_missing_key_raises(1),test_read_non_string_raises(1),test_read_with_value_pattern(1),test_stage_updates_version(1),test_stage_preserves_trailing_newline(1),test_stage_with_write_pattern(1),test_detect_indent_2(1),test_detect_indent_4(1),test_detect_indent_default(0)
+    TestTomlAdapter: _write_toml(2),test_read_project_version(1),test_read_missing_key_raises(1),test_read_without_key_raises(1),test_stage_updates_version(1),test_stage_preserves_other_fields(1),test_stage_raises_when_key_not_found(1)
+    TestYamlAdapter: _write_yaml(2),test_read_top_level(1),test_read_nested(1),test_read_missing_key_raises(1),test_stage_updates_version(1),test_stage_preserves_other_keys(1),test_read_non_string_raises(1)
+    TestRegexAdapter: _write(3),test_read_version_from_source(1),test_read_no_match_raises(1),test_read_without_pattern_raises(1),test_stage_replaces_capture_group(1),test_stage_simple_version_line(1),test_stage_no_match_raises(1),test_stage_no_capture_group_raises(1)
+    TestVersionDiff: _manifest(1),test_diff_manifest_vs_spec_match(0),test_diff_manifest_vs_spec_mismatch(0),test_diff_manifest_vs_spec_at_manifest_ref(0),test_diff_manifest_vs_live_match(0),test_diff_manifest_vs_live_mismatch(0),test_diff_manifest_vs_live_none(0),test_format_diff_report_all_ok(0),test_format_diff_report_with_mismatch(0),test_format_diff_report_with_error(0)
+    TestBumpPackageMonorepo: _make_manifest(1),test_is_monorepo_true(1),test_list_packages(1),test_get_package_existing(1),test_get_package_missing_returns_none(1),test_get_all_package_versions(1),test_bump_package_patch(1),test_bump_package_minor(1),test_bump_package_unknown_raises(1),test_bump_package_result_keys(1),test_bump_all_packages(1),test_bump_all_packages_not_monorepo_raises(1),test_bump_package_independent_of_other(1)
+    src(path;fmt;key;pattern;optional;value_pattern;write_pattern)
+  redeploy/tests/test_workflow.py:
+    e: _state,_reachable_host,_unreachable_host,TestWorkflowResult,TestHostDetectionResult,TestCollectHosts,TestDetectionWorkflowRun
+    TestWorkflowResult: test_reachable_filter(0),test_by_env(0),test_summary_contains_host(0),test_summary_unreachable(0),test_generated_redeploy_yaml_contains_host(0),test_generated_redeploy_yaml_deduplicates_envs(0),test_generated_redeploy_yaml_empty_when_no_reachable(0),test_generated_migration_yaml_no_reachable(0),test_generated_migration_yaml_contains_strategy(0),test_generated_migration_yaml_for_env(0)
+    TestHostDetectionResult: test_strategy_from_template(0),test_strategy_from_state_when_no_template(0),test_strategy_unknown_when_nothing(0),test_environment(0),test_confidence(0),test_env_block_generated(0),test_notes(0)
+    TestCollectHosts: _workflow(0),test_explicit_hosts_included(0),test_manifest_envs_added(0),test_local_hosts_excluded_from_manifest(0),test_registry_hosts_added(0),test_deduplication_by_ip(0),test_explicit_takes_priority_over_registry(0),test_empty_when_no_sources(0)
+    TestDetectionWorkflowRun: _mock_probe(2),test_run_empty_hosts_returns_empty(0),test_run_unreachable_host(0),test_run_reachable_scores_template(0),test_run_sets_app_on_result(0)
+    _state(host;strategy;ports;version)
+    _reachable_host(host;strategy;env)
+    _unreachable_host(host)
+  redeploy/verify.py:
+    e: verify_data_integrity,VerifyContext
+    VerifyContext: check(5),add_pass(1),add_fail(2),add_warn(1),add_info(1),passed(0),failed(0),warned(0),total(0),ok(0),summary(0)  # Accumulates check results during verification.
+    verify_data_integrity(ctx;local_counts;remote_counts)
+  redeploy/version/__init__.py:
+    e: read_local_version,read_remote_version,check_version,check_version_http
+    read_local_version(workspace_root;app)
+    read_remote_version(remote;remote_dir;app)
+    check_version(local;remote)
+    check_version_http(base_url;expected_version;timeout;endpoint)
+  redeploy/version/bump.py:
+    e: bump_version,verify_sources,bump_version_with_git,bump_package,bump_all_packages,_calculate_bump
+    bump_version(manifest;bump_type;new_version)
+    verify_sources(manifest)
+    bump_version_with_git(manifest;bump_type;repo_path;new_version;manifest_path;commit;tag;push;sign;allow_dirty)
+    bump_package(manifest;package_name;bump_type;new_version)
+    bump_all_packages(manifest;bump_type)
+    _calculate_bump(current;bump_type)
+  redeploy/version/changelog.py:
+    e: get_commits_since_tag,ChangelogManager
+    ChangelogManager: __init__(1),exists(0),read(0),_default_template(0),get_unreleased_section(0),prepare_release(3),_format_release_content(2),_init_categories(0),_categorize_commits(2),_format_commit_entry(1),_add_to_category(3),_build_release_content(1),write(1),preview_release(2)  # Manage CHANGELOG.md in keep-a-changelog format.
+    get_commits_since_tag(repo_path;tag)
+  redeploy/version/commits.py:
+    e: parse_conventional,analyze_commits,format_analysis_report,ConventionalCommit,BumpAnalysis
+    ConventionalCommit:  # Parsed conventional commit.
+    BumpAnalysis:  # Result of analyzing commits for bump decision.
+    parse_conventional(message)
+    analyze_commits(since_tag;repo_path;config)
+    format_analysis_report(analysis)
+  redeploy/version/diff.py:
+    e: diff_manifest_vs_spec,diff_manifest_vs_live,format_diff_report,VersionDiff
+    VersionDiff:  # Version comparison result.
+    diff_manifest_vs_spec(manifest;spec_version)
+    diff_manifest_vs_live(manifest;live_version)
+    format_diff_report(diffs;manifest_version)
+  redeploy/version/git_integration.py:
+    e: GitIntegrationError,GitIntegration
+    GitIntegrationError:  # Git operation failed.
+    GitIntegration: __init__(2),_run(2),require_clean(0),is_clean(0),get_dirty_files(0),stage_files(1),commit(2),tag(3),push(2),tag_exists(1),get_last_tag(0),get_commits_since(1),get_current_branch(0)  # Git operations for version management.
+  redeploy/version/git_transaction.py:
+    e: GitTransactionResult,GitVersionBumpTransaction
+    GitTransactionResult:  # Result of full version bump transaction with git.
+    GitVersionBumpTransaction: __init__(5),prepare(0),commit_and_tag(3),push(0),rollback(0)  # Version bump transaction with Git integration.
+  redeploy/version/manifest.py:
+    e: SourceConfig,GitConfig,ChangelogConfig,CommitRules,CommitsConfig,PackageConfig,Constraint,VersionManifest
+    SourceConfig: key_required_for_structured(3),pattern_required_for_regex(3)  # Single source of version truth (one file).
+    GitConfig:  # Git integration settings.
+    ChangelogConfig:  # Changelog generation settings.
+    CommitRules:  # Conventional commits → bump type mapping.
+    CommitsConfig:  # Conventional commits analysis settings.
+    PackageConfig:  # Single package in monorepo (for policy=independent).
+    Constraint:  # Cross-package version constraint.
+    VersionManifest: load(2),save(1),format_version(1),get_source_paths(0),get_package(1),list_packages(0),is_monorepo(0),get_all_package_versions(0)  # Root manifest model for .redeploy/version.yaml.
+  redeploy/version/sources/__init__.py:
+    e: get_adapter,register_adapter,SourceAdapter
+    SourceAdapter: read(2),write(3),stage(3)  # Protocol for version source adapters.
+    get_adapter(format_name)
+    register_adapter(format_name;adapter)
+  redeploy/version/sources/base.py:
+    e: BaseAdapter
+    BaseAdapter: _validate_path(2),_extract_version(2),_create_temp(1),_atomic_write(3)  # Base class for source adapters with common utilities.
+  redeploy/version/sources/json_.py:
+    e: JsonAdapter
+    JsonAdapter: read(2),write(3),stage(3),_detect_indent(1)  # Read/write version from JSON files.
+  redeploy/version/sources/plain.py:
+    e: PlainAdapter
+    PlainAdapter: read(2),write(3),stage(3)  # Read/write version from plain text file.
+  redeploy/version/sources/regex.py:
+    e: RegexAdapter
+    RegexAdapter: read(2),write(3),stage(3)  # Read/write version using regex pattern with capture group.
+  redeploy/version/sources/toml_.py:
+    e: TomlAdapter
+    TomlAdapter: _get_toml_lib(0),read(2),write(3),stage(3)  # Read/write version from TOML files using tomllib/tomli.
+  redeploy/version/sources/yaml_.py:
+    e: YamlAdapter
+    YamlAdapter: _get_yaml_lib(0),read(2),write(3),stage(3)  # Read/write version from YAML files.
+  redeploy/version/transaction.py:
+    e: StagingResult,VersionBumpTransaction
+    StagingResult:  # Result of staging one source.
+    VersionBumpTransaction: __init__(2),prepare(0),_stage_one(1),commit(0),rollback(0),get_summary(0)  # Atomic transaction for bumping version across multiple sourc
   redeploy/version.py:
     e: read_local_version,read_remote_version,check_version,check_version_http
     read_local_version(workspace_root;app)
     read_remote_version(remote;remote_dir;app)
     check_version(local;remote)
-    check_version_http(base_url;expected_version;timeout)
-  redeploy/verify.py:
-    e: VerifyContext,verify_data_integrity
-    VerifyContext: check(5),add_pass(1),add_fail(2),add_warn(1),add_info(1),summary(0)  # Accumulates check results during verification...
-    verify_data_integrity(ctx;local_counts;remote_counts)
-  redeploy/ssh.py:
-    e: SshResult,SshClient,RemoteProbe,RemoteExecutor
-    SshResult:
-    SshClient: __init__(4),key(1),key(1),run(2),rsync(5),scp(3),is_reachable(1),is_ssh_ready(0),ping(0),_run_local(2),_ssh_opts(0),_scp_opts(0),_detect_ssh_key(-1),_detect_key(-1)  # Execute commands on a remote host via SSH (or locally).
-
-Arg...
-    RemoteProbe(SshClient): __init__(1),is_local(1),is_local(1)  # Thin wrapper kept for redeploy.detect compatibility.
-
-``Remo...
-    RemoteExecutor(SshClient): __init__(1)  # Thin wrapper kept for deploy.core compatibility.
-
-``RemoteEx...
-  redeploy/data_sync.py:
-    e: collect_sqlite_counts,rsync_timeout_for_path
-    collect_sqlite_counts(app_root;db_specs)
-    rsync_timeout_for_path(path;minimum;base;per_mb)
-  redeploy/models.py:
-    e: ConflictSeverity,StepAction,StepStatus,DeployStrategy,ServiceInfo,PortInfo,ConflictInfo,RuntimeInfo,AppHealthInfo,InfraState,TargetConfig,MigrationStep,InfraSpec,MigrationSpec,MigrationPlan
-    ConflictSeverity(str,Enum):
-    StepAction(str,Enum):
-    StepStatus(str,Enum):
-    DeployStrategy(str,Enum):
-    ServiceInfo(BaseModel):
-    PortInfo(BaseModel):
-    ConflictInfo(BaseModel):
-    RuntimeInfo(BaseModel):
-    AppHealthInfo(BaseModel):
-    InfraState(BaseModel):  # Full detected state of infrastructure — output of `detect`...
-    TargetConfig(BaseModel):  # Desired infrastructure state — input to `plan`...
-    MigrationStep(BaseModel):
-    InfraSpec(BaseModel):  # Declarative description of one infrastructure state (from OR...
-    MigrationSpec(BaseModel): from_file(1),to_infra_state(0),to_target_config(0)  # Single YAML file describing full migration: from-state → to-...
-    MigrationPlan(BaseModel):  # Full migration plan — output of `plan`, input to `apply`...
-  project.sh:
-  tree.sh:
-  redeploy/apply/__init__.py:
-  redeploy/detect/remote.py:
-  redeploy/plan/__init__.py:
-  redeploy/__init__.py:
-  redeploy/detect/__init__.py:
+    check_version_http(base_url;expected_version;timeout;endpoint)
+  tests/test_iac.py:
+    e: write_compose,TestParsedSpec,TestPortParsing,TestVolumeParsing,TestDockerComposeParserCanParse,TestDockerComposeParserBasic,TestParserRegistry,TestGlobalRegistry,TestSummary
+    TestParsedSpec: test_all_images_deduplicated(0),test_all_ports_deduplicated(0),test_summary_shows_counts(0),test_add_warning(0)
+    TestPortParsing: test_short_form_published(0),test_short_form_container_only(0),test_short_form_with_ip(0),test_short_form_with_protocol(0),test_long_form_dict(0),test_invalid_returns_none(0)
+    TestVolumeParsing: test_bind_mount(0),test_named_volume(0),test_read_only(0),test_long_form(0)
+    TestDockerComposeParserCanParse: setup_method(0),test_standard_name(1),test_compose_yaml(1),test_heuristic_services_key(1),test_unrelated_yaml(1)
+    TestDockerComposeParserBasic: test_simple_service(1),test_multiple_services(1),test_environment_list_form(1),test_environment_dict_form(1),test_volumes_in_service(1),test_depends_on_list(1),test_depends_on_dict_form(1),test_healthcheck(1),test_named_volumes_top_level(1),test_networks_top_level(1),test_env_file(1),test_build_context(1),test_build_dict_form(1),test_deploy_replicas(1),test_variable_substitution(1),test_variable_default_fallback(1),test_labels_dict(1),test_restart_policy(1),test_empty_file_returns_low_confidence(1),test_invalid_yaml_recorded_as_error(1),test_profile_warning(1),test_override_file_merged(1)
+    TestParserRegistry: test_register_and_dispatch(1),test_no_parser_raises(1),test_parse_dir_finds_compose(1),test_parse_dir_skip_errors(1),test_registered_list(0)
+    TestGlobalRegistry: test_parser_registry_has_compose(0),test_parse_file_helper(1),test_parse_dir_helper(1)
+    TestSummary: test_summary_non_empty(1)
+    write_compose(tmp_path;content)
+  tests/test_parse.py:
+    e: test_parse_docker_ps_full_format,test_parse_docker_ps_partial_format,test_parse_docker_ps_skips_empty_lines,test_parse_docker_ps_skips_no_containers_marker,test_parse_docker_ps_empty,test_parse_container_line_full,test_parse_container_line_no_image,test_parse_container_line_invalid_returns_none,test_parse_system_info_basic,test_parse_system_info_disk,test_parse_system_info_memory,test_parse_system_info_unknown_lines_ignored,test_parse_diagnostics_sections,test_parse_diagnostics_empty,test_parse_diagnostics_docker_section_alias,test_parse_diagnostics_skips_no_markers,test_parse_health_info_full,test_parse_health_info_invalid_health_code,test_parse_health_info_empty
+    test_parse_docker_ps_full_format()
+    test_parse_docker_ps_partial_format()
+    test_parse_docker_ps_skips_empty_lines()
+    test_parse_docker_ps_skips_no_containers_marker()
+    test_parse_docker_ps_empty()
+    test_parse_container_line_full()
+    test_parse_container_line_no_image()
+    test_parse_container_line_invalid_returns_none()
+    test_parse_system_info_basic()
+    test_parse_system_info_disk()
+    test_parse_system_info_memory()
+    test_parse_system_info_unknown_lines_ignored()
+    test_parse_diagnostics_sections()
+    test_parse_diagnostics_empty()
+    test_parse_diagnostics_docker_section_alias()
+    test_parse_diagnostics_skips_no_markers()
+    test_parse_health_info_full()
+    test_parse_health_info_invalid_health_code()
+    test_parse_health_info_empty()
+  tests/test_redeploy.py:
+    e: test_placeholder,test_import
+    test_placeholder()
+    test_import()

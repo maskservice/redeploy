@@ -1,9 +1,35 @@
-# vallm batch | 253f | 0✓ 197⚠ 0✗ | 2026-04-21
+# vallm batch | 270f | 0✓ 214⚠ 0✗ | 2026-04-21
 
 SUMMARY:
-  scanned: 253  passed: 0 (0.0%)  warnings: 197  errors: 0  unsupported: 0
+  scanned: 270  passed: 0 (0.0%)  warnings: 214  errors: 0  unsupported: 0
 
-WARNINGS[197]{path,score}:
+WARNINGS[214]{path,score}:
+  redeploy/detect/hardware.py,0.68
+    issues[4]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+      complexity.lizard_cc,warning,probe_wlr_randr: CC=17 exceeds limit 15,95
+      complexity.lizard_cc,warning,_analyze: CC=43 exceeds limit 15,223
+      complexity.lizard_length,warning,_analyze: 147 lines exceeds limit 100,223
+  redeploy/blueprint/extractor.py,0.71
+    issues[3]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+      complexity.lizard_cc,warning,extract_blueprint: CC=31 exceeds limit 15,32
+      complexity.lizard_cc,warning,_merge_compose: CC=21 exceeds limit 15,141
+  redeploy/blueprint/generators/migration.py,0.71
+    issues[3]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+      complexity.lizard_cc,warning,generate_migration: CC=18 exceeds limit 15,17
+      complexity.lizard_length,warning,generate_migration: 122 lines exceeds limit 100,17
+  redeploy/cli/commands/device_map.py,0.71
+    issues[3]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+      complexity.lizard_cc,warning,device_map_cmd: CC=19 exceeds limit 15,55
+      complexity.lizard_cc,warning,_render: CC=34 exceeds limit 15,182
+  redeploy/cli/commands/hardware.py,0.71
+    issues[3]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+      complexity.lizard_cc,warning,hardware: CC=44 exceeds limit 15,62
+      complexity.lizard_length,warning,hardware: 129 lines exceeds limit 100,62
   redeploy/cli/commands/import_.py,0.71
     issues[3]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
@@ -19,6 +45,11 @@ WARNINGS[197]{path,score}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
       complexity.lizard_cc,warning,build_context: CC=36 exceeds limit 15,87
       complexity.lizard_length,warning,_build_templates: 155 lines exceeds limit 100,180
+  redeploy/discovery.py,0.71
+    issues[3]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+      complexity.lizard_cc,warning,update_registry: CC=17 exceeds limit 15,350
+      complexity.lizard_cc,warning,_parse_probe_output: CC=16 exceeds limit 15,618
   redeploy/iac/docker_compose.py,0.71
     issues[3]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
@@ -29,14 +60,22 @@ WARNINGS[197]{path,score}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
       complexity.lizard_cc,warning,parse: CC=19 exceeds limit 15,58
       complexity.lizard_cc,warning,_parse_service: CC=21 exceeds limit 15,116
+  redeploy/blueprint/generators/docker_compose.py,0.74
+    issues[2]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+      complexity.lizard_cc,warning,_build_service: CC=20 exceeds limit 15,114
   redeploy/cli/commands/audit.py,0.74
     issues[2]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
       complexity.lizard_cc,warning,audit: CC=17 exceeds limit 15,28
+  redeploy/cli/commands/blueprint.py,0.74
+    issues[2]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+      complexity.lizard_cc,warning,_print_blueprint: CC=16 exceeds limit 15,234
   redeploy/cli/commands/devices.py,0.74
     issues[2]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
-      complexity.lizard_cc,warning,devices: CC=18 exceeds limit 15,18
+      complexity.lizard_cc,warning,devices: CC=22 exceeds limit 15,19
   redeploy/cli/commands/probe.py,0.74
     issues[2]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
@@ -45,10 +84,6 @@ WARNINGS[197]{path,score}:
     issues[2]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
       complexity.lizard_cc,warning,_collect_hosts: CC=18 exceeds limit 15,244
-  redeploy/discovery.py,0.74
-    issues[2]{rule,severity,message,line}:
-      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
-      complexity.lizard_cc,warning,_parse_probe_output: CC=16 exceeds limit 15,577
   redeploy/dsl/loader.py,0.74
     issues[2]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
@@ -60,7 +95,7 @@ WARNINGS[197]{path,score}:
   redeploy/models.py,0.74
     issues[2]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
-      complexity.lizard_cc,warning,apply_to_spec: CC=19 exceeds limit 15,491
+      complexity.lizard_cc,warning,apply_to_spec: CC=19 exceeds limit 15,577
   redeploy/plugins/builtin/browser_reload.py,0.74
     issues[2]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
@@ -79,6 +114,9 @@ WARNINGS[197]{path,score}:
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   .redeploy/state/test-local-46c5e2ce.yaml,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
+  .redeploy/state/test-local-50622a24.yaml,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   .redeploy/state/test-local-563ceb24.yaml,0.78
@@ -105,13 +143,22 @@ WARNINGS[197]{path,score}:
   .redeploy/state/test-local-831fd1ab.yaml,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
+  .redeploy/state/test-local-891787e9.yaml,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   .redeploy/state/test-local-9c9d5826.yaml,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
+  .redeploy/state/test-local-a70e54ce.yaml,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   .redeploy/state/test-local-a929f336.yaml,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   .redeploy/state/test-local-be94eb0c.yaml,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
+  .redeploy/state/test-local-da199855.yaml,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   .redeploy/state/test-local-db469906.yaml,0.78
@@ -130,6 +177,9 @@ WARNINGS[197]{path,score}:
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   .redeploy/state/test-local-ea908429.yaml,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
+  .redeploy/state/test-local-eac354f9.yaml,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   .redeploy/state/test-local-ec3c5638.yaml,0.78
@@ -291,6 +341,12 @@ WARNINGS[197]{path,score}:
   redeploy/audit.py,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+  redeploy/blueprint/__init__.py,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+  redeploy/blueprint/generators/__init__.py,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
   redeploy/cli.py,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
@@ -435,7 +491,13 @@ WARNINGS[197]{path,score}:
   redeploy/plugins/builtin/__init__.py,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+  redeploy/plugins/builtin/hardware_diagnostic.py,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
   redeploy/plugins/builtin/notify.py,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+  redeploy/plugins/builtin/process_control.py,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
   redeploy/plugins/builtin/systemd_reload.py,0.78
@@ -450,6 +512,9 @@ WARNINGS[197]{path,score}:
   redeploy/steps.py,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",
+  redeploy/templates/process_control_template.yaml,0.78
+    issues[1]{rule,severity,message,line}:
+      syntax.unsupported,warning,"Could not parse YAML: Download error: Language 'YAML' not available for download. Available groups: [""all""]",
   redeploy/tests/__init__.py,0.78
     issues[1]{rule,severity,message,line}:
       syntax.unsupported,warning,"Could not parse PYTHON: Download error: Language 'PYTHON' not available for download. Available groups: [""all""]",

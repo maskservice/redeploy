@@ -1,7 +1,7 @@
 <!-- code2docs:start --># redeploy
 
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-616-green)
-> **616** functions | **122** classes | **96** files | CC̄ = 4.9
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-676-green)
+> **676** functions | **135** classes | **107** files | CC̄ = 5.3
 
 > Auto-generated project documentation from source code analysis.
 
@@ -72,169 +72,178 @@ docs = generate_docs("./my-project", config=config)
 
 ```
 redeploy/
-├── tree
 ├── project
+├── tree
     ├── version/
-    ├── data_sync
     ├── detect/
         ├── remote
-    ├── cli/
+    ├── data_sync
+    ├── observe
+    ├── spec_loader
     ├── steps
+    ├── parse
+    ├── cli
+        ├── hardware
         ├── probes
         ├── core
         ├── display
             ├── target
-            ├── devices
-            ├── state
+    ├── patterns
             ├── inspect
-    ├── verify
-            ├── exec_
+            ├── state
+        ├── detector
+            ├── init
             ├── export
             ├── status
-            ├── init
-        ├── detector
-            ├── version
+            ├── exec_
+            ├── devices
             ├── plugin
-            ├── probe
+            ├── blueprint
         ├── commands/
-            ├── diff
             ├── detect
-    ├── patterns
-            ├── diagnose
-            ├── workflow
-            ├── import_
-    ├── observe
-            ├── patterns
-        ├── builtin/
-            ├── audit
-    ├── parse
-    ├── spec_loader
-    ├── audit
-        ├── exceptions
-    ├── dsl_python/
+            ├── probe
+            ├── diff
 ├── redeploy/
-            ├── browser_reload
-    ├── markpact/
-    ├── plugins/
-        ├── runner
+            ├── workflow
+            ├── diagnose
+            ├── patterns
+            ├── import_
+        ├── builtin/
+            ├── hardware
+            ├── audit
             ├── plan_apply
-            ├── systemd_reload
-        ├── steps
-        ├── parser
-        ├── compiler
+            ├── device_map
+            ├── version
         ├── exceptions
+        ├── steps
+    ├── dsl_python/
+    ├── discovery
+            ├── browser_reload
+        ├── runner
+    ├── markpact/
+            ├── process_control
+    ├── plugins/
+    ├── audit
+        ├── parser
+            ├── notify
+        ├── exceptions
+            ├── systemd_reload
     ├── apply/
         ├── progress
+        ├── compiler
         ├── rollback
-            ├── notify
         ├── executor
-        ├── bump
         ├── handlers
+    ├── verify
         ├── changelog
+        ├── bump
+    ├── ssh
         ├── git_integration
         ├── models
             ├── base
             ├── toml_
-            ├── regex
-    ├── ssh
             ├── yaml_
+            ├── regex
             ├── plain
             ├── json_
     ├── plan/
         ├── planner
-    ├── discovery
+    ├── blueprint/
+        ├── templates
+        ├── extractor
+        ├── generators/
+            ├── docker_compose
+            ├── migration
     ├── dsl/
         ├── parser
-        ├── docker_steps
-        ├── docker_compose
+        ├── loader
+        ├── decorators
         ├── registry
     ├── iac/
         ├── parsers/
-        ├── workflow
-        ├── templates
-        ├── git_transaction
-            ├── compose
         ├── base
-        ├── loader
-        ├── diff
-        ├── commits
-        ├── context
-        ├── decorators
+            ├── compose
+        ├── docker_compose
+            ├── hardware_diagnostic
+        ├── workflow
         ├── sources/
+        ├── commits
+        ├── git_transaction
+        ├── context
+        ├── docker_steps
+        ├── diff
         ├── transaction
-    ├── models
-        ├── manifest
-        ├── state
     ├── fleet
+    ├── models
+        ├── state
+        ├── manifest
 ```
 
 ## API Overview
 
 ### Classes
 
-- **`StepLibrary`** — Registry of pre-defined named MigrationSteps.
-- **`VerifyContext`** — Accumulates check results during verification.
-- **`Detector`** — Probe infrastructure and produce InfraState.
-- **`DeployPattern`** — Base class for all deploy patterns.
-- **`BlueGreenPattern`** — Zero-downtime blue/green deploy via Traefik (or any label-based proxy).
-- **`CanaryPattern`** — Gradual canary rollout: deploy new version, scale up in stages.
-- **`RollbackOnFailurePattern`** — Capture pre-deploy image tag, roll back automatically on failure.
 - **`AuditEntry`** — Single audit log entry — immutable snapshot of one deployment.
 - **`DeployAuditLog`** — Persistent audit log — newline-delimited JSON at ``path``.
 - **`DeployReport`** — Human-readable post-deploy report from an AuditEntry.
 - **`SpecLoaderError`** — Base error raised when a deployment spec cannot be loaded.
 - **`UnsupportedSpecFormatError`** — Raised when the spec file uses an unsupported format.
-- **`AuditCheck`** — Outcome of a single audit probe.
-- **`AuditReport`** — —
-- **`Auditor`** — Compare a MigrationSpec's expectations against a live target host.
+- **`StepLibrary`** — Registry of pre-defined named MigrationSteps.
+- **`DeployPattern`** — Base class for all deploy patterns.
+- **`BlueGreenPattern`** — Zero-downtime blue/green deploy via Traefik (or any label-based proxy).
+- **`CanaryPattern`** — Gradual canary rollout: deploy new version, scale up in stages.
+- **`RollbackOnFailurePattern`** — Capture pre-deploy image tag, roll back automatically on failure.
+- **`Detector`** — Probe infrastructure and produce InfraState.
 - **`DSLException`** — Base exception for DSL errors.
 - **`StepError`** — Raised when a step fails.
 - **`TimeoutError`** — Raised when a step times out.
 - **`VerificationError`** — Raised when verification fails.
 - **`ConnectionError`** — Raised when SSH/connection fails.
 - **`RollbackError`** — Raised when rollback fails.
+- **`DiscoveredHost`** — —
+- **`ProbeResult`** — Full autonomous probe result for a single host.
+- **`PythonMigrationRunner`** — Runner for Python-based migrations.
 - **`PluginContext`** — Passed to every plugin handler.
 - **`PluginRegistry`** — Central registry mapping plugin_type strings to handler callables.
-- **`PythonMigrationRunner`** — Runner for Python-based migrations.
+- **`AuditCheck`** — Outcome of a single audit probe.
+- **`AuditReport`** — —
+- **`Auditor`** — Compare a MigrationSpec's expectations against a live target host.
 - **`MarkpactParseError`** — Raised when a markdown markpact document cannot be parsed.
-- **`MarkpactCompileError`** — Raised when a markpact document cannot be compiled to MigrationSpec.
 - **`StepError`** — Exception raised when a migration step fails.
 - **`ProgressEmitter`** — Emits YAML-formatted progress events to a stream (default: stdout).
+- **`MarkpactCompileError`** — Raised when a markpact document cannot be compiled to MigrationSpec.
 - **`Executor`** — Execute MigrationPlan steps on a remote host.
+- **`VerifyContext`** — Accumulates check results during verification.
 - **`ChangelogManager`** — Manage CHANGELOG.md in keep-a-changelog format.
+- **`SshResult`** — —
+- **`SshClient`** — Execute commands on a remote host via SSH (or locally).
+- **`RemoteProbe`** — Thin wrapper kept for redeploy.detect compatibility.
+- **`RemoteExecutor`** — Thin wrapper kept for deploy.core compatibility.
 - **`GitIntegrationError`** — Git operation failed.
 - **`GitIntegration`** — Git operations for version management.
 - **`MarkpactBlock`** — —
 - **`MarkpactDocument`** — —
 - **`BaseAdapter`** — Base class for source adapters with common utilities.
 - **`TomlAdapter`** — Read/write version from TOML files using tomllib/tomli.
-- **`RegexAdapter`** — Read/write version using regex pattern with capture group.
-- **`SshResult`** — —
-- **`SshClient`** — Execute commands on a remote host via SSH (or locally).
-- **`RemoteProbe`** — Thin wrapper kept for redeploy.detect compatibility.
-- **`RemoteExecutor`** — Thin wrapper kept for deploy.core compatibility.
 - **`YamlAdapter`** — Read/write version from YAML files.
+- **`RegexAdapter`** — Read/write version using regex pattern with capture group.
 - **`PlainAdapter`** — Read/write version from plain text file.
 - **`JsonAdapter`** — Read/write version from JSON files.
 - **`Planner`** — Generate a MigrationPlan from detected infra + desired target.
-- **`DiscoveredHost`** — —
-- **`ProbeResult`** — Full autonomous probe result for a single host.
-- **`DSLNode`** — One parsed block from the CSS-like file.
-- **`RedeployDSLParser`** — Parse a ``redeploy.css`` or ``redeploy.less`` file into a list of DSLNode objects.
-- **`DockerComposeResult`** — Result of docker compose command.
-- **`DockerDSL`** — Docker-related DSL actions.
-- **`DockerComposeParser`** — Parser for docker-compose.yml / compose.yaml files.
-- **`HostDetectionResult`** — Full detection result for a single host.
-- **`WorkflowResult`** — Aggregated result across all probed hosts.
-- **`DetectionWorkflow`** — Multi-host detection workflow with template scoring.
 - **`Condition`** — A single scoreable condition.
 - **`DetectionTemplate`** — Named template for a device+environment+strategy combination.
 - **`TemplateMatch`** — Scored template match.
 - **`DetectionResult`** — Full result of template-based detection.
 - **`TemplateEngine`** — Score all templates against a context and return ranked matches.
-- **`GitTransactionResult`** — Result of full version bump transaction with git.
-- **`GitVersionBumpTransaction`** — Version bump transaction with Git integration.
-- **`DockerComposeParser`** — Parser for Docker Compose files (v2 + v3 schema, Compose Spec).
+- **`DSLNode`** — One parsed block from the CSS-like file.
+- **`RedeployDSLParser`** — Parse a ``redeploy.css`` or ``redeploy.less`` file into a list of DSLNode objects.
+- **`WorkflowStep`** — —
+- **`WorkflowDef`** — Named deployment workflow parsed from ``workflow[name="…"] { … }``.
+- **`LoadResult`** — Full result of loading a ``redeploy.css`` file.
+- **`MigrationMeta`** — Metadata for a migration.
+- **`MigrationRegistry`** — Global registry of migration functions.
+- **`StepManager`** — Manages step execution and tracking.
+- **`step`** — Context manager for a deployment step.
 - **`PortInfo`** — A published / exposed port mapping.
 - **`VolumeInfo`** — A volume or bind-mount.
 - **`ServiceInfo`** — One logical service / container / pod / deployment.
@@ -242,20 +251,29 @@ redeploy/
 - **`ParsedSpec`** — Common intermediate representation from any IaC/CI-CD parser.
 - **`Parser`** — Protocol every format-specific parser must satisfy.
 - **`ParserRegistry`** — Dispatch file → registered parser.
-- **`WorkflowStep`** — —
-- **`WorkflowDef`** — Named deployment workflow parsed from ``workflow[name="…"] { … }``.
-- **`LoadResult`** — Full result of loading a ``redeploy.css`` file.
-- **`VersionDiff`** — Version comparison result.
+- **`DockerComposeParser`** — Parser for Docker Compose files (v2 + v3 schema, Compose Spec).
+- **`DockerComposeParser`** — Parser for docker-compose.yml / compose.yaml files.
+- **`HardwareInfo`** — Hardware diagnostic information.
+- **`HostDetectionResult`** — Full detection result for a single host.
+- **`WorkflowResult`** — Aggregated result across all probed hosts.
+- **`DetectionWorkflow`** — Multi-host detection workflow with template scoring.
+- **`SourceAdapter`** — Protocol for version source adapters.
 - **`ConventionalCommit`** — Parsed conventional commit.
 - **`BumpAnalysis`** — Result of analyzing commits for bump decision.
+- **`GitTransactionResult`** — Result of full version bump transaction with git.
+- **`GitVersionBumpTransaction`** — Version bump transaction with Git integration.
 - **`StepContext`** — Tracks the execution of a single step.
-- **`MigrationMeta`** — Metadata for a migration.
-- **`MigrationRegistry`** — Global registry of migration functions.
-- **`StepManager`** — Manages step execution and tracking.
-- **`step`** — Context manager for a deployment step.
-- **`SourceAdapter`** — Protocol for version source adapters.
+- **`DockerComposeResult`** — Result of docker compose command.
+- **`DockerDSL`** — Docker-related DSL actions.
+- **`VersionDiff`** — Version comparison result.
 - **`StagingResult`** — Result of staging one source.
 - **`VersionBumpTransaction`** — Atomic transaction for bumping version across multiple sources.
+- **`DeviceArch`** — —
+- **`Stage`** — —
+- **`DeviceExpectation`** — Declarative assertions about required infrastructure on a device.
+- **`FleetDevice`** — Generic device descriptor — superset of ``deploy``'s DeviceConfig.
+- **`FleetConfig`** — Top-level fleet manifest — list of devices with stage / tag organisation.
+- **`Fleet`** — Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
 - **`ConflictSeverity`** — —
 - **`StepAction`** — —
 - **`StepStatus`** — —
@@ -265,6 +283,11 @@ redeploy/
 - **`ConflictInfo`** — —
 - **`RuntimeInfo`** — —
 - **`AppHealthInfo`** — —
+- **`DrmOutput`** — One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1).
+- **`BacklightInfo`** — Sysfs backlight device.
+- **`I2CBusInfo`** — —
+- **`HardwareDiagnostic`** — Problem found during hardware probe.
+- **`HardwareInfo`** — Hardware state produced by hardware probe.
 - **`InfraState`** — Full detected state of infrastructure — output of `detect`.
 - **`TargetConfig`** — Desired infrastructure state — input to `plan`.
 - **`MigrationStep`** — —
@@ -275,7 +298,15 @@ redeploy/
 - **`ProjectManifest`** — Per-project redeploy.yaml — replaces repetitive Makefile variables.
 - **`DeployRecord`** — Single deployment event recorded for a device.
 - **`KnownDevice`** — Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml.
+- **`DeviceMap`** — Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
+- **`ServicePort`** — A single port mapping for a container service.
+- **`VolumeMount`** — —
+- **`ServiceSpec`** — Complete specification of a single containerised service.
+- **`HardwareRequirements`** — Hardware capabilities required to run the blueprint.
+- **`BlueprintSource`** — Where the blueprint was extracted from — audit trail.
+- **`DeviceBlueprint`** — Self-contained, portable deployment recipe.
 - **`DeviceRegistry`** — Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
+- **`ResumeState`** — Checkpoint for a single MigrationPlan execution.
 - **`SourceConfig`** — Single source of version truth (one file).
 - **`GitConfig`** — Git integration settings.
 - **`ChangelogConfig`** — Changelog generation settings.
@@ -284,13 +315,6 @@ redeploy/
 - **`PackageConfig`** — Single package in monorepo (for policy=independent).
 - **`Constraint`** — Cross-package version constraint.
 - **`VersionManifest`** — Root manifest model for .redeploy/version.yaml.
-- **`ResumeState`** — Checkpoint for a single MigrationPlan execution.
-- **`DeviceArch`** — —
-- **`Stage`** — —
-- **`DeviceExpectation`** — Declarative assertions about required infrastructure on a device.
-- **`FleetDevice`** — Generic device descriptor — superset of ``deploy``'s DeviceConfig.
-- **`FleetConfig`** — Top-level fleet manifest — list of devices with stage / tag organisation.
-- **`Fleet`** — Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
 
 ### Functions
 
@@ -300,6 +324,22 @@ redeploy/
 - `check_version_http(base_url, expected_version, timeout, endpoint)` — Call *endpoint* on a running service. Returns (ok, summary_line, payload).
 - `collect_sqlite_counts(app_root, db_specs)` — Collect row counts for the given SQLite tables under *app_root*.
 - `rsync_timeout_for_path(path, minimum, base, per_mb)` — Compute a conservative rsync timeout based on file size (seconds).
+- `load_migration_spec(path)` — Load a deployment spec from disk.
+- `parse_docker_ps(output)` — Parse 'docker ps --format "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}|{{.State}}"' output.
+- `parse_container_line(line)` — Parse a single NAME|STATUS|IMAGE pipe-delimited container line.
+- `parse_system_info(output)` — Parse KEY:VALUE system info lines (HOSTNAME, UPTIME, DISK, MEM, LOAD) into a dict.
+- `parse_diagnostics(output)` — Parse multi-section SSH diagnostics output into structured dict.
+- `parse_health_info(output)` — Parse health-check SSH output (HOSTNAME, UPTIME, HEALTH, DISK, LOAD) into a dict.
+- `cli(ctx, verbose)` — redeploy — Infrastructure migration toolkit: detect → plan → apply
+- `probe_board(p)` — Return (board_model, kernel_version).
+- `probe_config_txt(p)` — Read /boot/firmware/config.txt (RPi5) or /boot/config.txt.
+- `probe_drm_outputs(p)` — Enumerate /sys/class/drm/ connectors.
+- `probe_wlr_randr(p)` — Run wlr-randr via the user's Wayland socket and parse output.
+- `probe_backlights(p)` — Read all /sys/class/backlight/* devices.
+- `probe_framebuffers(p)` — —
+- `probe_i2c_buses(p)` — List I2C buses. Scan if i2cdetect is available.
+- `probe_dsi_dmesg(p)` — Collect relevant DSI/panel/backlight lines from dmesg.
+- `probe_hardware(p)` — Probe hardware state of the remote host and return HardwareInfo with diagnostics.
 - `probe_runtime(p)` — Detect installed runtimes: docker, k3s, podman, systemd.
 - `probe_ports(p)` — Detect listening ports and which process owns them.
 - `probe_iptables_dnat(p, ports)` — Find iptables DNAT rules stealing specific ports (returns [(port, target_ip)]).
@@ -309,7 +349,6 @@ redeploy/
 - `probe_health(host, app, domain)` — HTTP health checks against known endpoints.
 - `detect_conflicts(ports, iptables_dnat, runtime, docker_services)` — Identify conflicts: port stealing, duplicate services, etc.
 - `detect_strategy(runtime, docker_services, k3s_services, systemd_services)` — Infer the current deployment strategy from detected services.
-- `cli(ctx, verbose)` — redeploy — Infrastructure migration toolkit: detect → plan → apply
 - `load_spec_or_exit(console, path)` — Load a migration spec or exit with error.
 - `find_manifest_path()` — Find redeploy.yaml manifest in current or parent directories.
 - `resolve_device(console, device_id)` — Resolve device from registry or auto-probe.
@@ -334,18 +373,40 @@ redeploy/
 - `generate_workflow_output_yaml(console, result, save_yaml)` — Generate and display/save YAML output from workflow.
 - `print_import_spec(console, spec)` — Print a ParsedSpec summary to the Rich console.
 - `target(device_id, spec_file, dry_run, plan_only)` — Deploy a spec to a specific registered device.
-- `devices(tag, strategy, reachable, as_json)` — List known devices from ~/.config/redeploy/devices.yaml.
+- `get_pattern(name)` — Return pattern class by name, or None if not found.
+- `list_patterns()` — Return all registered pattern names.
+- `inspect(ctx, css_file)` — Show parsed content of redeploy.css — environments, templates, workflows.
+- `state_cmd(ctx, action, spec_file, host)` — Inspect or clear resume checkpoints.
+- `init(host, app, domain, strategy)` — Scaffold migration.yaml + redeploy.yaml for this project.
+- `export_cmd(ctx, fmt, output, src_file)` — Convert between redeploy.css and redeploy.yaml formats.
+- `status(spec_file)` — Show current project manifest and spec summary.
+- `exec_cmd(ctx, ref, host, markdown_file)` — Execute a script from a markdown codeblock by reference.
+- `exec_multi_cmd(ctx, refs, host, markdown_file)` — Execute multiple scripts from markdown codeblocks by reference.
+- `devices(tag, strategy, rpi, reachable)` — List known devices from ~/.config/redeploy/devices.yaml.
 - `scan(subnet, ssh_users, ssh_port, ping)` — Discover SSH-accessible devices on the local network.
 - `device_add(host, device_id, name, tags)` — Add or update a device in the registry.
 - `device_rm(device_id)` — Remove a device from the registry.
-- `state_cmd(ctx, action, spec_file, host)` — Inspect or clear resume checkpoints.
-- `inspect(ctx, css_file)` — Show parsed content of redeploy.css — environments, templates, workflows.
-- `verify_data_integrity(ctx, local_counts, remote_counts)` — Compare local vs remote SQLite row counts and record results in *ctx*.
-- `exec_cmd(ctx, ref, host, markdown_file)` — Execute a script from a markdown codeblock by reference.
-- `exec_multi_cmd(ctx, refs, host, markdown_file)` — Execute multiple scripts from markdown codeblocks by reference.
-- `export_cmd(ctx, fmt, output, src_file)` — Convert between redeploy.css and redeploy.yaml formats.
-- `status(spec_file)` — Show current project manifest and spec summary.
-- `init(host, app, domain, strategy)` — Scaffold migration.yaml + redeploy.yaml for this project.
+- `plugin_cmd(ctx, subcommand, name)` — List or inspect registered redeploy plugins.
+- `blueprint_cmd()` — Extract, generate and apply DeviceBlueprints (portable deploy recipes).
+- `capture(host, name, compose_files, migration_file)` — Probe HOST and extract a DeviceBlueprint from all available sources.
+- `twin(blueprint_file, out_path, platform, port_offset)` — Generate a docker-compose.twin.yml from BLUEPRINT_FILE for local testing.
+- `deploy(blueprint_file, target_host, out_path, remote_dir)` — Generate (and optionally run) a migration.yaml for TARGET_HOST from BLUEPRINT_FILE.
+- `show(blueprint_file, fmt)` — Display a saved DeviceBlueprint.
+- `list_blueprints()` — List all saved DeviceBlueprints.
+- `detect(ctx, host, app, domain)` — Probe infrastructure and produce infra.yaml.
+- `probe(hosts, subnet, users, ssh_port)` — Autonomously probe one or more hosts — detect SSH credentials, strategy, app.
+- `diff(ci_file, host, from_src, to_src)` — Compare IaC file vs live host (drift detection).  [Phase 3 — coming soon]
+- `workflow_cmd(ctx, name, css_file, dry_run)` — Run a named workflow from redeploy.css.
+- `diagnose(ctx, spec, host, ssh_key)` — Compare a migration spec against the live target host.
+- `patterns(name)` — List available deploy patterns or show detail for one.
+- `import_cmd(source, output, target_host, target_strategy)` — Parse an IaC/CI-CD file and produce a migration.yaml scaffold.
+- `hardware(host, output_fmt, show_fix, apply_fix_component)` — Probe and diagnose hardware on a remote host.
+- `audit(last, host, app, only_failed)` — Show deploy audit log from ~/.config/redeploy/audit.jsonl.
+- `plan(ctx, infra, target, strategy)` — Generate migration-plan.yaml from infra.yaml + target config.
+- `apply(ctx, plan_file, dry_run, step)` — Execute a migration plan.
+- `migrate(ctx, host, app, domain)` — Full pipeline: detect → plan → apply.
+- `run(ctx, spec_file, dry_run, plan_only)` — Execute migration from a single YAML spec (source + target in one file).
+- `device_map_cmd(host, name, tags, save)` — Generate a full standardized device snapshot (hardware + infra + diagnostics).
 - `version_cmd()` — Declarative version management: bump, verify, diff.
 - `version_current(manifest, package_name, all_packages)` — Show current version from manifest.
 - `version_list(manifest, package_name, all_packages)` — List all version sources and their values.
@@ -354,33 +415,6 @@ redeploy/
 - `version_set(version, manifest_path_str, package_name, all_packages)` — Set an explicit version across all manifest sources.
 - `version_init(scan, review, interactive, excluded_paths)` — Initialize .redeploy/version.yaml manifest.
 - `version_diff(manifest, package_name, all_packages, spec)` — Compare manifest version vs spec vs live.
-- `plugin_cmd(ctx, subcommand, name)` — List or inspect registered redeploy plugins.
-- `probe(hosts, subnet, users, ssh_port)` — Autonomously probe one or more hosts — detect SSH credentials, strategy, app.
-- `diff(ci_file, host, from_src, to_src)` — Compare IaC file vs live host (drift detection).  [Phase 3 — coming soon]
-- `detect(ctx, host, app, domain)` — Probe infrastructure and produce infra.yaml.
-- `get_pattern(name)` — Return pattern class by name, or None if not found.
-- `list_patterns()` — Return all registered pattern names.
-- `diagnose(ctx, spec, host, ssh_key)` — Compare a migration spec against the live target host.
-- `workflow_cmd(ctx, name, css_file, dry_run)` — Run a named workflow from redeploy.css.
-- `import_cmd(source, output, target_host, target_strategy)` — Parse an IaC/CI-CD file and produce a migration.yaml scaffold.
-- `patterns(name)` — List available deploy patterns or show detail for one.
-- `audit(last, host, app, only_failed)` — Show deploy audit log from ~/.config/redeploy/audit.jsonl.
-- `parse_docker_ps(output)` — Parse 'docker ps --format "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}|{{.State}}"' output.
-- `parse_container_line(line)` — Parse a single NAME|STATUS|IMAGE pipe-delimited container line.
-- `parse_system_info(output)` — Parse KEY:VALUE system info lines (HOSTNAME, UPTIME, DISK, MEM, LOAD) into a dict.
-- `parse_diagnostics(output)` — Parse multi-section SSH diagnostics output into structured dict.
-- `parse_health_info(output)` — Parse health-check SSH output (HOSTNAME, UPTIME, HEALTH, DISK, LOAD) into a dict.
-- `load_migration_spec(path)` — Load a deployment spec from disk.
-- `audit_spec(spec_path)` — Convenience: load spec from file and run an audit.
-- `browser_reload(ctx)` — —
-- `register_plugin(name)` — Decorator shortcut: @register_plugin('browser_reload').
-- `load_user_plugins()` — Load user plugins from project-local and user-global directories.
-- `main()` — CLI entry point for running Python migrations.
-- `plan(ctx, infra, target, strategy)` — Generate migration-plan.yaml from infra.yaml + target config.
-- `apply(ctx, plan_file, dry_run, step)` — Execute a migration plan.
-- `migrate(ctx, host, app, domain)` — Full pipeline: detect → plan → apply.
-- `run(ctx, spec_file, dry_run, plan_only)` — Execute migration from a single YAML spec (source + target in one file).
-- `systemd_reload(ctx)` — —
 - `ssh(host, command, timeout, check)` — Execute a command on a remote host via SSH.
 - `ssh_available(host, timeout, interval)` — Wait for SSH to become available on a host.
 - `rsync(src, dst, exclude, delete)` — Synchronize files using rsync.
@@ -388,20 +422,25 @@ redeploy/
 - `wait(seconds, message)` — Wait for specified seconds.
 - `http_expect(url, expect, timeout, retries)` — Verify HTTP endpoint returns expected content.
 - `version_check(manifest_path, expect, host, url)` — Verify deployed version matches expectation.
+- `discover(subnet, ssh_users, ssh_port, ping)` — Discover SSH-accessible hosts in the local network.
+- `update_registry(hosts, registry, save)` — Merge discovered hosts into DeviceRegistry and optionally save.
+- `auto_probe(ip_or_host, users, port, timeout)` — Autonomously probe a host — try all available SSH keys and users.
+- `browser_reload(ctx)` — —
+- `main()` — CLI entry point for running Python migrations.
+- `process_control(ctx)` — Kill processes on specified ports.
+- `register_plugin(name)` — Decorator shortcut: @register_plugin('browser_reload').
+- `load_user_plugins()` — Load user plugins from project-local and user-global directories.
+- `audit_spec(spec_path)` — Convenience: load spec from file and run an audit.
 - `parse_markpact_file(path)` — —
 - `parse_markpact_text(text)` — —
 - `parse_markpact_file_with_refs(path)` — Parse markpact file and extract all referenced scripts.
 - `extract_script_by_ref(text, ref_id, language)` — Extract script from codeblock marked with markpact:ref <ref_id>.
 - `extract_script_from_markdown(text, section_id, language)` — Extract script content from a markdown code block by section heading.
+- `notify(ctx)` — —
+- `systemd_reload(ctx)` — —
 - `compile_markpact_document(document)` — —
 - `compile_markpact_document_to_data(document)` — —
 - `rollback_steps(completed_steps, probe, state)` — Rollback completed steps in reverse order.
-- `notify(ctx)` — —
-- `bump_version(manifest, bump_type, new_version)` — Bump version across all sources atomically.
-- `verify_sources(manifest)` — Verify all sources are in sync with manifest.version.
-- `bump_version_with_git(manifest, bump_type, repo_path, new_version)` — Bump version with optional git integration.
-- `bump_package(manifest, package_name, bump_type, new_version)` — Bump version of a single package in a monorepo manifest.
-- `bump_all_packages(manifest, bump_type)` — Bump all packages in a monorepo manifest independently.
 - `run_ssh(step, probe)` — Execute SSH command on remote host.
 - `run_scp(step, probe, plan)` — Copy file via SCP.
 - `run_rsync(step, probe, plan)` — Sync files via rsync.
@@ -414,26 +453,33 @@ redeploy/
 - `run_plugin(step, probe, plan, emitter)` — Dispatch to a registered plugin handler.
 - `run_wait(step)` — Wait for specified number of seconds.
 - `run_inline_script(step, probe, plan)` — Execute multiline bash script via SSH using base64 encoding.
+- `verify_data_integrity(ctx, local_counts, remote_counts)` — Compare local vs remote SQLite row counts and record results in *ctx*.
 - `get_commits_since_tag(repo_path, tag)` — Get commit messages since tag.
-- `discover(subnet, ssh_users, ssh_port, ping)` — Discover SSH-accessible hosts in the local network.
-- `update_registry(hosts, registry, save)` — Merge discovered hosts into DeviceRegistry and optionally save.
-- `auto_probe(ip_or_host, users, port, timeout)` — Autonomously probe a host — try all available SSH keys and users.
-- `parse_file(path)` — Parse a single file with auto-detected format.
-- `parse_dir(root, recursive, skip_errors)` — Parse all recognised files under *root*.
+- `bump_version(manifest, bump_type, new_version)` — Bump version across all sources atomically.
+- `verify_sources(manifest)` — Verify all sources are in sync with manifest.version.
+- `bump_version_with_git(manifest, bump_type, repo_path, new_version)` — Bump version with optional git integration.
+- `bump_package(manifest, package_name, bump_type, new_version)` — Bump version of a single package in a monorepo manifest.
+- `bump_all_packages(manifest, bump_type)` — Bump all packages in a monorepo manifest independently.
 - `build_context(state, probe, manifest)` — Flatten InfraState + ProbeResult into a flat dict for condition evaluation.
+- `extract_blueprint()` — Build a DeviceBlueprint by reconciling all available sources.
+- `generate_twin(blueprint)` — Render a docker-compose YAML string for a local digital-twin.
+- `generate_migration(blueprint)` — Render a migration.yaml for deploying blueprint to *target_host*.
 - `load_css(path)` — Parse ``redeploy.css`` and return manifest + templates + workflows.
 - `load_css_text(text, source_file)` — Parse CSS text directly (for tests).
 - `manifest_to_css(manifest, app)` — Render a ProjectManifest back to ``redeploy.css`` format.
 - `templates_to_css(templates)` — Render DetectionTemplate list to CSS block.
-- `diff_manifest_vs_spec(manifest, spec_version)` — Compare manifest version vs migration.yaml target.version.
-- `diff_manifest_vs_live(manifest, live_version)` — Compare manifest version vs live deployed version.
-- `format_diff_report(diffs, manifest_version)` — Format diff results as human-readable report.
+- `migration(name, version, description, author)` — Decorator to mark a function as a migration.
+- `parse_file(path)` — Parse a single file with auto-detected format.
+- `parse_dir(root, recursive, skip_errors)` — Parse all recognised files under *root*.
+- `hardware_diagnostic(ctx)` — Perform hardware diagnostics and provide recommendations.
+- `get_adapter(format_name)` — Get adapter by format name.
+- `register_adapter(format_name, adapter)` — Register custom adapter.
 - `parse_conventional(message)` — Parse a conventional commit message.
 - `analyze_commits(since_tag, repo_path, config)` — Analyze commits since tag to determine bump type.
 - `format_analysis_report(analysis)` — Format bump analysis as human-readable report.
-- `migration(name, version, description, author)` — Decorator to mark a function as a migration.
-- `get_adapter(format_name)` — Get adapter by format name.
-- `register_adapter(format_name, adapter)` — Register custom adapter.
+- `diff_manifest_vs_spec(manifest, spec_version)` — Compare manifest version vs migration.yaml target.version.
+- `diff_manifest_vs_live(manifest, live_version)` — Compare manifest version vs live deployed version.
+- `format_diff_report(diffs, manifest_version)` — Format diff results as human-readable report.
 - `state_key(spec_path, host)` — Stable, filesystem-safe identifier for one (spec, host) checkpoint.
 - `default_state_path(spec_path, host, base_dir)` — —
 - `filter_resumable(step_ids, state)` — Return ids that are NOT yet completed (preserves order).
@@ -451,15 +497,23 @@ redeploy/
 📄 `redeploy.apply.rollback` (1 functions)
 📄 `redeploy.apply.state` (13 functions, 1 classes)
 📄 `redeploy.audit` (32 functions, 6 classes)
-📦 `redeploy.cli` (3 functions)
+📦 `redeploy.blueprint`
+📄 `redeploy.blueprint.extractor` (8 functions)
+📦 `redeploy.blueprint.generators`
+📄 `redeploy.blueprint.generators.docker_compose` (2 functions)
+📄 `redeploy.blueprint.generators.migration` (1 functions)
+📄 `redeploy.cli`
 📦 `redeploy.cli.commands`
 📄 `redeploy.cli.commands.audit` (1 functions)
+📄 `redeploy.cli.commands.blueprint` (7 functions)
 📄 `redeploy.cli.commands.detect` (1 functions)
+📄 `redeploy.cli.commands.device_map` (4 functions)
 📄 `redeploy.cli.commands.devices` (4 functions)
 📄 `redeploy.cli.commands.diagnose` (1 functions)
 📄 `redeploy.cli.commands.diff` (1 functions)
 📄 `redeploy.cli.commands.exec_` (6 functions)
 📄 `redeploy.cli.commands.export` (6 functions)
+📄 `redeploy.cli.commands.hardware` (1 functions)
 📄 `redeploy.cli.commands.import_` (4 functions)
 📄 `redeploy.cli.commands.init` (1 functions)
 📄 `redeploy.cli.commands.inspect` (2 functions)
@@ -476,12 +530,13 @@ redeploy/
 📄 `redeploy.cli.display` (16 functions)
 📄 `redeploy.data_sync` (2 functions)
 📦 `redeploy.detect`
-📄 `redeploy.detect.detector` (3 functions, 1 classes)
+📄 `redeploy.detect.detector` (4 functions, 1 classes)
+📄 `redeploy.detect.hardware` (11 functions)
 📄 `redeploy.detect.probes` (9 functions)
 📄 `redeploy.detect.remote`
 📄 `redeploy.detect.templates` (10 functions, 5 classes)
 📄 `redeploy.detect.workflow` (12 functions, 3 classes)
-📄 `redeploy.discovery` (25 functions, 2 classes)
+📄 `redeploy.discovery` (26 functions, 2 classes)
 📦 `redeploy.dsl`
 📄 `redeploy.dsl.loader` (12 functions, 3 classes)
 📄 `redeploy.dsl.parser` (8 functions, 2 classes)
@@ -503,7 +558,7 @@ redeploy/
 📄 `redeploy.markpact.compiler` (6 functions, 1 classes)
 📄 `redeploy.markpact.models` (2 classes)
 📄 `redeploy.markpact.parser` (9 functions, 1 classes)
-📄 `redeploy.models` (21 functions, 20 classes)
+📄 `redeploy.models` (31 functions, 32 classes)
 📄 `redeploy.observe` (14 functions, 3 classes)
 📄 `redeploy.parse` (10 functions)
 📄 `redeploy.patterns` (11 functions, 4 classes)
@@ -512,7 +567,9 @@ redeploy/
 📦 `redeploy.plugins` (10 functions, 2 classes)
 📦 `redeploy.plugins.builtin`
 📄 `redeploy.plugins.builtin.browser_reload` (3 functions)
+📄 `redeploy.plugins.builtin.hardware_diagnostic` (11 functions, 1 classes)
 📄 `redeploy.plugins.builtin.notify` (7 functions)
+📄 `redeploy.plugins.builtin.process_control` (3 functions)
 📄 `redeploy.plugins.builtin.systemd_reload` (2 functions)
 📄 `redeploy.spec_loader` (1 functions, 2 classes)
 📄 `redeploy.ssh` (17 functions, 4 classes)
