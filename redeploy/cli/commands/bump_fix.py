@@ -58,13 +58,18 @@ def _bump_version_file(version_file: Path, console: Console) -> str:
 
 
 def _update_migration_header(spec_path: Path, new_version: str) -> None:
-    """Update 'version:' line in spec file header if present."""
+    """Update version references in spec file header.
+
+    Handles multiple formats:
+      version: 1.0.30
+      name: "c2004 pi109 deploy v1.0.30"
+      description: "Deploy c2004 v1.0.30 na ..."
+    """
     text = spec_path.read_text()
-    updated = re.sub(
-        r"^(version:\s*)[\w\.\-]+",
-        lambda m: f"{m.group(1)}{new_version}",
-        text, flags=re.MULTILINE
-    )
+    # ^version: x.y.z
+    updated = re.sub(r"^(version:\s*)[\w\.\-]+", lambda m: f"{m.group(1)}{new_version}", text, flags=re.MULTILINE)
+    # name/description: "... vX.Y.Z ..."
+    updated = re.sub(r'((?:name|description):\s*"[^"]*\bv)\d+\.\d+\.\d+', lambda m: f"{m.group(1)}{new_version}", updated)
     if updated != text:
         spec_path.write_text(updated)
 
