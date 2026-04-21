@@ -291,14 +291,12 @@ class DockerComposeParser:
                 pass
         return env
 
-    def _parse_service(self, name: str, cfg: dict,
-                       env_context: dict[str, str],
-                       spec: ParsedSpec) -> ServiceInfo:
-        def resolve(v: object) -> str:
-            return _resolve_var(str(v), env_context) if v is not None else ""
-
-        # image / build
-        image = resolve(cfg.get("image")) or None
+    def _resolve_image_and_build(
+        self,
+        cfg: dict,
+        env_context: dict[str, str],
+    ) -> tuple[Optional[str], Optional[str]]:
+        image = _resolve_var(str(cfg.get("image")), env_context) if cfg.get("image") is not None else None
         build = cfg.get("build")
         build_context: Optional[str] = None
         if build:
@@ -308,8 +306,15 @@ class DockerComposeParser:
                 build_context = build.get("context", ".")
             if not image:
                 image = f"<build:{build_context or '.'}>"
+        return image, build_context
 
-        # ports
+    def _parse_service_ports(
+        self,
+        name: str,
+        cfg: dict,
+        env_context: dict[str, str],
+        spec: ParsedSpec,
+    ) -> list[PortInfo]:
         ports: list[PortInfo] = []
         for raw in (cfg.get("ports") or []):
             if isinstance(raw, str):
@@ -318,75 +323,95 @@ class DockerComposeParser:
             if p:
                 ports.append(p)
             else:
-                spec.add_warning(f"[{name}] Could not parse port: {raw!r}",
-                                 severity="warn")
+                spec.add_warning(f"[{name}] Could not parse port: {raw!r}", severity="warn")
+        return ports
 
-        # volumes
+    def _parse_service_volumes(self, cfg: dict) -> list[VolumeInfo]:
         volumes: list[VolumeInfo] = []
         for raw in (cfg.get("volumes") or []):
             v = _parse_volume(raw)
             if v:
                 volumes.append(v)
+        return volumes
 
-        # environment
+    def _parse_service_env(
+        self,
+        cfg: dict,
+        env_context: dict[str, str],
+    ) -> dict[str, str]:
         env = _env_dict(cfg.get("environment"))
-        # resolve variables
-        env = {k: _resolve_var(v, env_context) for k, v in env.items()}
+        return {k: _resolve_var(v, env_context) for k, v in env.items()}
 
-        # env_file
-        env_files: list[str] = []
+    def _parse_service_env_files(self, cfg: dict) -> list[str]:
         ef = cfg.get("env_file")
-        if ef:
-            if isinstance(ef, str):
-                env_files = [ef]
-            elif isinstance(ef, list):
-                env_files = [str(x) for x in ef]
+        if not ef:
+            return []
+        if isinstance(ef, str):
+            return [ef]
+        if isinstance(ef, list):
+            return [str(x) for x in ef]
+        return []
 
-        # networks
+    def _parse_service_networks(self, cfg: dict) -> list[str]:
         svc_nets = cfg.get("networks")
         if isinstance(svc_nets, dict):
-            svc_networks = list(svc_nets.keys())
-        elif isinstance(svc_nets, list):
-            svc_networks = [str(n) for n in svc_nets]
-        else:
-            svc_networks = []
+            return list(svc_nets.keys())
+        if isinstance(svc_nets, list):
+            return [str(n) for n in svc_nets]
+        return []
 
-        # depends_on
+    def _parse_service_depends_on(self, cfg: dict) -> list[str]:
         dep = cfg.get("depends_on")
         if isinstance(dep, list):
-            depends_on = [str(d) for d in dep]
-        elif isinstance(dep, dict):
-            depends_on = list(dep.keys())
-        else:
-            depends_on = []
+            return [str(d) for d in dep]
+        if isinstance(dep, dict):
+            return list(dep.keys())
+        return []
 
-        # healthcheck
+    def _parse_service_healthcheck(self, cfg: dict) -> Optional[str]:
         hc = cfg.get("healthcheck")
-        healthcheck: Optional[str] = None
         if isinstance(hc, dict):
             test = hc.get("test")
             if isinstance(test, list):
                 test = " ".join(str(t) for t in test)
-            healthcheck = str(test) if test else None
+            return str(test) if test else None
+        return None
 
-        # deploy.replicas
+    def _parse_service_replicas(self, cfg: dict) -> int:
         deploy = cfg.get("deploy") or {}
-        replicas = 1
         if isinstance(deploy, dict):
-            replicas = int(deploy.get("replicas", 1))
+            return int(deploy.get("replicas", 1))
+        return 1
 
-        # labels
+    def _parse_service_labels(self, cfg: dict) -> dict[str, str]:
         labels_raw = cfg.get("labels")
         if isinstance(labels_raw, dict):
-            labels = {str(k): str(v) for k, v in labels_raw.items()}
-        elif isinstance(labels_raw, list):
-            labels = {}
+            return {str(k): str(v) for k, v in labels_raw.items()}
+        if isinstance(labels_raw, list):
+            labels: dict[str, str] = {}
             for item in labels_raw:
                 if "=" in str(item):
                     k, v = str(item).split("=", 1)
                     labels[k] = v
-        else:
-            labels = {}
+            return labels
+        return {}
+
+    def _parse_service_command(self, cfg: dict) -> Optional[str]:
+        return str(cfg["command"]) if cfg.get("command") else None
+
+    def _parse_service(self, name: str, cfg: dict,
+                       env_context: dict[str, str],
+                       spec: ParsedSpec) -> ServiceInfo:
+        image, build_context = self._resolve_image_and_build(cfg, env_context)
+        ports = self._parse_service_ports(name, cfg, env_context, spec)
+        volumes = self._parse_service_volumes(cfg)
+        env = self._parse_service_env(cfg, env_context)
+        env_files = self._parse_service_env_files(cfg)
+        svc_networks = self._parse_service_networks(cfg)
+        depends_on = self._parse_service_depends_on(cfg)
+        healthcheck = self._parse_service_healthcheck(cfg)
+        replicas = self._parse_service_replicas(cfg)
+        labels = self._parse_service_labels(cfg)
 
         return ServiceInfo(
             name=name,
@@ -399,7 +424,7 @@ class DockerComposeParser:
             depends_on=depends_on,
             healthcheck=healthcheck,
             restart=cfg.get("restart"),
-            command=str(cfg["command"]) if cfg.get("command") else None,
+            command=self._parse_service_command(cfg),
             build_context=build_context,
             replicas=replicas,
             labels=labels,

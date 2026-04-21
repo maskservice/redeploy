@@ -4,22 +4,22 @@
 
 - **Project**: /home/tom/github/maskservice/redeploy
 - **Primary Language**: python
-- **Languages**: python: 153, yaml: 102, md: 52, shell: 2, toml: 1
+- **Languages**: python: 158, yaml: 106, md: 52, shell: 2, yml: 1
 - **Analysis Mode**: static
-- **Total Functions**: 2570
-- **Total Classes**: 270
-- **Modules**: 314
-- **Entry Points**: 2229
+- **Total Functions**: 2607
+- **Total Classes**: 275
+- **Modules**: 323
+- **Entry Points**: 2265
 
 ## Architecture by Module
 
 ### SUMD
-- **Functions**: 904
+- **Functions**: 911
 - **Classes**: 51
 - **File**: `SUMD.md`
 
 ### project.map.toon
-- **Functions**: 740
+- **Functions**: 747
 - **File**: `map.toon.yaml`
 
 ### SUMR
@@ -64,6 +64,11 @@
 - **Functions**: 20
 - **File**: `handlers.py`
 
+### redeploy.heal
+- **Functions**: 20
+- **Classes**: 2
+- **File**: `heal.py`
+
 ### redeploy.cli.commands.version.scanner
 - **Functions**: 18
 - **File**: `scanner.py`
@@ -101,11 +106,6 @@
 - **Functions**: 13
 - **Classes**: 6
 - **File**: `templates.py`
-
-### redeploy.apply.state
-- **Functions**: 13
-- **Classes**: 1
-- **File**: `state.py`
 
 ## Key Entry Points
 
@@ -173,9 +173,6 @@ E
 Checks DSI display, DRM connectors, backlight controller, I2C buses,
 config.txt overlays and Wayland co
 - **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.heal.HealRunner.run
-- **Calls**: self._make_executor, executor.run, self.console.print, range, SUMD.write_repair_log, self.console.print, SUMD.write_repair_log, SUMD.parse_failed_step
 
 ### redeploy.cli.commands.bump_fix.fix_cmd
 > Self-healing deploy: bump version, then run with LLM auto-fix on failure.
@@ -272,6 +269,12 @@ Ex
 With --workflow: multi-host detection with template scoring.
 Reads hosts from redeploy.yaml / redeploy.c
 - **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
+
+### redeploy.heal.runner.HealRunner._heal_step
+> Single heal iteration: diagnose → LLM → decide.
+
+Returns *(decision, failed_step, loop_hint)*.
+- **Calls**: SUMD.parse_failed_step, self.console.print, self.console.print, SUMD.collect_diagnostics, next, self.console.print, self.spec_path.read_text, SUMD.ask_llm
 
 ### redeploy.iac.docker_compose.DockerComposeParser.parse
 - **Calls**: ParsedSpec, self._load_merged, self._load_dotenv, set, services_raw.items, spec.runtime_hints.append, spec.add_warning, data.get
@@ -413,6 +416,16 @@ Each event is a YAML document (
 - **Methods**: 11
 - **Key Methods**: redeploy.apply.progress.ProgressEmitter.__init__, redeploy.apply.progress.ProgressEmitter._ts, redeploy.apply.progress.ProgressEmitter._elapsed, redeploy.apply.progress.ProgressEmitter._emit, redeploy.apply.progress.ProgressEmitter.start, redeploy.apply.progress.ProgressEmitter.step_start, redeploy.apply.progress.ProgressEmitter.step_done, redeploy.apply.progress.ProgressEmitter.step_fail, redeploy.apply.progress.ProgressEmitter.progress, redeploy.apply.progress.ProgressEmitter.done
 
+### redeploy.heal.HealRunner
+> Wraps Executor with self-healing loop.
+
+Parameters
+----------
+migration : Migration
+    Planned migr
+- **Methods**: 11
+- **Key Methods**: redeploy.heal.HealRunner.__init__, redeploy.heal.HealRunner._make_executor, redeploy.heal.HealRunner._reload_migration, redeploy.heal.HealRunner._run_executor_attempt, redeploy.heal.HealRunner._collect_diag_with_hint, redeploy.heal.HealRunner._extract_diag_hint, redeploy.heal.HealRunner._ask_and_apply_fix, redeploy.heal.HealRunner._record_repair, redeploy.heal.HealRunner._is_repeating_loop, redeploy.heal.HealRunner._retry_after_heal
+
 ### redeploy.apply.state.ResumeState
 > Checkpoint for a single MigrationPlan execution.
 - **Methods**: 10
@@ -423,6 +436,12 @@ Each event is a YAML document (
 > Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
 - **Methods**: 9
 - **Key Methods**: redeploy.models.DeviceRegistry.get, redeploy.models.DeviceRegistry.upsert, redeploy.models.DeviceRegistry.remove, redeploy.models.DeviceRegistry.by_tag, redeploy.models.DeviceRegistry.by_strategy, redeploy.models.DeviceRegistry.reachable, redeploy.models.DeviceRegistry.default_path, redeploy.models.DeviceRegistry.load, redeploy.models.DeviceRegistry.save
+- **Inherits**: BaseModel
+
+### redeploy.models.HardwareInfo
+> Hardware state produced by hardware probe.
+- **Methods**: 8
+- **Key Methods**: redeploy.models.HardwareInfo.has_dsi, redeploy.models.HardwareInfo.kms_enabled, redeploy.models.HardwareInfo.dsi_connected, redeploy.models.HardwareInfo.dsi_physically_connected, redeploy.models.HardwareInfo.dsi_enabled, redeploy.models.HardwareInfo.backlight_on, redeploy.models.HardwareInfo.errors, redeploy.models.HardwareInfo.warnings
 - **Inherits**: BaseModel
 
 ### redeploy.audit.AuditReport
@@ -440,26 +459,12 @@ Each event is a YAML document (
 - **Key Methods**: redeploy.version.manifest.VersionManifest.load, redeploy.version.manifest.VersionManifest.save, redeploy.version.manifest.VersionManifest.format_version, redeploy.version.manifest.VersionManifest.get_source_paths, redeploy.version.manifest.VersionManifest.get_package, redeploy.version.manifest.VersionManifest.list_packages, redeploy.version.manifest.VersionManifest.is_monorepo, redeploy.version.manifest.VersionManifest.get_all_package_versions
 - **Inherits**: BaseModel
 
-### redeploy.models.HardwareInfo
-> Hardware state produced by hardware probe.
-- **Methods**: 8
-- **Key Methods**: redeploy.models.HardwareInfo.has_dsi, redeploy.models.HardwareInfo.kms_enabled, redeploy.models.HardwareInfo.dsi_connected, redeploy.models.HardwareInfo.dsi_physically_connected, redeploy.models.HardwareInfo.dsi_enabled, redeploy.models.HardwareInfo.backlight_on, redeploy.models.HardwareInfo.errors, redeploy.models.HardwareInfo.warnings
-- **Inherits**: BaseModel
-
 ### redeploy.observe.DeployAuditLog
 > Persistent audit log — newline-delimited JSON at ``path``.
 
 Default path: ``~/.config/redeploy/audit
 - **Methods**: 7
 - **Key Methods**: redeploy.observe.DeployAuditLog.__init__, redeploy.observe.DeployAuditLog.record, redeploy.observe.DeployAuditLog._append, redeploy.observe.DeployAuditLog.load, redeploy.observe.DeployAuditLog.tail, redeploy.observe.DeployAuditLog.filter, redeploy.observe.DeployAuditLog.clear
-
-### redeploy.fleet.FleetDevice
-> Generic device descriptor — superset of ``deploy``'s DeviceConfig.
-
-All fields from ``deploy.core.mo
-- **Methods**: 7
-- **Key Methods**: redeploy.fleet.FleetDevice.ssh_user, redeploy.fleet.FleetDevice.ssh_ip, redeploy.fleet.FleetDevice.is_local, redeploy.fleet.FleetDevice.is_prod, redeploy.fleet.FleetDevice.has_tag, redeploy.fleet.FleetDevice.has_expectation, redeploy.fleet.FleetDevice.verify_expectations
-- **Inherits**: BaseModel
 
 ## Data Transformation Functions
 
@@ -577,6 +582,11 @@ Returns:
 - **Confidence**: 0.90
 - **Functions**: redeploy.dsl_python.decorators.MigrationRegistry.list
 
+### recursion__deep_merge
+- **Type**: recursion
+- **Confidence**: 0.90
+- **Functions**: redeploy.markpact.compiler._deep_merge
+
 ### recursion__parse_port
 - **Type**: recursion
 - **Confidence**: 0.90
@@ -587,10 +597,10 @@ Returns:
 - **Confidence**: 0.90
 - **Functions**: redeploy.iac.docker_compose._deep_merge
 
-### recursion__deep_merge
-- **Type**: recursion
-- **Confidence**: 0.90
-- **Functions**: redeploy.markpact.compiler._deep_merge
+### state_machine_HardwareInfo
+- **Type**: state_machine
+- **Confidence**: 0.70
+- **Functions**: redeploy.models.HardwareInfo.has_dsi, redeploy.models.HardwareInfo.kms_enabled, redeploy.models.HardwareInfo.dsi_connected, redeploy.models.HardwareInfo.dsi_physically_connected, redeploy.models.HardwareInfo.dsi_enabled
 
 ### state_machine_step
 - **Type**: state_machine
@@ -622,11 +632,6 @@ Returns:
 - **Confidence**: 0.70
 - **Functions**: redeploy.apply.executor.Executor.__init__, redeploy.apply.executor.Executor.completed_steps, redeploy.apply.executor.Executor.state, redeploy.apply.executor.Executor.state_path, redeploy.apply.executor.Executor.run
 
-### state_machine_HardwareInfo
-- **Type**: state_machine
-- **Confidence**: 0.70
-- **Functions**: redeploy.models.HardwareInfo.has_dsi, redeploy.models.HardwareInfo.kms_enabled, redeploy.models.HardwareInfo.dsi_connected, redeploy.models.HardwareInfo.dsi_physically_connected, redeploy.models.HardwareInfo.dsi_enabled
-
 ## Public API Surface
 
 Functions exposed as public API (no underscore prefix):
@@ -640,7 +645,6 @@ Functions exposed as public API (no underscore prefix):
 - `redeploy.cli.commands.plan_apply.run` - 49 calls
 - `redeploy.integrations.op3_bridge.snapshot_to_hardware_info` - 49 calls
 - `redeploy.cli.commands.hardware.hardware` - 47 calls
-- `redeploy.heal.HealRunner.run` - 45 calls
 - `redeploy.cli.commands.bump_fix.fix_cmd` - 44 calls
 - `redeploy.cli.commands.plan_apply.migrate` - 43 calls
 - `redeploy.cli.commands.plan_apply.plan` - 41 calls
@@ -671,6 +675,7 @@ Functions exposed as public API (no underscore prefix):
 - `redeploy.plugins.builtin.browser_reload.browser_reload` - 26 calls
 - `redeploy.apply.handlers.run_ensure_kanshi_profile` - 26 calls
 - `redeploy.version.commits.analyze_commits` - 25 calls
+- `redeploy.cli.commands.version.commands.version_current` - 24 calls
 
 ## System Interactions
 
@@ -705,9 +710,9 @@ graph TD
     hardware --> command
     hardware --> argument
     hardware --> option
-    run --> _make_executor
-    run --> run
-    run --> print
+    fix_cmd --> command
+    fix_cmd --> argument
+    fix_cmd --> option
 ```
 
 ## Reverse Engineering Guidelines

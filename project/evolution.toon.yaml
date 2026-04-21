@@ -1,4 +1,4 @@
-# code2llm/evolution | 2545 func | 134f | 2026-04-21
+# code2llm/evolution | 2582 func | 139f | 2026-04-21
 
 NEXT[10] (ranked by impact):
   [1] !! SPLIT           redeploy/models.py
@@ -51,7 +51,7 @@ METRICS-TARGET:
   CC̄:          1.6 → ≤1.1
   max-CC:      37 → ≤18
   god-modules: 7 → 0
-  high-CC(≥15): 38 → ≤19
+  high-CC(≥15): 37 → ≤18
   hub-types:   0 → ≤0
 
 PATTERNS (language parser shared logic):

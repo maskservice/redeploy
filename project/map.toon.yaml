@@ -1,11 +1,11 @@
-# redeploy | 217f 40292L | python:214,shell:2,less:1 | 2026-04-21
-# stats: 747 func | 350 cls | 217 mod | CC̄=4.7 | critical:84 | cycles:0
+# redeploy | 227f 41438L | python:224,shell:2,less:1 | 2026-04-21
+# stats: 766 func | 359 cls | 227 mod | CC̄=4.7 | critical:84 | cycles:0
 # alerts[5]: CC probe=26; CC version_init=26; CC _bump_single=25; CC _build_manifest=25; CC extract_blueprint=22
 # hotspots[5]: fix_cmd fan=29; hardware fan=28; device_map_cmd fan=27; version_init fan=26; import_cmd fan=25
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[217]:
-  app.doql.less,60
+M[227]:
+  app.doql.less,65
   examples/redeploy_iac_parsers/argocd_flux.py,130
   examples/redeploy_iac_parsers/gitops_ci.py,138
   examples/redeploy_iac_parsers/helm_ansible.py,95
@@ -110,7 +110,13 @@ M[217]:
   redeploy/hardware/kiosk/output_profiles.py,69
   redeploy/hardware/panels.py,52
   redeploy/hardware/raspi_config.py,33
-  redeploy/heal.py,452
+  redeploy/heal/__init__.py,38
+  redeploy/heal/decider.py,86
+  redeploy/heal/hint_provider.py,204
+  redeploy/heal/log_writer.py,52
+  redeploy/heal/loop_detector.py,62
+  redeploy/heal/runner.py,225
+  redeploy/heal.py,483
   redeploy/iac/__init__.py,53
   redeploy/iac/base.py,276
   redeploy/iac/config_hints.py,290
@@ -154,9 +160,11 @@ M[217]:
   redeploy/tests/test_executor.py,733
   redeploy/tests/test_fleet.py,526
   redeploy/tests/test_git_integration.py,326
-  redeploy/tests/test_heal.py,27
+  redeploy/tests/test_heal.py,84
+  redeploy/tests/test_heal_decider.py,92
   redeploy/tests/test_hooks.py,124
   redeploy/tests/test_iac.py,462
+  redeploy/tests/test_iac_compose_contract.py,182
   redeploy/tests/test_manifest.py,339
   redeploy/tests/test_markpact_compiler.py,148
   redeploy/tests/test_markpact_parser.py,94
@@ -213,6 +221,8 @@ M[217]:
   tests/test_hardware_config.py,163
   tests/test_hardware_kiosk.py,231
   tests/test_hardware_rules.py,190
+  tests/test_heal_decider.py,64
+  tests/test_heal_loop_detector.py,48
   tests/test_iac.py,512
   tests/test_iac_config_hints.py,130
   tests/test_iac_plugin_loading.py,80
@@ -797,10 +807,34 @@ D:
   redeploy/hardware/raspi_config.py:
     e: build_raspi_config_command
     build_raspi_config_command(interface;state)
+  redeploy/heal/__init__.py:
+  redeploy/heal/decider.py:
+    e: decide_after_failure,format_decision_message,Action,Decision
+    Action:
+    Decision:
+    decide_after_failure()
+    format_decision_message(decision;step_id)
+  redeploy/heal/hint_provider.py:
+    e: _ssh,collect_diagnostics,ask_llm,apply_fix_to_spec,parse_failed_step
+    _ssh(host;command)
+    collect_diagnostics(host;failed_step)
+    ask_llm(failed_step;step_output;diag;spec_text;fix_hint)
+    apply_fix_to_spec(spec_path;failed_step;llm_response)
+    parse_failed_step(executor_summary;executor)
+  redeploy/heal/log_writer.py:
+    e: write_repair_log
+    write_repair_log(spec_path;version;repairs)
+  redeploy/heal/loop_detector.py:
+    e: HealAbort,HealLoopDetector
+    HealAbort: __init__(3)  # Raised when a heal loop is detected and retries must stop.
+    HealLoopDetector: observe(2),reset(1),reset_all(0)  # Detect repeated non-converging heal hints for a given step.
+  redeploy/heal/runner.py:
+    e: HealRunner
+    HealRunner: __init__(8),_make_executor(1),_reload_migration(0),_heal_step(2),run(0)  # Wraps :class:`Executor` with a self-healing loop.
   redeploy/heal.py:
     e: _ssh,collect_diagnostics,ask_llm,apply_fix_to_spec,write_repair_log,parse_failed_step,HealLoopDetector,HealRunner
-    HealLoopDetector: __init__(1),observe(2)  # Detect repeated non-converging heal hints for a given step.
-    HealRunner: __init__(8),_make_executor(1),_reload_migration(0),run(0)  # Wraps Executor with self-healing loop.
+    HealLoopDetector: __init__(1),observe(2),reset(1)  # Detect repeated non-converging heal hints for a given step.
+    HealRunner: __init__(8),_make_executor(1),_reload_migration(0),_run_executor_attempt(1),_collect_diag_with_hint(1),_extract_diag_hint(1),_ask_and_apply_fix(3),_record_repair(5),_is_repeating_loop(3),_retry_after_heal(0),run(0)  # Wraps Executor with self-healing loop.
     _ssh(host;command)
     collect_diagnostics(host;failed_step)
     ask_llm(failed_step;step_output;diag;spec_text;fix_hint)
@@ -1132,10 +1166,22 @@ D:
     _ok(stdout;stderr)
     _fail(stdout;stderr)
   redeploy/tests/test_heal.py:
-    e: test_loop_detector_triggers_on_identical_hint_streak,test_loop_detector_does_not_trigger_for_varying_hints,test_loop_detector_tracks_each_step_independently
+    e: test_loop_detector_triggers_on_identical_hint_streak,test_loop_detector_does_not_trigger_for_varying_hints,test_loop_detector_tracks_each_step_independently,test_loop_detector_reset_clears_step_history,test_heal_runner_stops_on_repeating_hint_pattern
     test_loop_detector_triggers_on_identical_hint_streak()
     test_loop_detector_does_not_trigger_for_varying_hints()
     test_loop_detector_tracks_each_step_independently()
+    test_loop_detector_reset_clears_step_history()
+    test_heal_runner_stops_on_repeating_hint_pattern(monkeypatch;tmp_path)
+  redeploy/tests/test_heal_decider.py:
+    e: test_decide_abort_on_loop_detected,test_decide_abort_when_failed_step_unknown,test_decide_retry_on_transient_llm_error_before_limit,test_decide_abort_on_llm_error_at_retry_limit,test_decide_abort_when_retry_budget_exhausted,test_decide_retry_when_spec_was_patched,test_decide_skip_when_patch_not_applicable,test_format_decision_message_uses_action_and_reason
+    test_decide_abort_on_loop_detected()
+    test_decide_abort_when_failed_step_unknown()
+    test_decide_retry_on_transient_llm_error_before_limit()
+    test_decide_abort_on_llm_error_at_retry_limit()
+    test_decide_abort_when_retry_budget_exhausted()
+    test_decide_retry_when_spec_was_patched()
+    test_decide_skip_when_patch_not_applicable()
+    test_format_decision_message_uses_action_and_reason()
   redeploy/tests/test_hooks.py:
     e: _plan,test_legacy_post_deploy_is_migrated_to_hooks,test_executor_fires_hook_phases_on_success,test_executor_fires_failure_hooks
     _plan()
@@ -1153,6 +1199,9 @@ D:
     test_parse_dir_skip_errors(tmp_path)
     test_warning_str_with_location()
     test_warning_str_no_location()
+  redeploy/tests/test_iac_compose_contract.py:
+    e: test_compose_parse_contract_golden
+    test_compose_parse_contract_golden(tmp_path)
   redeploy/tests/test_manifest.py:
     e: _spec,_manifest,TestFindAndLoad,TestFromDotenv,TestResolveEnv,TestApplyToSpec,TestDeviceRegistry,TestKnownDevice
     TestFindAndLoad: test_finds_in_cwd(1),test_finds_in_parent(1),test_returns_none_when_missing(1),test_parses_environments(1)
@@ -1625,6 +1674,14 @@ D:
     test_all_ok_no_wayland_warns()
     test_i2c_chip_missing_flagged()
     test_i2c_chip_present_no_warn()
+  tests/test_heal_decider.py:
+    e: TestDecideAfterFailure,TestFormatDecisionMessage
+    TestDecideAfterFailure: test_loop_aborts(0),test_missing_step_aborts(0),test_max_retries_aborts(0),test_patch_retries(0),test_llm_error_retries_then_aborts(0),test_no_patch_skips(0)
+    TestFormatDecisionMessage: test_contains_action(0)
+  tests/test_heal_loop_detector.py:
+    e: TestHealLoopDetector,TestHealAbort
+    TestHealLoopDetector: test_empty_hint_ignored(0),test_loop_detected_after_n_identical(0),test_different_hints_reset(0),test_reset_clears_history(0),test_different_step_ids_isolated(0)
+    TestHealAbort: test_message(0)
   tests/test_iac.py:
     e: write_compose,TestParsedSpec,TestPortParsing,TestVolumeParsing,TestDockerComposeParserCanParse,TestDockerComposeParserBasic,TestParserRegistry,TestGlobalRegistry,TestSummary
     TestParsedSpec: test_all_images_deduplicated(0),test_all_ports_deduplicated(0),test_summary_shows_counts(0),test_add_warning(0)

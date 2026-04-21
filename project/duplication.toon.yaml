@@ -1,23 +1,29 @@
-# redup/duplication | 6 groups | 151f 25658L | 2026-04-21
+# redup/duplication | 11 groups | 157f 26350L | 2026-04-21
 
 SUMMARY:
-  files_scanned: 151
-  total_lines:   25658
-  dup_groups:    6
-  dup_fragments: 12
-  saved_lines:   78
-  scan_ms:       5698
+  files_scanned: 157
+  total_lines:   26350
+  dup_groups:    11
+  dup_fragments: 22
+  saved_lines:   190
+  scan_ms:       4574
 
 HOTSPOTS[7] (files with most duplication):
+  redeploy/heal.py  dup=112L  groups=5  frags=5  (0.4%)
+  redeploy/heal/hint_provider.py  dup=109L  groups=4  frags=4  (0.4%)
   redeploy/cli/commands/version/helpers.py  dup=38L  groups=2  frags=2  (0.1%)
   redeploy/cli/commands/version/release.py  dup=38L  groups=2  frags=2  (0.1%)
   redeploy/hardware/fixes.py  dup=26L  groups=1  frags=2  (0.1%)
   examples/redeploy_iac_parsers/argocd_flux.py  dup=20L  groups=1  frags=2  (0.1%)
   redeploy/apply/handlers.py  dup=16L  groups=1  frags=2  (0.1%)
-  redeploy/cli/commands/plan_apply.py  dup=10L  groups=1  frags=1  (0.0%)
-  redeploy/cli/commands/bump_fix.py  dup=9L  groups=1  frags=1  (0.0%)
 
-DUPLICATES[6] (ranked by impact):
+DUPLICATES[11] (ranked by impact):
+  [67d15ccee9577f3c] ! EXAC  ask_llm  L=71 N=2 saved=71 sim=1.00
+      redeploy/heal/hint_provider.py:86-156  (ask_llm)
+      redeploy/heal.py:97-167  (ask_llm)
+  [ba06f7b6ebdc9a24]   EXAC  apply_fix_to_spec  L=23 N=2 saved=23 sim=1.00
+      redeploy/heal/hint_provider.py:159-181  (apply_fix_to_spec)
+      redeploy/heal.py:170-192  (apply_fix_to_spec)
   [bb546964bbb3b9b9]   EXAC  _resolve_package_release_git_config  L=22 N=2 saved=22 sim=1.00
       redeploy/cli/commands/version/helpers.py:60-81  (_resolve_package_release_git_config)
       redeploy/cli/commands/version/release.py:114-135  (_resolve_package_release_git_config)
@@ -33,52 +39,87 @@ DUPLICATES[6] (ranked by impact):
   [af902116d9805742]   EXAC  _load_dotenv  L=9 N=2 saved=9 sim=1.00
       redeploy/cli/commands/bump_fix.py:163-171  (_load_dotenv)
       redeploy/cli/commands/plan_apply.py:480-489  (_load_dotenv)
+  [fc600e8d2f11c2ec]   EXAC  collect_diagnostics  L=8 N=2 saved=8 sim=1.00
+      redeploy/heal/hint_provider.py:76-83  (collect_diagnostics)
+      redeploy/heal.py:87-94  (collect_diagnostics)
   [069a3d8b69b2d778]   STRU  run_docker_build  L=8 N=2 saved=8 sim=1.00
       redeploy/apply/handlers.py:74-81  (run_docker_build)
       redeploy/apply/handlers.py:84-91  (run_podman_build)
+  [2bcb64b1eb9fa406]   EXAC  _ssh  L=7 N=2 saved=7 sim=1.00
+      redeploy/heal/hint_provider.py:67-73  (_ssh)
+      redeploy/heal.py:78-84  (_ssh)
+  [cd12ee27f7030458]   EXAC  reset  L=3 N=2 saved=3 sim=1.00
+      redeploy/heal/loop_detector.py:55-57  (reset)
+      redeploy/heal.py:271-273  (reset)
 
-REFACTOR[6] (ranked by priority):
-  [1] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
+REFACTOR[11] (ranked by priority):
+  [1] ◐ extract_module     → redeploy/utils/ask_llm.py
+      WHY: 2 occurrences of 71-line block across 2 files — saves 71 lines
+      FILES: redeploy/heal.py, redeploy/heal/hint_provider.py
+  [2] ○ extract_function   → redeploy/utils/apply_fix_to_spec.py
+      WHY: 2 occurrences of 23-line block across 2 files — saves 23 lines
+      FILES: redeploy/heal.py, redeploy/heal/hint_provider.py
+  [3] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
       WHY: 2 occurrences of 22-line block across 2 files — saves 22 lines
       FILES: redeploy/cli/commands/version/helpers.py, redeploy/cli/commands/version/release.py
-  [2] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
+  [4] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
       WHY: 2 occurrences of 16-line block across 2 files — saves 16 lines
       FILES: redeploy/cli/commands/version/helpers.py, redeploy/cli/commands/version/release.py
-  [3] ○ extract_function   → redeploy/hardware/utils/fix_enable_i2c.py
+  [5] ○ extract_function   → redeploy/hardware/utils/fix_enable_i2c.py
       WHY: 2 occurrences of 13-line block across 1 files — saves 13 lines
       FILES: redeploy/hardware/fixes.py
-  [4] ○ extract_function   → examples/redeploy_iac_parsers/utils/can_parse.py
+  [6] ○ extract_function   → examples/redeploy_iac_parsers/utils/can_parse.py
       WHY: 2 occurrences of 10-line block across 1 files — saves 10 lines
       FILES: examples/redeploy_iac_parsers/argocd_flux.py
-  [5] ○ extract_function   → redeploy/cli/commands/utils/_load_dotenv.py
+  [7] ○ extract_function   → redeploy/cli/commands/utils/_load_dotenv.py
       WHY: 2 occurrences of 9-line block across 2 files — saves 9 lines
       FILES: redeploy/cli/commands/bump_fix.py, redeploy/cli/commands/plan_apply.py
-  [6] ○ extract_function   → redeploy/apply/utils/run_docker_build.py
+  [8] ○ extract_function   → redeploy/utils/collect_diagnostics.py
+      WHY: 2 occurrences of 8-line block across 2 files — saves 8 lines
+      FILES: redeploy/heal.py, redeploy/heal/hint_provider.py
+  [9] ○ extract_function   → redeploy/apply/utils/run_docker_build.py
       WHY: 2 occurrences of 8-line block across 1 files — saves 8 lines
       FILES: redeploy/apply/handlers.py
+  [10] ○ extract_function   → redeploy/utils/_ssh.py
+      WHY: 2 occurrences of 7-line block across 2 files — saves 7 lines
+      FILES: redeploy/heal.py, redeploy/heal/hint_provider.py
+  [11] ○ extract_class      → redeploy/utils/reset.py
+      WHY: 2 occurrences of 3-line block across 2 files — saves 3 lines
+      FILES: redeploy/heal.py, redeploy/heal/loop_detector.py
 
-QUICK_WINS[6] (low risk, high savings — do first):
-  [1] extract_function   saved=22L  → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
+QUICK_WINS[9] (low risk, high savings — do first):
+  [2] extract_function   saved=23L  → redeploy/utils/apply_fix_to_spec.py
+      FILES: heal.py, hint_provider.py
+  [3] extract_function   saved=22L  → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
       FILES: helpers.py, release.py
-  [2] extract_function   saved=16L  → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
+  [4] extract_function   saved=16L  → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
       FILES: helpers.py, release.py
-  [3] extract_function   saved=13L  → redeploy/hardware/utils/fix_enable_i2c.py
+  [5] extract_function   saved=13L  → redeploy/hardware/utils/fix_enable_i2c.py
       FILES: fixes.py
-  [4] extract_function   saved=10L  → examples/redeploy_iac_parsers/utils/can_parse.py
+  [6] extract_function   saved=10L  → examples/redeploy_iac_parsers/utils/can_parse.py
       FILES: argocd_flux.py
-  [5] extract_function   saved=9L  → redeploy/cli/commands/utils/_load_dotenv.py
+  [7] extract_function   saved=9L  → redeploy/cli/commands/utils/_load_dotenv.py
       FILES: bump_fix.py, plan_apply.py
-  [6] extract_function   saved=8L  → redeploy/apply/utils/run_docker_build.py
+  [8] extract_function   saved=8L  → redeploy/utils/collect_diagnostics.py
+      FILES: heal.py, hint_provider.py
+  [9] extract_function   saved=8L  → redeploy/apply/utils/run_docker_build.py
       FILES: handlers.py
+  [10] extract_function   saved=7L  → redeploy/utils/_ssh.py
+      FILES: heal.py, hint_provider.py
 
-EFFORT_ESTIMATE (total ≈ 2.6h):
+EFFORT_ESTIMATE (total ≈ 7.5h):
+  hard   ask_llm                             saved=71L  ~213min
+  medium apply_fix_to_spec                   saved=23L  ~46min
   medium _resolve_package_release_git_config saved=22L  ~44min
   medium _resolve_package_release_changelog_config saved=16L  ~32min
   easy   fix_enable_i2c                      saved=13L  ~26min
   easy   can_parse                           saved=10L  ~20min
   easy   _load_dotenv                        saved=9L  ~18min
+  easy   collect_diagnostics                 saved=8L  ~16min
   easy   run_docker_build                    saved=8L  ~16min
+  easy   _ssh                                saved=7L  ~14min
+  ... +1 more (~6min)
 
 METRICS-TARGET:
-  dup_groups:  6 → 0
-  saved_lines: 78 lines recoverable
+  dup_groups:  11 → 0
+  saved_lines: 190 lines recoverable

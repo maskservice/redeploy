@@ -1,7 +1,7 @@
 <!-- code2docs:start --># redeploy
 
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2700-green)
-> **2700** functions | **270** classes | **321** files | CC̄ = 5.1
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2739-green)
+> **2739** functions | **275** classes | **331** files | CC̄ = 5.1
 
 > Auto-generated project documentation from source code analysis.
 
@@ -67,32 +67,6 @@ config = Code2DocsConfig(project_name="mylib", verbose=True)
 docs = generate_docs("./my-project", config=config)
 ```
 
-## Deploy hooks (spec note)
-
-Migration specs now use generic top-level `hooks:` instead of ad-hoc
-`post_deploy`/`pre_deploy` fields.
-
-Example:
-
-```yaml
-hooks:
-    - id: before_sync_env_note
-        phase: before_step
-        when: "step.id == 'sync_env'"
-        action: local_cmd
-        command: "echo '[hook] preparing sync_env'"
-        on_failure: continue
-
-    - id: refresh_cache
-        phase: after_apply
-        action: local_cmd
-        command: "curl -fsS -X POST http://localhost:8100/api/v3/cache/clear || true"
-        on_failure: warn
-```
-
-Legacy `post_deploy`/`pre_deploy` is still accepted and auto-converted to
-`hooks` while maintaining backward compatibility.
-
 
 
 
@@ -109,9 +83,12 @@ redeploy/
 ├── DOQL-INTEGRATION
 ├── pyqual
 ├── sumd
+├── pyproject
 ├── tree
 ├── TODO
+├── CHANGELOG
 ├── project
+├── README
     ├── patterns
     ├── markpact-implementation-plan
     ├── fleet
@@ -129,7 +106,8 @@ redeploy/
     ├── observe
     ├── cli/
     ├── data_sync
-    ├── heal
+    ├── heal/
+├── redeploy/
     ├── parse
     ├── fleet
     ├── models
@@ -151,6 +129,11 @@ redeploy/
         ├── probes
         ├── builtin/
             ├── templates
+        ├── decider
+        ├── hint_provider
+        ├── loop_detector
+        ├── runner
+        ├── log_writer
         ├── builtins
         ├── kiosk
     ├── steps/
@@ -345,6 +328,7 @@ redeploy/
             ├── test-local-c05a99a2
             ├── test-local-ec3c5638
             ├── test-local-1862711e
+            ├── test-local-bcb75e42
             ├── test-local-ec6ccce4
             ├── test-local-eac354f9
             ├── migration-local-92efc860
@@ -352,6 +336,7 @@ redeploy/
             ├── test-local-46c5e2ce
             ├── test-local-abe8802f
             ├── test-local-831fd1ab
+            ├── test-local-0e863125
             ├── test-local-2859ad55
             ├── test-local-e1009318
             ├── test-local-563ceb24
@@ -364,6 +349,8 @@ redeploy/
             ├── test-local-ee51c059
             ├── test-local-c1ec6b35
             ├── test-local-ea908429
+            ├── test-local-5e8acada
+            ├── test-local-c89d7b36
             ├── test-local-7f5ddd97
             ├── test-local-179edfed
             ├── test-local-e3a0f31a
@@ -401,19 +388,15 @@ redeploy/
         ├── context
         ├── README
             ├── toon
-├── pyproject
     ├── prompt
-├── README
         ├── toon
     ├── context
-├── CHANGELOG
+        ├── toon
+        ├── toon
     ├── README
-        ├── toon
-        ├── toon
         ├── toon
     ├── calls
         ├── toon
-├── redeploy/
 ```
 
 ## API Overview
@@ -596,6 +579,11 @@ redeploy/
 - **`HostDetectionResult`** — Full detection result for a single host.
 - **`WorkflowResult`** — Aggregated result across all probed hosts.
 - **`DetectionWorkflow`** — Multi-host detection workflow with template scoring.
+- **`Action`** — —
+- **`Decision`** — —
+- **`HealAbort`** — Raised when a heal loop is detected and retries must stop.
+- **`HealLoopDetector`** — Detect repeated non-converging heal hints for a given step.
+- **`HealRunner`** — Wraps :class:`Executor` with a self-healing loop.
 - **`StepLibrary`** — Registry of pre-defined named MigrationSteps.
 - **`PluginContext`** — Passed to every plugin handler.
 - **`PluginRegistry`** — Central registry mapping plugin_type strings to handler callables.
@@ -992,6 +980,12 @@ redeploy/
 - `test_manifest_to_css_roundtrip()` — —
 - `test_templates_to_css()` — —
 - `test_load_css_file()` — —
+- `test_loop_detector_triggers_on_identical_hint_streak()` — —
+- `test_loop_detector_does_not_trigger_for_varying_hints()` — —
+- `test_loop_detector_tracks_each_step_independently()` — —
+- `test_legacy_post_deploy_is_migrated_to_hooks()` — —
+- `test_executor_fires_hook_phases_on_success()` — —
+- `test_executor_fires_failure_hooks()` — —
 - `test_parse_file()` — —
 - `test_parse_dir()` — —
 - `test_parse_dir_skip_errors()` — —
@@ -1347,6 +1341,8 @@ redeploy/
 - `list_saved()` — —
 - `snapshot_command()` — —
 - `cmd()` — —
+- `notify_slack()` — —
+- `notify_slack()` — —
 - `print()` — —
 - `list_patterns()` — —
 - `expand()` — —
@@ -1413,6 +1409,13 @@ redeploy/
 - `probe_health(host, app, domain)` — HTTP health checks against known endpoints.
 - `detect_conflicts(ports, iptables_dnat, runtime, docker_services)` — Identify conflicts: port stealing, duplicate services, etc.
 - `detect_strategy(runtime, docker_services, k3s_services, systemd_services)` — Infer the current deployment strategy from detected services.
+- `decide_after_failure()` — Return the next action for the heal loop.
+- `format_decision_message(decision, step_id)` — Human-readable log / console message for a decision.
+- `collect_diagnostics(host, failed_step)` — Run targeted SSH diagnostics for a failed step, return combined output.
+- `ask_llm(failed_step, step_output, diag, spec_text)` — Ask LiteLLM to propose a fixed YAML block for the failed step.
+- `apply_fix_to_spec(spec_path, failed_step, llm_response)` — Extract YAML block from LLM response and patch it into the spec file.
+- `parse_failed_step(executor_summary, executor)` — Extract (step_id, step_output) from executor state or summary string.
+- `write_repair_log(spec_path, version, repairs)` — Append an entry to *REPAIR_LOG.md* adjacent to the spec file.
 - `apply_config_dict(data, probe, console)` — Apply *data* to the host behind *probe*.
 - `apply_config_file(path)` — Load *path* and apply its hardware/infra settings to the remote host.
 - `load_config_file(path)` — Read *path* and return a dict (YAML or JSON auto-detected).
@@ -1595,8 +1598,6 @@ redeploy/
 - `verify_all_services()` — —
 - `print()` — —
 - `exit()` — —
-- `notify_slack()` — —
-- `notify_slack()` — —
 - `probe()` — —
 - `version_cmd()` — —
 - `version_current()` — —
@@ -1636,11 +1637,6 @@ redeploy/
 - `parse_conventional()` — —
 - `analyze_commits()` — —
 - `format_analysis_report()` — —
-- `collect_diagnostics()` — —
-- `ask_llm()` — —
-- `apply_fix_to_spec()` — —
-- `write_repair_log()` — —
-- `parse_failed_step()` — —
 - `discover()` — —
 - `update_registry()` — —
 - `auto_probe()` — —
@@ -1759,6 +1755,11 @@ redeploy/
 - `format_diff_report()` — —
 - `extract_services_from_infra()` — —
 - `infer_app_url()` — —
+- `collect_diagnostics()` — —
+- `ask_llm()` — —
+- `apply_fix_to_spec()` — —
+- `write_repair_log()` — —
+- `parse_failed_step()` — —
 - `collect_sqlite_counts()` — —
 - `rsync_timeout_for_path()` — —
 - `state_cmd()` — —
@@ -1776,6 +1777,8 @@ redeploy/
 - `fix_enable_spi()` — —
 - `generate_fix_plan()` — —
 - `get_commits_since_tag()` — —
+- `decide_after_failure()` — —
+- `format_decision_message()` — —
 - `notify()` — —
 - `ensure_autostart_entry()` — —
 - `generate_labwc_autostart()` — —
@@ -1835,7 +1838,6 @@ redeploy/
 - `list_saved()` — —
 - `snapshot_command()` — —
 - `cmd()` — —
-- `notify_slack()` — —
 - `my_migration()` — —
 - `restart_service()` — —
 - `deploy_docker_compose()` — —
@@ -1847,7 +1849,7 @@ redeploy/
 - `check_prerequisites()` — —
 - `verify_all_services()` — —
 - `exit()` — —
-- `generate_readme()` — —
+- `notify_slack()` — —
 - `has_dsi()` — —
 - `kms_enabled()` — —
 - `dsi_connected()` — —
@@ -1925,11 +1927,18 @@ redeploy/
 - `prod_devices()` — —
 - `from_config()` — —
 - `prod()` — —
+- `generate_readme()` — —
 - `run_container_build()` — —
 - `test_nodes_of_type()` — —
 - `test_manifest_to_css_roundtrip()` — —
 - `test_templates_to_css()` — —
 - `test_load_css_file()` — —
+- `test_loop_detector_triggers_on_identical_hint_streak()` — —
+- `test_loop_detector_does_not_trigger_for_varying_hints()` — —
+- `test_loop_detector_tracks_each_step_independently()` — —
+- `test_legacy_post_deploy_is_migrated_to_hooks()` — —
+- `test_executor_fires_hook_phases_on_success()` — —
+- `test_executor_fires_failure_hooks()` — —
 - `test_parse_file()` — —
 - `test_parse_dir()` — —
 - `test_parse_dir_skip_errors()` — —
@@ -2177,6 +2186,7 @@ redeploy/
 📄 `.redeploy.state.test-local-036bc2a0`
 📄 `.redeploy.state.test-local-09b68243`
 📄 `.redeploy.state.test-local-0a0a5446`
+📄 `.redeploy.state.test-local-0e863125`
 📄 `.redeploy.state.test-local-179edfed`
 📄 `.redeploy.state.test-local-1862711e`
 📄 `.redeploy.state.test-local-1d287d51`
@@ -2192,6 +2202,7 @@ redeploy/
 📄 `.redeploy.state.test-local-563ceb24`
 📄 `.redeploy.state.test-local-56cb0635`
 📄 `.redeploy.state.test-local-5a1d7483`
+📄 `.redeploy.state.test-local-5e8acada`
 📄 `.redeploy.state.test-local-6279ef2c`
 📄 `.redeploy.state.test-local-63f620b6`
 📄 `.redeploy.state.test-local-68ae2b20`
@@ -2206,9 +2217,11 @@ redeploy/
 📄 `.redeploy.state.test-local-ab92e6d9`
 📄 `.redeploy.state.test-local-abe8802f`
 📄 `.redeploy.state.test-local-ad30ec23`
+📄 `.redeploy.state.test-local-bcb75e42`
 📄 `.redeploy.state.test-local-be94eb0c`
 📄 `.redeploy.state.test-local-c05a99a2`
 📄 `.redeploy.state.test-local-c1ec6b35`
+📄 `.redeploy.state.test-local-c89d7b36`
 📄 `.redeploy.state.test-local-c9849e24`
 📄 `.redeploy.state.test-local-cba6eec3`
 📄 `.redeploy.state.test-local-d3c0fad8`
@@ -2234,7 +2247,7 @@ redeploy/
 📄 `README` (1 functions)
 📄 `REFACTORING` (9 functions, 6 classes)
 📄 `REPAIR_LOG`
-📄 `SUMD` (904 functions, 51 classes)
+📄 `SUMD` (911 functions, 51 classes)
 📄 `SUMR` (164 functions, 51 classes)
 📄 `TODO` (11 functions, 1 classes)
 📄 `code2llm_output.README`
@@ -2324,7 +2337,7 @@ redeploy/
 📄 `project.context`
 📄 `project.duplication.toon`
 📄 `project.evolution.toon`
-📄 `project.map.toon` (2339 functions)
+📄 `project.map.toon` (2361 functions)
 📄 `project.project.toon`
 📄 `project.prompt`
 📄 `project.validation.toon`
@@ -2428,7 +2441,12 @@ redeploy/
 📄 `redeploy.hardware.kiosk.output_profiles` (2 functions, 1 classes)
 📄 `redeploy.hardware.panels` (5 functions, 1 classes)
 📄 `redeploy.hardware.raspi_config` (1 functions)
-📄 `redeploy.heal` (12 functions, 2 classes)
+📦 `redeploy.heal`
+📄 `redeploy.heal.decider` (2 functions, 2 classes)
+📄 `redeploy.heal.hint_provider` (5 functions)
+📄 `redeploy.heal.log_writer` (1 functions)
+📄 `redeploy.heal.loop_detector` (4 functions, 2 classes)
+📄 `redeploy.heal.runner` (5 functions, 1 classes)
 📦 `redeploy.iac`
 📄 `redeploy.iac.base` (13 functions, 7 classes)
 📄 `redeploy.iac.config_hints` (15 functions, 1 classes)
