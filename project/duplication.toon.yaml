@@ -1,12 +1,12 @@
-# redup/duplication | 11 groups | 157f 26350L | 2026-04-21
+# redup/duplication | 11 groups | 157f 26383L | 2026-04-21
 
 SUMMARY:
   files_scanned: 157
-  total_lines:   26350
+  total_lines:   26383
   dup_groups:    11
   dup_fragments: 22
   saved_lines:   190
-  scan_ms:       4574
+  scan_ms:       5440
 
 HOTSPOTS[7] (files with most duplication):
   redeploy/heal.py  dup=112L  groups=5  frags=5  (0.4%)

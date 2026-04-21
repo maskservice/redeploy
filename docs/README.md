@@ -1,7 +1,7 @@
 <!-- code2docs:start --># redeploy
 
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2739-green)
-> **2739** functions | **275** classes | **331** files | CC̄ = 5.1
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2774-green)
+> **2774** functions | **275** classes | **332** files | CC̄ = 5.0
 
 > Auto-generated project documentation from source code analysis.
 
@@ -88,7 +88,6 @@ redeploy/
 ├── TODO
 ├── CHANGELOG
 ├── project
-├── README
     ├── patterns
     ├── markpact-implementation-plan
     ├── fleet
@@ -249,7 +248,6 @@ redeploy/
         ├── loader
     ├── dsl/
         ├── parser
-        ├── docker_compose
         ├── base
         ├── registry
     ├── iac/
@@ -355,7 +353,6 @@ redeploy/
             ├── test-local-179edfed
             ├── test-local-e3a0f31a
             ├── test-local-6279ef2c
-            ├── infra-local-9dd2f59b
             ├── test-local-24cd498c
             ├── test-local-efd3d620
             ├── test-local-e322f022
@@ -388,15 +385,19 @@ redeploy/
         ├── context
         ├── README
             ├── toon
+            ├── test-local-8545df8e
+            ├── infra-local-9dd2f59b
     ├── prompt
-        ├── toon
     ├── context
+├── README
+        ├── toon
         ├── toon
         ├── toon
     ├── README
         ├── toon
     ├── calls
         ├── toon
+        ├── docker_compose
 ```
 
 ## API Overview
@@ -651,7 +652,6 @@ redeploy/
 - **`LoadResult`** — Full result of loading a ``redeploy.css`` file.
 - **`DSLNode`** — One parsed block from the CSS-like file.
 - **`RedeployDSLParser`** — Parse a ``redeploy.css`` or ``redeploy.less`` file into a list of DSLNode objects.
-- **`DockerComposeParser`** — Parser for docker-compose.yml / compose.yaml files.
 - **`PortInfo`** — A published / exposed port mapping.
 - **`VolumeInfo`** — A volume or bind-mount.
 - **`ServiceInfo`** — One logical service / container / pod / deployment.
@@ -669,6 +669,7 @@ redeploy/
 - **`GitLabCIGitOpsParser`** — —
 - **`HelmChartParser`** — —
 - **`AnsiblePlaybookParser`** — —
+- **`DockerComposeParser`** — Parser for docker-compose.yml / compose.yaml files.
 
 ### Functions
 
@@ -928,11 +929,13 @@ redeploy/
 - `all_panels()` — —
 - `infer_from_hardware()` — —
 - `build_raspi_config_command()` — —
+- `decide_after_failure()` — —
+- `format_decision_message()` — —
 - `collect_diagnostics()` — —
 - `ask_llm()` — —
 - `apply_fix_to_spec()` — —
-- `write_repair_log()` — —
 - `parse_failed_step()` — —
+- `write_repair_log()` — —
 - `parse_json_file()` — —
 - `parse_file()` — —
 - `parse_dir()` — —
@@ -983,6 +986,16 @@ redeploy/
 - `test_loop_detector_triggers_on_identical_hint_streak()` — —
 - `test_loop_detector_does_not_trigger_for_varying_hints()` — —
 - `test_loop_detector_tracks_each_step_independently()` — —
+- `test_loop_detector_reset_clears_step_history()` — —
+- `test_heal_runner_stops_on_repeating_hint_pattern()` — —
+- `test_decide_abort_on_loop_detected()` — —
+- `test_decide_abort_when_failed_step_unknown()` — —
+- `test_decide_retry_on_transient_llm_error_before_limit()` — —
+- `test_decide_abort_on_llm_error_at_retry_limit()` — —
+- `test_decide_abort_when_retry_budget_exhausted()` — —
+- `test_decide_retry_when_spec_was_patched()` — —
+- `test_decide_skip_when_patch_not_applicable()` — —
+- `test_format_decision_message_uses_action_and_reason()` — —
 - `test_legacy_post_deploy_is_migrated_to_hooks()` — —
 - `test_executor_fires_hook_phases_on_success()` — —
 - `test_executor_fires_failure_hooks()` — —
@@ -991,6 +1004,7 @@ redeploy/
 - `test_parse_dir_skip_errors()` — —
 - `test_warning_str_with_location()` — —
 - `test_warning_str_no_location()` — —
+- `test_compose_parse_contract_golden()` — —
 - `test_compile_markpact_document_yaml_subset_to_spec()` — —
 - `test_compile_markpact_document_supports_toml_config_and_steps()` — —
 - `test_compile_markpact_document_rejects_unsupported_block_kind()` — —
@@ -1342,7 +1356,6 @@ redeploy/
 - `snapshot_command()` — —
 - `cmd()` — —
 - `notify_slack()` — —
-- `notify_slack()` — —
 - `print()` — —
 - `list_patterns()` — —
 - `expand()` — —
@@ -1598,6 +1611,7 @@ redeploy/
 - `verify_all_services()` — —
 - `print()` — —
 - `exit()` — —
+- `notify_slack()` — —
 - `probe()` — —
 - `version_cmd()` — —
 - `version_current()` — —
@@ -1748,6 +1762,10 @@ redeploy/
 - `check_version()` — —
 - `check_version_http()` — —
 - `verify_data_integrity()` — —
+- `collect_diagnostics()` — —
+- `ask_llm()` — —
+- `apply_fix_to_spec()` — —
+- `parse_failed_step()` — —
 - `patterns()` — —
 - `rollback_steps()` — —
 - `diff_manifest_vs_spec()` — —
@@ -1755,13 +1773,10 @@ redeploy/
 - `format_diff_report()` — —
 - `extract_services_from_infra()` — —
 - `infer_app_url()` — —
-- `collect_diagnostics()` — —
-- `ask_llm()` — —
-- `apply_fix_to_spec()` — —
-- `write_repair_log()` — —
-- `parse_failed_step()` — —
 - `collect_sqlite_counts()` — —
 - `rsync_timeout_for_path()` — —
+- `decide_after_failure()` — —
+- `format_decision_message()` — —
 - `state_cmd()` — —
 - `register_plugin()` — —
 - `load_user_plugins()` — —
@@ -1777,8 +1792,7 @@ redeploy/
 - `fix_enable_spi()` — —
 - `generate_fix_plan()` — —
 - `get_commits_since_tag()` — —
-- `decide_after_failure()` — —
-- `format_decision_message()` — —
+- `write_repair_log()` — —
 - `notify()` — —
 - `ensure_autostart_entry()` — —
 - `generate_labwc_autostart()` — —
@@ -1838,6 +1852,7 @@ redeploy/
 - `list_saved()` — —
 - `snapshot_command()` — —
 - `cmd()` — —
+- `notify_slack()` — —
 - `my_migration()` — —
 - `restart_service()` — —
 - `deploy_docker_compose()` — —
@@ -1849,7 +1864,7 @@ redeploy/
 - `check_prerequisites()` — —
 - `verify_all_services()` — —
 - `exit()` — —
-- `notify_slack()` — —
+- `generate_readme()` — —
 - `has_dsi()` — —
 - `kms_enabled()` — —
 - `dsi_connected()` — —
@@ -1927,7 +1942,6 @@ redeploy/
 - `prod_devices()` — —
 - `from_config()` — —
 - `prod()` — —
-- `generate_readme()` — —
 - `run_container_build()` — —
 - `test_nodes_of_type()` — —
 - `test_manifest_to_css_roundtrip()` — —
@@ -1936,6 +1950,16 @@ redeploy/
 - `test_loop_detector_triggers_on_identical_hint_streak()` — —
 - `test_loop_detector_does_not_trigger_for_varying_hints()` — —
 - `test_loop_detector_tracks_each_step_independently()` — —
+- `test_loop_detector_reset_clears_step_history()` — —
+- `test_heal_runner_stops_on_repeating_hint_pattern()` — —
+- `test_decide_abort_on_loop_detected()` — —
+- `test_decide_abort_when_failed_step_unknown()` — —
+- `test_decide_retry_on_transient_llm_error_before_limit()` — —
+- `test_decide_abort_on_llm_error_at_retry_limit()` — —
+- `test_decide_abort_when_retry_budget_exhausted()` — —
+- `test_decide_retry_when_spec_was_patched()` — —
+- `test_decide_skip_when_patch_not_applicable()` — —
+- `test_format_decision_message_uses_action_and_reason()` — —
 - `test_legacy_post_deploy_is_migrated_to_hooks()` — —
 - `test_executor_fires_hook_phases_on_success()` — —
 - `test_executor_fires_failure_hooks()` — —
@@ -1944,6 +1968,7 @@ redeploy/
 - `test_parse_dir_skip_errors()` — —
 - `test_warning_str_with_location()` — —
 - `test_warning_str_no_location()` — —
+- `test_compose_parse_contract_golden()` — —
 - `test_compile_markpact_document_yaml_subset_to_spec()` — —
 - `test_compile_markpact_document_supports_toml_config_and_steps()` — —
 - `test_compile_markpact_document_rejects_unsupported_block_kind()` — —
@@ -2209,6 +2234,7 @@ redeploy/
 📄 `.redeploy.state.test-local-6bb4cec7`
 📄 `.redeploy.state.test-local-7f5ddd97`
 📄 `.redeploy.state.test-local-831fd1ab`
+📄 `.redeploy.state.test-local-8545df8e`
 📄 `.redeploy.state.test-local-891787e9`
 📄 `.redeploy.state.test-local-9c9d5826`
 📄 `.redeploy.state.test-local-9cc88960`
@@ -2247,7 +2273,7 @@ redeploy/
 📄 `README` (1 functions)
 📄 `REFACTORING` (9 functions, 6 classes)
 📄 `REPAIR_LOG`
-📄 `SUMD` (911 functions, 51 classes)
+📄 `SUMD` (930 functions, 51 classes)
 📄 `SUMR` (164 functions, 51 classes)
 📄 `TODO` (11 functions, 1 classes)
 📄 `code2llm_output.README`
@@ -2337,7 +2363,7 @@ redeploy/
 📄 `project.context`
 📄 `project.duplication.toon`
 📄 `project.evolution.toon`
-📄 `project.map.toon` (2361 functions)
+📄 `project.map.toon` (2393 functions)
 📄 `project.project.toon`
 📄 `project.prompt`
 📄 `project.validation.toon`
@@ -2450,7 +2476,7 @@ redeploy/
 📦 `redeploy.iac`
 📄 `redeploy.iac.base` (13 functions, 7 classes)
 📄 `redeploy.iac.config_hints` (15 functions, 1 classes)
-📄 `redeploy.iac.docker_compose` (11 functions, 1 classes)
+📄 `redeploy.iac.docker_compose` (22 functions, 1 classes)
 📦 `redeploy.iac.parsers`
 📄 `redeploy.iac.parsers.compose` (13 functions, 1 classes)
 📄 `redeploy.iac.registry` (4 functions)

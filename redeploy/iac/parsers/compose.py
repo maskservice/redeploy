@@ -20,7 +20,6 @@ from typing import Any, Optional
 import yaml
 
 from ..base import (
-    ConversionWarning,
     ParsedSpec,
     PortInfo,
     ServiceInfo,
@@ -91,8 +90,7 @@ class DockerComposeParser:
                 spec.networks.append(net_name)
 
         # top-level volumes
-        for vol_name, vol_def in (raw.get("volumes") or {}).items():
-            vol_def = vol_def or {}
+        for vol_name, _ in (raw.get("volumes") or {}).items():
             spec.volumes.append(VolumeInfo(
                 target="",
                 source=vol_name,
@@ -113,40 +111,54 @@ class DockerComposeParser:
 
     # ── service parsing ───────────────────────────────────────────────────────
 
-    def _parse_service(self, name: str, d: dict, spec: ParsedSpec) -> ServiceInfo:
-        svc = ServiceInfo(name=name)
-
-        svc.image = d.get("image") or None
-        if svc.image:
-            if svc.image not in spec.images:
-                spec.images.append(svc.image)
-
-        svc.build_context = self._parse_build(d.get("build"))
-        svc.command = self._parse_command(d.get("command"))
-        svc.restart = d.get("restart") or None
-        svc.replicas = int((d.get("deploy") or {}).get("replicas", 1))
-
-        svc.ports = self._parse_ports(d.get("ports") or [], spec)
-        svc.volumes = self._parse_volumes(d.get("volumes") or [], spec)
-        svc.networks = list(d.get("networks") or [])
-        svc.env, svc.env_files = self._parse_env(d, spec)
-        svc.depends_on = self._parse_depends_on(d.get("depends_on"))
-        svc.labels = self._parse_labels(d.get("labels"))
-        svc.healthcheck = self._parse_healthcheck(d.get("healthcheck"))
-
-        # secrets referenced by service
+    def _collect_service_secrets(self, d: dict, spec: ParsedSpec) -> None:
         for secret in (d.get("secrets") or []):
             secret_name = secret if isinstance(secret, str) else secret.get("source", "")
             if secret_name and secret_name not in spec.secrets_referenced:
                 spec.secrets_referenced.append(secret_name)
 
-        # env_files at service level
+    def _merge_service_env_files(self, d: dict, svc: ServiceInfo, spec: ParsedSpec) -> None:
         for ef in (d.get("env_file") or []):
             ef = ef if isinstance(ef, str) else ef.get("path", "")
             if ef and ef not in spec.env_files:
                 spec.env_files.append(ef)
             if ef and ef not in svc.env_files:
                 svc.env_files.append(ef)
+
+    def _collect_service_image(self, svc: ServiceInfo, spec: ParsedSpec) -> None:
+        if svc.image and svc.image not in spec.images:
+            spec.images.append(svc.image)
+
+    def _parse_service_networks(self, d: dict) -> list[str]:
+        return list(d.get("networks") or [])
+
+    def _parse_service_replicas(self, d: dict) -> int:
+        return int((d.get("deploy") or {}).get("replicas", 1))
+
+    def _parse_service(self, name: str, d: dict, spec: ParsedSpec) -> ServiceInfo:
+        svc = ServiceInfo(name=name)
+
+        svc.image = d.get("image") or None
+        self._collect_service_image(svc, spec)
+
+        svc.build_context = self._parse_build(d.get("build"))
+        svc.command = self._parse_command(d.get("command"))
+        svc.restart = d.get("restart") or None
+        svc.replicas = self._parse_service_replicas(d)
+
+        svc.ports = self._parse_ports(d.get("ports") or [], spec)
+        svc.volumes = self._parse_volumes(d.get("volumes") or [], spec)
+        svc.networks = self._parse_service_networks(d)
+        svc.env, svc.env_files = self._parse_env(d, spec)
+        svc.depends_on = self._parse_depends_on(d.get("depends_on"))
+        svc.labels = self._parse_labels(d.get("labels"))
+        svc.healthcheck = self._parse_healthcheck(d.get("healthcheck"))
+
+        # secrets referenced by service
+        self._collect_service_secrets(d, spec)
+
+        # env_files at service level
+        self._merge_service_env_files(d, svc, spec)
 
         return svc
 

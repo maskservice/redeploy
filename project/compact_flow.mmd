@@ -1,6 +1,6 @@
 flowchart TD
     DOQL_INTEGRATION["DOQL-INTEGRATION<br/>3 funcs"]
-    SUMD["SUMD<br/>826 funcs"]
+    SUMD["SUMD<br/>839 funcs"]
     docs__markpact_implementation_plan["docs.markpact-implementation-plan<br/>1 funcs"]
     examples__redeploy_iac_parsers["examples.redeploy_iac_parsers<br/>18 funcs"]
     redeploy__apply["redeploy.apply<br/>72 funcs"]
@@ -30,7 +30,6 @@ flowchart TD
     redeploy__version["redeploy.version<br/>88 funcs"]
     redeploy__dsl_python ==>|21| DOQL_INTEGRATION
     redeploy__cli ==>|16| redeploy__version
-    redeploy__heal ==>|16| SUMD
     redeploy__cli ==>|14| redeploy__steps
     redeploy__cli ==>|7| redeploy__dsl
     redeploy__cli ==>|7| redeploy__apply
@@ -48,6 +47,8 @@ flowchart TD
     redeploy__cli -->|3| redeploy__config_apply
     redeploy__dsl_python -->|3| redeploy__steps
     redeploy__apply -->|3| redeploy__hardware
+    redeploy__heal -->|2| redeploy__steps
+    redeploy__heal -->|2| docs__markpact_implementation_plan
     redeploy__spec_loader -->|2| redeploy__markpact
     redeploy__detect -->|2| redeploy__discovery
     redeploy__cli -->|2| redeploy__mcp_server
@@ -59,8 +60,6 @@ flowchart TD
     redeploy__apply -->|2| redeploy__markpact
     redeploy__apply -->|2| redeploy__steps
     redeploy__blueprint -->|2| redeploy__steps
-    redeploy__heal -->|2| redeploy__steps
-    redeploy__heal -->|2| docs__markpact_implementation_plan
     redeploy__observe -->|1| redeploy__steps
     redeploy__models -->|1| redeploy__dsl
     redeploy__patterns -->|1| redeploy__steps

@@ -1,11 +1,11 @@
-# redeploy | 227f 41438L | python:224,shell:2,less:1 | 2026-04-21
-# stats: 766 func | 359 cls | 227 mod | CC̄=4.7 | critical:84 | cycles:0
+# redeploy | 228f 41654L | python:225,shell:2,less:1 | 2026-04-21
+# stats: 767 func | 359 cls | 228 mod | CC̄=4.7 | critical:84 | cycles:0
 # alerts[5]: CC probe=26; CC version_init=26; CC _bump_single=25; CC _build_manifest=25; CC extract_blueprint=22
 # hotspots[5]: fix_cmd fan=29; hardware fan=28; device_map_cmd fan=27; version_init fan=26; import_cmd fan=25
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[227]:
-  app.doql.less,65
+M[228]:
+  app.doql.less,75
   examples/redeploy_iac_parsers/argocd_flux.py,130
   examples/redeploy_iac_parsers/gitops_ci.py,138
   examples/redeploy_iac_parsers/helm_ansible.py,95
@@ -120,9 +120,9 @@ M[227]:
   redeploy/iac/__init__.py,53
   redeploy/iac/base.py,276
   redeploy/iac/config_hints.py,290
-  redeploy/iac/docker_compose.py,419
+  redeploy/iac/docker_compose.py,444
   redeploy/iac/parsers/__init__.py,2
-  redeploy/iac/parsers/compose.py,288
+  redeploy/iac/parsers/compose.py,296
   redeploy/iac/registry.py,108
   redeploy/integrations/__init__.py,2
   redeploy/integrations/op3_bridge.py,251
@@ -165,6 +165,7 @@ M[227]:
   redeploy/tests/test_hooks.py,124
   redeploy/tests/test_iac.py,462
   redeploy/tests/test_iac_compose_contract.py,182
+  redeploy/tests/test_iac_docker_compose_contract.py,173
   redeploy/tests/test_manifest.py,339
   redeploy/tests/test_markpact_compiler.py,148
   redeploy/tests/test_markpact_parser.py,94
@@ -857,7 +858,7 @@ D:
     parse_json_file(path)
   redeploy/iac/docker_compose.py:
     e: _resolve_var,_parse_port,_parse_volume,_env_dict,_deep_merge,DockerComposeParser
-    DockerComposeParser: can_parse(1),parse(1),_load_merged(2),_find_override(1),_load_dotenv(1),_parse_service(4)  # Parser for docker-compose.yml / compose.yaml files.
+    DockerComposeParser: can_parse(1),parse(1),_load_merged(2),_find_override(1),_load_dotenv(1),_resolve_image_and_build(2),_parse_service_ports(4),_parse_service_volumes(1),_parse_service_env(2),_parse_service_env_files(1),_parse_service_networks(1),_parse_service_depends_on(1),_parse_service_healthcheck(1),_parse_service_replicas(1),_parse_service_labels(1),_parse_service_command(1),_parse_service(4)  # Parser for docker-compose.yml / compose.yaml files.
     _resolve_var(value;env)
     _parse_port(raw)
     _parse_volume(raw)
@@ -866,7 +867,7 @@ D:
   redeploy/iac/parsers/__init__.py:
   redeploy/iac/parsers/compose.py:
     e: DockerComposeParser
-    DockerComposeParser: can_parse(1),parse(1),_parse_service(3),_parse_build(1),_parse_command(1),_parse_ports(2),_parse_port_entry(1),_parse_volumes(2),_parse_volume_entry(1),_parse_env(2),_parse_depends_on(1),_parse_labels(1),_parse_healthcheck(1)  # Parser for Docker Compose files (v2 + v3 schema, Compose Spe
+    DockerComposeParser: can_parse(1),parse(1),_collect_service_secrets(2),_merge_service_env_files(3),_collect_service_image(2),_parse_service(3),_parse_build(1),_parse_command(1),_parse_ports(2),_parse_port_entry(1),_parse_volumes(2),_parse_volume_entry(1),_parse_env(2),_parse_depends_on(1),_parse_labels(1),_parse_healthcheck(1)  # Parser for Docker Compose files (v2 + v3 schema, Compose Spe
   redeploy/iac/registry.py:
     e: _load_entrypoint_parsers,_load_local_parsers,parse_file,parse_dir
     _load_entrypoint_parsers(registry)
@@ -1202,6 +1203,9 @@ D:
   redeploy/tests/test_iac_compose_contract.py:
     e: test_compose_parse_contract_golden
     test_compose_parse_contract_golden(tmp_path)
+  redeploy/tests/test_iac_docker_compose_contract.py:
+    e: test_docker_compose_parser_service_contract
+    test_docker_compose_parser_service_contract(tmp_path)
   redeploy/tests/test_manifest.py:
     e: _spec,_manifest,TestFindAndLoad,TestFromDotenv,TestResolveEnv,TestApplyToSpec,TestDeviceRegistry,TestKnownDevice
     TestFindAndLoad: test_finds_in_cwd(1),test_finds_in_parent(1),test_returns_none_when_missing(1),test_parses_environments(1)

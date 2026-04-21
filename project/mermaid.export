@@ -646,7 +646,6 @@ flowchart TD
         redeploy__hardware__kiosk__compositors__CompositorDefinition__autostart_abs["autostart_abs"]
     end
     subgraph redeploy__heal
-        redeploy__heal__log_writer__write_repair_log["write_repair_log"]
         redeploy__heal___ssh["_ssh"]
         redeploy__heal__collect_diagnostics["collect_diagnostics"]
         redeploy__heal__ask_llm("ask_llm CC=8")
@@ -667,22 +666,23 @@ flowchart TD
         redeploy__heal__HealRunner___is_repeating_loop["_is_repeating_loop"]
         redeploy__heal__HealRunner___retry_after_heal["_retry_after_heal"]
         redeploy__heal__HealRunner__run("run CC=8")
+        redeploy__heal__decider__decide_after_failure["decide_after_failure"]
+        redeploy__heal__decider__format_decision_message["format_decision_message"]
         redeploy__heal__hint_provider___ssh["_ssh"]
         redeploy__heal__hint_provider__collect_diagnostics["collect_diagnostics"]
         redeploy__heal__hint_provider__ask_llm("ask_llm CC=8")
         redeploy__heal__hint_provider__apply_fix_to_spec["apply_fix_to_spec"]
         redeploy__heal__hint_provider__parse_failed_step("parse_failed_step CC=8")
+        redeploy__heal__loop_detector__HealAbort____init__["__init__"]
+        redeploy__heal__loop_detector__HealLoopDetector__observe["observe"]
+        redeploy__heal__loop_detector__HealLoopDetector__reset["reset"]
+        redeploy__heal__loop_detector__HealLoopDetector__reset_all["reset_all"]
         redeploy__heal__runner__HealRunner____init__["__init__"]
         redeploy__heal__runner__HealRunner___make_executor["_make_executor"]
         redeploy__heal__runner__HealRunner___reload_migration["_reload_migration"]
         redeploy__heal__runner__HealRunner___heal_step("_heal_step CC=13")
         redeploy__heal__runner__HealRunner__run["run"]
-        redeploy__heal__decider__decide_after_failure["decide_after_failure"]
-        redeploy__heal__decider__format_decision_message["format_decision_message"]
-        redeploy__heal__loop_detector__HealAbort____init__["__init__"]
-        redeploy__heal__loop_detector__HealLoopDetector__observe["observe"]
-        redeploy__heal__loop_detector__HealLoopDetector__reset["reset"]
-        redeploy__heal__loop_detector__HealLoopDetector__reset_all["reset_all"]
+        redeploy__heal__log_writer__write_repair_log["write_repair_log"]
     end
     subgraph redeploy__iac
         redeploy__iac__docker_compose___resolve_var["_resolve_var"]
@@ -1029,6 +1029,15 @@ flowchart TD
     redeploy__schema__build_schema --> redeploy__schema___discover_specs
     redeploy__schema__build_schema --> redeploy__schema___iac_info
     redeploy__observe__DeployAuditLog__record --> redeploy__steps__StepLibrary__list
+    redeploy__heal__collect_diagnostics --> redeploy__heal___ssh
+    redeploy__heal__HealLoopDetector__observe --> redeploy__steps__StepLibrary__all
+    redeploy__heal__HealRunner___reload_migration --> docs__markpact_implementation_plan__load_migration_spec
+    redeploy__heal__HealRunner___collect_diag_with_hint --> redeploy__heal__collect_diagnostics
+    redeploy__heal__HealRunner___ask_and_apply_fix --> redeploy__heal__ask_llm
+    redeploy__heal__HealRunner___ask_and_apply_fix --> redeploy__heal__apply_fix_to_spec
+    redeploy__heal__HealRunner___record_repair --> redeploy__heal__write_repair_log
+    redeploy__heal__HealRunner__run --> redeploy__heal__write_repair_log
+    redeploy__heal__HealRunner__run --> redeploy__heal__parse_failed_step
     redeploy__parse__parse_diagnostics --> redeploy__parse___parse_section_line
     redeploy__parse___parse_section_line --> redeploy__parse___apply_system_line
     redeploy__parse___parse_section_line --> redeploy__parse__parse_container_line
@@ -1103,6 +1112,15 @@ flowchart TD
     redeploy__detect__workflow__DetectionWorkflow___collect_hosts --> redeploy__discovery__discover
     redeploy__detect__workflow__DetectionWorkflow___probe_ssh --> redeploy__discovery__auto_probe
     redeploy__detect__probes__detect_conflicts --> redeploy__steps__StepLibrary__list
+    redeploy__heal__hint_provider__collect_diagnostics --> redeploy__heal__hint_provider___ssh
+    redeploy__heal__loop_detector__HealLoopDetector__observe --> redeploy__steps__StepLibrary__all
+    redeploy__heal__runner__HealRunner___reload_migration --> docs__markpact_implementation_plan__load_migration_spec
+    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__parse_failed_step
+    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__collect_diagnostics
+    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__ask_llm
+    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__write_repair_log
+    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__decider__decide_after_failure
+    redeploy__heal__runner__HealRunner__run --> redeploy__heal__write_repair_log
     redeploy__config_apply__applier__apply_config_dict --> redeploy__config_apply__applier___normalize_hardware
     redeploy__config_apply__applier__apply_config_dict --> redeploy__apply__state_apply__apply_state
     redeploy__config_apply__applier__apply_config_file --> redeploy__config_apply__loader__load_config_file
@@ -1401,26 +1419,8 @@ flowchart TD
     examples__redeploy_iac_parsers__gitops_ci__GitHubActionsGitOpsParser__can_parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
     examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__can_parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
     examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
-    redeploy__heal__collect_diagnostics --> redeploy__heal___ssh
-    redeploy__heal__HealLoopDetector__observe --> redeploy__steps__StepLibrary__all
-    redeploy__heal__HealRunner___reload_migration --> docs__markpact_implementation_plan__load_migration_spec
-    redeploy__heal__HealRunner___collect_diag_with_hint --> SUMD__collect_diagnostics
-    redeploy__heal__HealRunner___ask_and_apply_fix --> SUMD__ask_llm
-    redeploy__heal__HealRunner___ask_and_apply_fix --> SUMD__apply_fix_to_spec
-    redeploy__heal__HealRunner___record_repair --> SUMD__write_repair_log
-    redeploy__heal__HealRunner__run --> SUMD__write_repair_log
-    redeploy__heal__HealRunner__run --> SUMD__parse_failed_step
-    redeploy__heal__hint_provider__collect_diagnostics --> redeploy__heal__hint_provider___ssh
-    redeploy__heal__runner__HealRunner___reload_migration --> docs__markpact_implementation_plan__load_migration_spec
-    redeploy__heal__runner__HealRunner___heal_step --> SUMD__parse_failed_step
-    redeploy__heal__runner__HealRunner___heal_step --> SUMD__collect_diagnostics
-    redeploy__heal__runner__HealRunner___heal_step --> SUMD__ask_llm
-    redeploy__heal__runner__HealRunner___heal_step --> SUMD__write_repair_log
-    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__decider__decide_after_failure
-    redeploy__heal__runner__HealRunner__run --> SUMD__write_repair_log
-    redeploy__heal__loop_detector__HealLoopDetector__observe --> redeploy__steps__StepLibrary__all
 
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
     class redeploy__fleet__FleetDevice__verify_expectations,redeploy__models__ProjectManifest__apply_to_spec,redeploy__discovery__update_registry,redeploy__discovery___parse_probe_output,redeploy__detect__workflow__DetectionWorkflow___collect_hosts,redeploy__cli__commands__devices__devices,redeploy__cli__commands__device_map_renderers__render_rich,redeploy__cli__commands__bump_fix___find_spec,redeploy__cli__commands__bump_fix__fix_cmd,redeploy__cli__commands__blueprint___print_blueprint,redeploy__cli__commands__probe__probe,redeploy__cli__commands__import___import_cmd,redeploy__cli__commands__import____print_import_spec,redeploy__cli__commands__import____spec_to_migration_yaml,redeploy__cli__commands__device_map__device_map_cmd,redeploy__cli__commands__prompt_cmd__prompt_cmd,redeploy__cli__commands__push__push,redeploy__cli__commands__audit__audit,redeploy__cli__commands__version__commands__version_init,redeploy__cli__commands__version__helpers___bump_single,redeploy__plugins__builtin__browser_reload__browser_reload,redeploy__dsl_python__runner__PythonMigrationRunner__run_file,redeploy__apply__state_apply__HardwareStateHandler__apply,redeploy__apply__handlers__run_ensure_autostart_entry,redeploy__version__commits__analyze_commits,redeploy__blueprint__extractor__extract_blueprint,redeploy__blueprint__sources__compose___merge_compose,redeploy__blueprint__generators__docker_compose___build_service,redeploy__blueprint__generators__migration__generate_migration,redeploy__dsl__loader___build_manifest highCC
-    class redeploy__schema___discover_specs,redeploy__observe__DeployAuditLog__record,redeploy__observe__DeployAuditLog__filter,redeploy__observe__DeployReport__text,redeploy__parse__parse_docker_ps,redeploy__parse__parse_system_info,redeploy__parse___apply_system_line,redeploy__fleet__FleetConfig__from_file,redeploy__models__ProjectManifest__resolve_env,redeploy__models__ProjectManifest__from_dotenv,redeploy__verify__VerifyContext__check,redeploy__discovery___scan_known_hosts,redeploy__discovery___scan_arp_cache,redeploy__discovery___detect_local_subnet,redeploy__discovery___merge,redeploy__discovery__discover,redeploy__discovery___collect_ssh_keys,redeploy__discovery___try_ssh_credentials,redeploy__discovery___infer_strategy,redeploy__audit___Extractor___from_step,redeploy__audit___Extractor___from_command,redeploy__audit__Auditor___probe_one,redeploy__detect__detector__Detector__run,redeploy__detect__templates___load_templates_from_yaml,redeploy__detect__workflow__WorkflowResult__generated_redeploy_yaml,redeploy__detect__workflow__WorkflowResult__generated_migration_yaml,redeploy__detect__workflow__DetectionWorkflow__run,redeploy__detect__probes__probe_docker_services,redeploy__detect__probes__probe_systemd_services,redeploy__detect__probes__detect_conflicts medCC
+    class redeploy__schema___discover_specs,redeploy__observe__DeployAuditLog__record,redeploy__observe__DeployAuditLog__filter,redeploy__observe__DeployReport__text,redeploy__heal__ask_llm,redeploy__heal__parse_failed_step,redeploy__heal__HealRunner__run,redeploy__parse__parse_docker_ps,redeploy__parse__parse_system_info,redeploy__parse___apply_system_line,redeploy__fleet__FleetConfig__from_file,redeploy__models__ProjectManifest__resolve_env,redeploy__models__ProjectManifest__from_dotenv,redeploy__verify__VerifyContext__check,redeploy__discovery___scan_known_hosts,redeploy__discovery___scan_arp_cache,redeploy__discovery___detect_local_subnet,redeploy__discovery___merge,redeploy__discovery__discover,redeploy__discovery___collect_ssh_keys,redeploy__discovery___try_ssh_credentials,redeploy__discovery___infer_strategy,redeploy__audit___Extractor___from_step,redeploy__audit___Extractor___from_command,redeploy__audit__Auditor___probe_one,redeploy__detect__detector__Detector__run,redeploy__detect__templates___load_templates_from_yaml,redeploy__detect__workflow__WorkflowResult__generated_redeploy_yaml,redeploy__detect__workflow__WorkflowResult__generated_migration_yaml,redeploy__detect__workflow__DetectionWorkflow__run medCC

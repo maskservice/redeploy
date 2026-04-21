@@ -4,22 +4,22 @@
 
 - **Project**: /home/tom/github/maskservice/redeploy
 - **Primary Language**: python
-- **Languages**: python: 158, yaml: 106, md: 52, shell: 2, yml: 1
+- **Languages**: python: 158, yaml: 106, md: 52, shell: 2, toml: 1
 - **Analysis Mode**: static
-- **Total Functions**: 2607
+- **Total Functions**: 2633
 - **Total Classes**: 275
 - **Modules**: 323
-- **Entry Points**: 2265
+- **Entry Points**: 2291
 
 ## Architecture by Module
 
 ### SUMD
-- **Functions**: 911
+- **Functions**: 930
 - **Classes**: 51
 - **File**: `SUMD.md`
 
 ### project.map.toon
-- **Functions**: 747
+- **Functions**: 766
 - **File**: `map.toon.yaml`
 
 ### SUMR
@@ -64,11 +64,6 @@
 - **Functions**: 20
 - **File**: `handlers.py`
 
-### redeploy.heal
-- **Functions**: 20
-- **Classes**: 2
-- **File**: `heal.py`
-
 ### redeploy.cli.commands.version.scanner
 - **Functions**: 18
 - **File**: `scanner.py`
@@ -106,6 +101,11 @@
 - **Functions**: 13
 - **Classes**: 6
 - **File**: `templates.py`
+
+### redeploy.apply.state
+- **Functions**: 13
+- **Classes**: 1
+- **File**: `state.py`
 
 ## Key Entry Points
 
@@ -250,6 +250,12 @@ Examples:
 ### redeploy.cli.commands.blueprint._print_blueprint
 - **Calls**: console.print, console.print, console.print, console.print, console.print, click.echo, click.echo, None.join
 
+### redeploy.heal.runner.HealRunner._heal_step
+> Single heal iteration: diagnose → LLM → decide.
+
+Returns *(decision, failed_step, loop_hint)*.
+- **Calls**: redeploy.heal.parse_failed_step, self.console.print, self.console.print, redeploy.heal.collect_diagnostics, next, self.console.print, self.spec_path.read_text, redeploy.heal.ask_llm
+
 ### redeploy.cli.commands.exec_.exec_multi_cmd
 > Execute multiple scripts from markdown codeblocks by reference.
 
@@ -269,12 +275,6 @@ Ex
 With --workflow: multi-host detection with template scoring.
 Reads hosts from redeploy.yaml / redeploy.c
 - **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.heal.runner.HealRunner._heal_step
-> Single heal iteration: diagnose → LLM → decide.
-
-Returns *(decision, failed_step, loop_hint)*.
-- **Calls**: SUMD.parse_failed_step, self.console.print, self.console.print, SUMD.collect_diagnostics, next, self.console.print, self.spec_path.read_text, SUMD.ask_llm
 
 ### redeploy.iac.docker_compose.DockerComposeParser.parse
 - **Calls**: ParsedSpec, self._load_merged, self._load_dotenv, set, services_raw.items, spec.runtime_hints.append, spec.add_warning, data.get
@@ -404,6 +404,16 @@ Args:
 - **Methods**: 12
 - **Key Methods**: redeploy.audit.Auditor.__init__, redeploy.audit.Auditor.run, redeploy.audit.Auditor._dispatch, redeploy.audit.Auditor._probe_one, redeploy.audit.Auditor._probe_binary, redeploy.audit.Auditor._probe_directory, redeploy.audit.Auditor._probe_file, redeploy.audit.Auditor._probe_local_file, redeploy.audit.Auditor._probe_port_listening, redeploy.audit.Auditor._probe_container_image
 
+### redeploy.heal.HealRunner
+> Wraps Executor with self-healing loop.
+
+Parameters
+----------
+migration : Migration
+    Planned migr
+- **Methods**: 11
+- **Key Methods**: redeploy.heal.HealRunner.__init__, redeploy.heal.HealRunner._make_executor, redeploy.heal.HealRunner._reload_migration, redeploy.heal.HealRunner._run_executor_attempt, redeploy.heal.HealRunner._collect_diag_with_hint, redeploy.heal.HealRunner._extract_diag_hint, redeploy.heal.HealRunner._ask_and_apply_fix, redeploy.heal.HealRunner._record_repair, redeploy.heal.HealRunner._is_repeating_loop, redeploy.heal.HealRunner._retry_after_heal
+
 ### redeploy.verify.VerifyContext
 > Accumulates check results during verification.
 - **Methods**: 11
@@ -415,16 +425,6 @@ Args:
 Each event is a YAML document (
 - **Methods**: 11
 - **Key Methods**: redeploy.apply.progress.ProgressEmitter.__init__, redeploy.apply.progress.ProgressEmitter._ts, redeploy.apply.progress.ProgressEmitter._elapsed, redeploy.apply.progress.ProgressEmitter._emit, redeploy.apply.progress.ProgressEmitter.start, redeploy.apply.progress.ProgressEmitter.step_start, redeploy.apply.progress.ProgressEmitter.step_done, redeploy.apply.progress.ProgressEmitter.step_fail, redeploy.apply.progress.ProgressEmitter.progress, redeploy.apply.progress.ProgressEmitter.done
-
-### redeploy.heal.HealRunner
-> Wraps Executor with self-healing loop.
-
-Parameters
-----------
-migration : Migration
-    Planned migr
-- **Methods**: 11
-- **Key Methods**: redeploy.heal.HealRunner.__init__, redeploy.heal.HealRunner._make_executor, redeploy.heal.HealRunner._reload_migration, redeploy.heal.HealRunner._run_executor_attempt, redeploy.heal.HealRunner._collect_diag_with_hint, redeploy.heal.HealRunner._extract_diag_hint, redeploy.heal.HealRunner._ask_and_apply_fix, redeploy.heal.HealRunner._record_repair, redeploy.heal.HealRunner._is_repeating_loop, redeploy.heal.HealRunner._retry_after_heal
 
 ### redeploy.apply.state.ResumeState
 > Checkpoint for a single MigrationPlan execution.
@@ -478,6 +478,10 @@ Key functions that process and transform data:
 > Extract version, name, target from a migration spec (YAML or Markdown).
 - **Output to**: path.read_text, re.search, None.strip, None.strip, None.strip
 
+### redeploy.heal.parse_failed_step
+> Extract (step_id, step_output) from executor state or summary string.
+- **Output to**: re.search, getattr, getattr, results.get, isinstance
+
 ### redeploy.parse.parse_docker_ps
 > Parse 'docker ps --format "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}|{{.State}}"' output.
 - **Output to**: output.split, line.strip, line.split, line.startswith, len
@@ -508,6 +512,14 @@ Handles sections: ===SYSTEM===, ==
 
 ### redeploy.discovery._parse_probe_input
 - **Output to**: ip_or_host.split
+
+### redeploy.heal.decider.format_decision_message
+> Human-readable log / console message for a decision.
+- **Output to**: decision.action.value.upper
+
+### redeploy.heal.hint_provider.parse_failed_step
+> Extract (step_id, step_output) from executor state or summary string.
+- **Output to**: re.search, getattr, getattr, results.get, isinstance
 
 ### redeploy.cli.display._format_workflow_header
 > Format workflow header string.
@@ -554,21 +566,6 @@ Supports:
 - ```yaml markpact:steps
 -
 - **Output to**: token.startswith, None.split, None.lower, kind_part.startswith, token.lower
-
-### redeploy.markpact.parser.parse_markpact_file_with_refs
-> Parse markpact file and extract all referenced scripts.
-
-Returns:
-    (document, refs) where refs is
-- **Output to**: Path, file_path.read_text, redeploy.markpact.parser.parse_markpact_text, MarkdownIt, parser.parse
-
-### redeploy.apply.handlers._parse_container_statuses
-> Parse docker compose ps output into (name, status) tuples.
-- **Output to**: None.splitlines, line.split, statuses.append, output.strip, line.startswith
-
-### redeploy.version.changelog.ChangelogManager._format_release_content
-> Format release content from unreleased section + commits.
-- **Output to**: unreleased_content.strip, self._init_categories, self._categorize_commits, self._build_release_content
 
 ## Behavioral Patterns
 
