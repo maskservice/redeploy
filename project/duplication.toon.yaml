@@ -1,15 +1,15 @@
-# redup/duplication | 6 groups | 66f 16708L | 2026-04-20
+# redup/duplication | 6 groups | 89f 17664L | 2026-04-21
 
 SUMMARY:
-  files_scanned: 66
-  total_lines:   16708
+  files_scanned: 89
+  total_lines:   17664
   dup_groups:    6
   dup_fragments: 15
   saved_lines:   83
-  scan_ms:       4241
+  scan_ms:       4119
 
 HOTSPOTS[7] (files with most duplication):
-  redeploy/version.py  dup=77L  groups=4  frags=4  (0.5%)
+  redeploy/version.py  dup=77L  groups=4  frags=4  (0.4%)
   redeploy/version/__init__.py  dup=67L  groups=4  frags=4  (0.4%)
   redeploy/apply/executor.py  dup=8L  groups=1  frags=2  (0.0%)
   redeploy/version/sources/json_.py  dup=3L  groups=1  frags=1  (0.0%)
@@ -37,8 +37,8 @@ DUPLICATES[6] (ranked by impact):
       redeploy/version/__init__.py:49-55  (read_remote_version)
       redeploy/version.py:27-38  (read_remote_version)
   [77bcb9e3c572a8f9]   EXAC  _ssh_build  L=4 N=2 saved=4 sim=1.00
-      redeploy/apply/executor.py:370-373  (_ssh_build)
-      redeploy/apply/executor.py:418-421  (_ssh_build)
+      redeploy/apply/executor.py:388-391  (_ssh_build)
+      redeploy/apply/executor.py:436-439  (_ssh_build)
 
 REFACTOR[6] (ranked by priority):
   [1] ◐ extract_function   → redeploy/utils/check_version_http.py
