@@ -10,7 +10,7 @@ from rich.console import Console
 
 @click.command("export")
 @click.option(
-    "--format", "fmt", default="css", type=click.Choice(["css", "yaml"]),
+    "--format", "fmt", default="yaml", type=click.Choice(["css", "yaml"]),
     help="Output format (css or yaml)"
 )
 @click.option(

@@ -1,20 +1,22 @@
-# redeploy | 144f 32760L | python:141,shell:2,less:1 | 2026-04-21
-# stats: 489 func | 307 cls | 144 mod | CC̄=5.6 | critical:80 | cycles:0
-# alerts[5]: CC hardware=47; CC _analyze=44; CC _render=38; CC build_context=36; CC extract_blueprint=31
-# hotspots[5]: hardware fan=27; device_map_cmd fan=26; version_init fan=26; audit fan=22; import_cmd fan=22
+# redeploy | 164f 33844L | python:161,shell:2,less:1 | 2026-04-21
+# stats: 567 func | 311 cls | 164 mod | CC̄=5.1 | critical:77 | cycles:0
+# alerts[5]: CC _render=38; CC build_context=36; CC extract_blueprint=31; CC probe=26; CC version_init=26
+# hotspots[5]: device_map_cmd fan=26; version_init fan=26; audit fan=22; hardware fan=22; import_cmd fan=22
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[144]:
+M[164]:
   app.doql.less,60
   project.sh,35
   redeploy/__init__.py,150
   redeploy/apply/__init__.py,50
   redeploy/apply/exceptions.py,13
-  redeploy/apply/executor.py,262
-  redeploy/apply/handlers.py,427
+  redeploy/apply/executor.py,265
+  redeploy/apply/handlers.py,401
   redeploy/apply/progress.py,108
   redeploy/apply/rollback.py,45
   redeploy/apply/state.py,162
+  redeploy/apply/utils/__init__.py,7
+  redeploy/apply/utils/run_container_build.py,70
   redeploy/audit.py,610
   redeploy/blueprint/__init__.py,12
   redeploy/blueprint/extractor.py,329
@@ -32,7 +34,7 @@ M[144]:
   redeploy/cli/commands/diff.py,38
   redeploy/cli/commands/exec_.py,252
   redeploy/cli/commands/export.py,127
-  redeploy/cli/commands/hardware.py,231
+  redeploy/cli/commands/hardware.py,315
   redeploy/cli/commands/import_.py,251
   redeploy/cli/commands/init.py,112
   redeploy/cli/commands/inspect.py,74
@@ -43,18 +45,25 @@ M[144]:
   redeploy/cli/commands/state.py,119
   redeploy/cli/commands/status.py,56
   redeploy/cli/commands/target.py,98
-  redeploy/cli/commands/version.py,1406
+  redeploy/cli/commands/version/__init__.py,7
+  redeploy/cli/commands/version/commands.py,595
+  redeploy/cli/commands/version/helpers.py,350
+  redeploy/cli/commands/version/monorepo.py,140
+  redeploy/cli/commands/version/release.py,154
+  redeploy/cli/commands/version/scanner.py,263
   redeploy/cli/commands/workflow.py,88
   redeploy/cli/core.py,180
-  redeploy/cli/display.py,350
+  redeploy/cli/display.py,390
   redeploy/cli.py,94
   redeploy/data_sync.py,46
   redeploy/detect/__init__.py,6
+  redeploy/detect/builtin/__init__.py,3
   redeploy/detect/detector.py,105
-  redeploy/detect/hardware.py,443
+  redeploy/detect/hardware.py,284
+  redeploy/detect/hardware_rules.py,263
   redeploy/detect/probes.py,278
   redeploy/detect/remote.py,5
-  redeploy/detect/templates.py,461
+  redeploy/detect/templates.py,375
   redeploy/detect/workflow.py,419
   redeploy/discovery.py,790
   redeploy/dsl/__init__.py,31
@@ -68,6 +77,15 @@ M[144]:
   redeploy/dsl_python/runner.py,206
   redeploy/dsl_python/steps.py,295
   redeploy/fleet.py,397
+  redeploy/hardware/__init__.py,9
+  redeploy/hardware/config_txt.py,89
+  redeploy/hardware/data/__init__.py,5
+  redeploy/hardware/data/hyperpixel.py,42
+  redeploy/hardware/data/official.py,19
+  redeploy/hardware/data/waveshare.py,49
+  redeploy/hardware/fixes.py,204
+  redeploy/hardware/panels.py,52
+  redeploy/hardware/raspi_config.py,33
   redeploy/iac/__init__.py,48
   redeploy/iac/base.py,276
   redeploy/iac/docker_compose.py,419
@@ -78,7 +96,7 @@ M[144]:
   redeploy/markpact/compiler.py,178
   redeploy/markpact/models.py,27
   redeploy/markpact/parser.py,281
-  redeploy/models.py,953
+  redeploy/models.py,968
   redeploy/observe.py,314
   redeploy/parse.py,191
   redeploy/patterns.py,408
@@ -137,14 +155,16 @@ M[144]:
   redeploy/version/git_transaction.py,106
   redeploy/version/manifest.py,170
   redeploy/version/sources/__init__.py,66
-  redeploy/version/sources/base.py,45
-  redeploy/version/sources/json_.py,95
-  redeploy/version/sources/plain.py,29
-  redeploy/version/sources/regex.py,70
-  redeploy/version/sources/toml_.py,109
-  redeploy/version/sources/yaml_.py,99
+  redeploy/version/sources/base.py,50
+  redeploy/version/sources/json_.py,91
+  redeploy/version/sources/plain.py,25
+  redeploy/version/sources/regex.py,66
+  redeploy/version/sources/toml_.py,105
+  redeploy/version/sources/yaml_.py,95
   redeploy/version/transaction.py,163
-  redeploy/version.py,97
+  redeploy/version.py,24
+  tests/test_hardware_config.py,163
+  tests/test_hardware_rules.py,190
   tests/test_iac.py,512
   tests/test_parse.py,158
   tests/test_redeploy.py,12
@@ -159,7 +179,7 @@ D:
     e: Executor
     Executor: __init__(11),completed_steps(0),state(0),state_path(0),run(0),_execute_steps_loop(1),_skip_step(2),_handle_step_failure(3),_handle_completion(2),_compute_skip_set(0),_write_audit(0),_execute_step(1),_rollback(0),summary(0),from_file(1),save_results(1)  # Execute MigrationPlan steps on a remote host.
   redeploy/apply/handlers.py:
-    e: run_ssh,run_scp,run_rsync,run_docker_build,run_podman_build,run_docker_health_wait,_parse_container_statuses,_all_containers_healthy,run_container_log_tail,run_http_check,run_version_check,run_plugin,run_wait,run_inline_script,_resolve_command_ref
+    e: run_ssh,run_scp,run_rsync,run_docker_build,run_podman_build,run_docker_health_wait,_parse_container_statuses,_all_containers_healthy,run_container_log_tail,run_http_check,run_version_check,run_plugin,run_wait,run_inline_script,_resolve_command_ref,run_ensure_config_line,run_raspi_config
     run_ssh(step;probe)
     run_scp(step;probe;plan)
     run_rsync(step;probe;plan)
@@ -175,6 +195,8 @@ D:
     run_wait(step)
     run_inline_script(step;probe;plan)
     _resolve_command_ref(command_ref;step;plan)
+    run_ensure_config_line(step;probe)
+    run_raspi_config(step;probe)
   redeploy/apply/progress.py:
     e: ProgressEmitter
     ProgressEmitter: __init__(1),_ts(0),_elapsed(0),_emit(1),start(1),step_start(2),step_done(2),step_fail(3),progress(2),done(1),failed(3)  # Emits YAML-formatted progress events to a stream (default: s
@@ -189,6 +211,10 @@ D:
     state_key(spec_path;host)
     default_state_path(spec_path;host;base_dir)
     filter_resumable(step_ids;state)
+  redeploy/apply/utils/__init__.py:
+  redeploy/apply/utils/run_container_build.py:
+    e: run_container_build
+    run_container_build(step;probe;emitter;engine)
   redeploy/audit.py:
     e: _extract_port,_normalize_path,_strip_remote_dir,audit_spec,AuditCheck,AuditReport,_Expect,_Extractor,_Probe,Auditor
     AuditCheck: ok(0)  # Outcome of a single audit probe.
@@ -276,8 +302,16 @@ D:
     _export_to_css(manifest;templates)
     _export_to_yaml(manifest)
   redeploy/cli/commands/hardware.py:
-    e: hardware
-    hardware(host;output_fmt;show_fix;apply_fix_component;ssh_key)
+    e: _probe_hardware,_format_output,_print_drm_connectors,_print_backlights,_print_dsi_overlays,_print_i2c_buses,_print_diagnostics,_apply_fix,hardware
+    _probe_hardware(host;ssh_key;console)
+    _format_output(hw;output_fmt)
+    _print_drm_connectors(console;hw)
+    _print_backlights(console;hw)
+    _print_dsi_overlays(console;hw)
+    _print_i2c_buses(console;hw)
+    _print_diagnostics(console;hw;show_fix)
+    _apply_fix(console;p;hw;apply_fix_component;panel_id)
+    hardware(host;output_fmt;show_fix;apply_fix_component;panel_id;list_panels;ssh_key)
   redeploy/cli/commands/import_.py:
     e: import_cmd,_print_import_spec,_default_output,_spec_to_migration_yaml
     import_cmd(source;output;target_host;target_strategy;dry_run;out_format;parser)
@@ -322,8 +356,9 @@ D:
   redeploy/cli/commands/target.py:
     e: target
     target(device_id;spec_file;dry_run;plan_only;do_detect;plan_out)
-  redeploy/cli/commands/version.py:
-    e: version_cmd,version_current,version_list,version_verify,version_bump,version_set,version_init,version_diff,_resolve_monorepo_targets,_build_package_version_manifest,_resolve_package_release_git_config,_resolve_package_release_changelog_config,_print_verify_result,_print_source_drift_status,_load_spec_version_diff,_load_live_version_diff,_run_version_diff_for_manifest,_bump_single,_format_release_tag,_update_release_changelog,_set_monorepo_version,_print_monorepo_set_dry_run,_create_version_set_git,_create_version_set_taggers,_create_release_tags,_finalize_monorepo_version_set,_update_monorepo_release_changelogs,_version_scan_specs,_regex_version_scan_specs,_is_scannable_version_path,_normalize_scan_exclusions,_detect_version_sources_in_dir,_detect_source_version,_read_detected_source_versions,_report_version_scan_conflict,_print_version_scan_review,_classify_version_scan_source_confidence,_format_version_scan_source_status,_default_keep_scanned_source,_summarize_version_scan_group,_print_version_scan_group,_iter_version_scan_groups,_review_detected_sources_interactively,_derive_scanned_package_name,_scan_package_version_manifests
+  redeploy/cli/commands/version/__init__.py:
+  redeploy/cli/commands/version/commands.py:
+    e: version_cmd,version_current,version_list,version_verify,version_bump,version_set,version_init,version_diff
     version_cmd()
     version_current(manifest;package_name;all_packages)
     version_list(manifest;package_name;all_packages)
@@ -332,6 +367,8 @@ D:
     version_set(version;manifest_path_str;package_name;all_packages;dry_run;commit;tag;push;sign;allow_dirty;changelog)
     version_init(scan;review;interactive;excluded_paths;force)
     version_diff(manifest;package_name;all_packages;spec;live;app)
+  redeploy/cli/commands/version/helpers.py:
+    e: _resolve_monorepo_targets,_build_package_version_manifest,_resolve_package_release_git_config,_resolve_package_release_changelog_config,_print_verify_result,_print_source_drift_status,_load_spec_version_diff,_load_live_version_diff,_run_version_diff_for_manifest,_bump_single
     _resolve_monorepo_targets(manifest_model;package_name;all_packages;console)
     _build_package_version_manifest(manifest_model;package_name)
     _resolve_package_release_git_config(manifest_model;package_name)
@@ -342,15 +379,23 @@ D:
     _load_live_version_diff(manifest_model;live;app)
     _run_version_diff_for_manifest(console;manifest_model;spec;live;app)
     _bump_single(m;bump_type;dry_run;analyze;commit;tag;push;sign;allow_dirty;changelog)
-    _format_release_tag(git_config;version)
-    _update_release_changelog(manifest_model;repo_path;version;console)
+  redeploy/cli/commands/version/monorepo.py:
+    e: _set_monorepo_version,_print_monorepo_set_dry_run,_create_version_set_git,_create_version_set_taggers,_finalize_monorepo_version_set
     _set_monorepo_version(manifest_model;version;targets;manifest_path;dry_run;commit;tag;push;sign;allow_dirty;changelog;console)
     _print_monorepo_set_dry_run(manifest_model;targets;version;console)
     _create_version_set_git(manifest_model;repo_path;package_name;commit;tag;push;allow_dirty)
     _create_version_set_taggers(manifest_model;repo_path;targets)
-    _create_release_tags(taggers;version;sign)
     _finalize_monorepo_version_set(git;version;touched_files;commit;tag;push;sign;console;package_count)
+  redeploy/cli/commands/version/release.py:
+    e: _format_release_tag,_update_release_changelog,_create_release_tags,_update_monorepo_release_changelogs,_resolve_package_release_git_config,_resolve_package_release_changelog_config
+    _format_release_tag(git_config;version)
+    _update_release_changelog(manifest_model;repo_path;version;console)
+    _create_release_tags(taggers;version;sign)
     _update_monorepo_release_changelogs(manifest_model;repo_path;version;targets;console)
+    _resolve_package_release_git_config(manifest_model;package_name)
+    _resolve_package_release_changelog_config(manifest_model;package_name)
+  redeploy/cli/commands/version/scanner.py:
+    e: _version_scan_specs,_regex_version_scan_specs,_is_scannable_version_path,_normalize_scan_exclusions,_detect_version_sources_in_dir,_detect_source_version,_read_detected_source_versions,_report_version_scan_conflict,_print_version_scan_review,_classify_version_scan_source_confidence,_format_version_scan_source_status,_default_keep_scanned_source,_summarize_version_scan_group,_print_version_scan_group,_iter_version_scan_groups,_review_detected_sources_interactively,_derive_scanned_package_name,_scan_package_version_manifests
     _version_scan_specs()
     _regex_version_scan_specs()
     _is_scannable_version_path(path)
@@ -384,7 +429,7 @@ D:
     run_detect_for_spec(console;spec;do_detect)
     run_detect_workflow(console;hosts;manifest;app;scan_subnet;deep;save_yaml;fmt)
   redeploy/cli/display.py:
-    e: print_plan_table,print_infrastructure_summary,print_docker_services,print_k3s_pods,print_conflicts,print_inspect_app_metadata,print_inspect_environments,print_inspect_templates,print_inspect_workflows,print_inspect_devices,print_inspect_raw_nodes_summary,print_workflow_summary_table,print_workflow_host_details,generate_workflow_output_css,generate_workflow_output_yaml,print_import_spec
+    e: print_plan_table,print_infrastructure_summary,print_docker_services,print_k3s_pods,print_conflicts,print_inspect_app_metadata,print_inspect_environments,print_inspect_templates,_get_plugin_hint,_format_workflow_header,_print_workflow_step,print_inspect_workflows,print_inspect_devices,print_inspect_raw_nodes_summary,print_workflow_summary_table,_print_host_header,_print_template_match,_print_alternatives,print_workflow_host_details,generate_workflow_output_css,generate_workflow_output_yaml,_get_status_color,_print_services_table,_print_spec_metadata,print_import_spec
     print_plan_table(console;migration)
     print_infrastructure_summary(console;state;host)
     print_docker_services(console;state)
@@ -393,13 +438,22 @@ D:
     print_inspect_app_metadata(console;result)
     print_inspect_environments(console;result)
     print_inspect_templates(console;result)
+    _get_plugin_hint(steps)
+    _format_workflow_header(wf;plugin_hint)
+    _print_workflow_step(console;step)
     print_inspect_workflows(console;result)
     print_inspect_devices(console;result)
     print_inspect_raw_nodes_summary(console;result)
     print_workflow_summary_table(console;result)
+    _print_host_header(console;h)
+    _print_template_match(console;best)
+    _print_alternatives(console;ranked)
     print_workflow_host_details(console;result)
     generate_workflow_output_css(console;result;app;save_yaml)
     generate_workflow_output_yaml(console;result;save_yaml)
+    _get_status_color(confidence)
+    _print_services_table(console;services)
+    _print_spec_metadata(console;spec)
     print_import_spec(console;spec)
   redeploy/cli.py:
   redeploy/data_sync.py:
@@ -407,6 +461,7 @@ D:
     collect_sqlite_counts(app_root;db_specs)
     rsync_timeout_for_path(path;minimum;base;per_mb)
   redeploy/detect/__init__.py:
+  redeploy/detect/builtin/__init__.py:
   redeploy/detect/detector.py:
     e: Detector
     Detector: __init__(3),run(0),save(2),probe_hardware(0)  # Probe infrastructure and produce InfraState.
@@ -423,6 +478,18 @@ D:
     probe_dsi_dmesg(p)
     _analyze(hw)
     probe_hardware(p)
+  redeploy/detect/hardware_rules.py:
+    e: _dsi_outputs,_has_dsi_overlay,_dsi_connected,_backlight_chip_addr,_backlight_power_off_rules,_i2c_chip_missing_rules,_all_ok,_any_errors_from_static,analyze,DiagnosticRule
+    DiagnosticRule: evaluate(1)  # A single hardware diagnostic rule.
+    _dsi_outputs(hw)
+    _has_dsi_overlay(hw)
+    _dsi_connected(hw)
+    _backlight_chip_addr(name)
+    _backlight_power_off_rules(hw)
+    _i2c_chip_missing_rules(hw)
+    _all_ok(hw)
+    _any_errors_from_static(hw)
+    analyze(hw)
   redeploy/detect/probes.py:
     e: probe_runtime,probe_ports,probe_iptables_dnat,probe_docker_services,probe_k3s_services,probe_systemd_services,probe_health,detect_conflicts,detect_strategy
     probe_runtime(p)
@@ -436,7 +503,7 @@ D:
     detect_strategy(runtime;docker_services;k3s_services;systemd_services)
   redeploy/detect/remote.py:
   redeploy/detect/templates.py:
-    e: build_context,_svc,_port,_build_templates,Condition,DetectionTemplate,TemplateMatch,DetectionResult,TemplateEngine
+    e: build_context,_svc,_port,_load_templates_from_yaml,_build_templates,Condition,DetectionTemplate,TemplateMatch,DetectionResult,TemplateEngine
     Condition:  # A single scoreable condition.
     DetectionTemplate: score(1),max_score(0)  # Named template for a device+environment+strategy combination
     TemplateMatch: confidence(0),confidence_label(0)  # Scored template match.
@@ -445,6 +512,7 @@ D:
     build_context(state;probe;manifest)
     _svc(name)
     _port(p)
+    _load_templates_from_yaml()
     _build_templates()
   redeploy/detect/workflow.py:
     e: HostDetectionResult,WorkflowResult,DetectionWorkflow
@@ -546,6 +614,34 @@ D:
     FleetDevice: ssh_user(0),ssh_ip(0),is_local(0),is_prod(0),has_tag(1),has_expectation(1),verify_expectations(1)  # Generic device descriptor — superset of ``deploy``'s DeviceC
     FleetConfig: get_device(1),by_tag(1),by_stage(1),by_strategy(1),prod_devices(0),from_file(3)  # Top-level fleet manifest — list of devices with stage / tag 
     Fleet: __init__(1),from_file(2),from_registry(2),from_config(2),devices(0),get(1),by_tag(1),by_stage(1),by_strategy(1),prod(0),reachable(1),merge(1),__len__(0),__iter__(0),__repr__(0)  # Unified first-class fleet — wraps FleetConfig and/or DeviceR
+  redeploy/hardware/__init__.py:
+  redeploy/hardware/config_txt.py:
+    e: ensure_line,ensure_lines,ConfigEdit
+    ConfigEdit:  # Result of a config.txt edit operation.
+    ensure_line(content;line)
+    ensure_lines(content;lines)
+  redeploy/hardware/data/__init__.py:
+  redeploy/hardware/data/hyperpixel.py:
+  redeploy/hardware/data/official.py:
+  redeploy/hardware/data/waveshare.py:
+  redeploy/hardware/fixes.py:
+    e: _step,_detect_port,fix_dsi_not_enabled,fix_enable_i2c,fix_enable_spi,generate_fix_plan
+    _step(id;action;description;risk)
+    _detect_port(hw)
+    fix_dsi_not_enabled(hw;panel)
+    fix_enable_i2c(hw;panel)
+    fix_enable_spi(hw;panel)
+    generate_fix_plan(hw;component;panel)
+  redeploy/hardware/panels.py:
+    e: register,get,all_panels,infer_from_hardware,PanelDefinition
+    PanelDefinition: overlay_line(1)  # Definition of a Raspberry Pi display panel.
+    register(panel)
+    get(panel_id)
+    all_panels()
+    infer_from_hardware(hw)
+  redeploy/hardware/raspi_config.py:
+    e: build_raspi_config_command
+    build_raspi_config_command(interface;state)
   redeploy/iac/__init__.py:
   redeploy/iac/base.py:
     e: PortInfo,VolumeInfo,ServiceInfo,ConversionWarning,ParsedSpec,Parser,ParserRegistry
@@ -599,11 +695,12 @@ D:
     _check_heading(line;in_target_section;normalized_id;section_id)
     _handle_fence_line(line;code_block_lang;language;script_lines)
   redeploy/models.py:
-    e: ConflictSeverity,StepAction,StepStatus,DeployStrategy,ServiceInfo,PortInfo,ConflictInfo,RuntimeInfo,AppHealthInfo,DrmOutput,BacklightInfo,I2CBusInfo,HardwareDiagnostic,HardwareInfo,InfraState,TargetConfig,MigrationStep,InfraSpec,MigrationSpec,MigrationPlan,EnvironmentConfig,ProjectManifest,DeployRecord,KnownDevice,DeviceMap,ServicePort,VolumeMount,ServiceSpec,HardwareRequirements,BlueprintSource,DeviceBlueprint,DeviceRegistry
+    e: ConflictSeverity,StepAction,StepStatus,DeployStrategy,PersistedModel,ServiceInfo,PortInfo,ConflictInfo,RuntimeInfo,AppHealthInfo,DrmOutput,BacklightInfo,I2CBusInfo,HardwareDiagnostic,HardwareInfo,InfraState,TargetConfig,MigrationStep,InfraSpec,MigrationSpec,MigrationPlan,EnvironmentConfig,ProjectManifest,DeployRecord,KnownDevice,DeviceMap,ServicePort,VolumeMount,ServiceSpec,HardwareRequirements,BlueprintSource,DeviceBlueprint,DeviceRegistry
     ConflictSeverity:
     StepAction:
     StepStatus:
     DeployStrategy:
+    PersistedModel: to_yaml(0),load(2)  # Mixin for models that can be persisted to/from YAML files.
     ServiceInfo:
     PortInfo:
     ConflictInfo:
@@ -613,7 +710,7 @@ D:
     BacklightInfo:  # Sysfs backlight device.
     I2CBusInfo:
     HardwareDiagnostic:  # Problem found during hardware probe.
-    HardwareInfo: has_dsi(0),dsi_connected(0),dsi_enabled(0),backlight_on(0),errors(0),warnings(0)  # Hardware state produced by hardware probe.
+    HardwareInfo: has_dsi(0),kms_enabled(0),dsi_connected(0),dsi_enabled(0),backlight_on(0),errors(0),warnings(0)  # Hardware state produced by hardware probe.
     InfraState:  # Full detected state of infrastructure — output of `detect`.
     TargetConfig: _accept_strategy_aliases(2)  # Desired infrastructure state — input to `plan`.
     MigrationStep:
@@ -624,13 +721,13 @@ D:
     ProjectManifest: find_and_load(2),find_css(2),env(1),resolve_env(1),from_dotenv(2),apply_to_spec(2)  # Per-project redeploy.yaml — replaces repetitive Makefile var
     DeployRecord:  # Single deployment event recorded for a device.
     KnownDevice: last_deploy(0),is_reachable(0),record_deploy(1)  # Device known to redeploy — persisted in ~/.config/redeploy/d
-    DeviceMap: has_errors(0),display_summary(0),to_yaml(0),save(1),load(2),load_for(2),list_saved(1)  # Full, persisted snapshot of a device: identity + InfraState 
+    DeviceMap: has_errors(0),display_summary(0),save(1),load_for(2),list_saved(1)  # Full, persisted snapshot of a device: identity + InfraState 
     ServicePort:  # A single port mapping for a container service.
     VolumeMount:
     ServiceSpec:  # Complete specification of a single containerised service.
     HardwareRequirements:  # Hardware capabilities required to run the blueprint.
     BlueprintSource:  # Where the blueprint was extracted from — audit trail.
-    DeviceBlueprint: service(1),to_yaml(0),save(1),load(2),list_saved(1)  # Self-contained, portable deployment recipe.
+    DeviceBlueprint: service(1),save(1),list_saved(1)  # Self-contained, portable deployment recipe.
     DeviceRegistry: get(1),upsert(1),remove(1),by_tag(1),by_strategy(1),reachable(0),default_path(1),load(2),save(1)  # Persistent device registry — stored at ~/.config/redeploy/de
   redeploy/observe.py:
     e: AuditEntry,DeployAuditLog,DeployReport
@@ -1150,32 +1247,68 @@ D:
     register_adapter(format_name;adapter)
   redeploy/version/sources/base.py:
     e: BaseAdapter
-    BaseAdapter: _validate_path(2),_extract_version(2),_create_temp(1),_atomic_write(3)  # Base class for source adapters with common utilities.
+    BaseAdapter: _validate_path(2),_extract_version(2),_create_temp(1),_atomic_write(3),write(3)  # Base class for source adapters with common utilities.
   redeploy/version/sources/json_.py:
     e: JsonAdapter
-    JsonAdapter: read(2),write(3),stage(3),_detect_indent(1)  # Read/write version from JSON files.
+    JsonAdapter: read(2),stage(3),_detect_indent(1)  # Read/write version from JSON files.
   redeploy/version/sources/plain.py:
     e: PlainAdapter
-    PlainAdapter: read(2),write(3),stage(3)  # Read/write version from plain text file.
+    PlainAdapter: read(2),stage(3)  # Read/write version from plain text file.
   redeploy/version/sources/regex.py:
     e: RegexAdapter
-    RegexAdapter: read(2),write(3),stage(3)  # Read/write version using regex pattern with capture group.
+    RegexAdapter: read(2),stage(3)  # Read/write version using regex pattern with capture group.
   redeploy/version/sources/toml_.py:
     e: TomlAdapter
-    TomlAdapter: _get_toml_lib(0),read(2),write(3),stage(3)  # Read/write version from TOML files using tomllib/tomli.
+    TomlAdapter: _get_toml_lib(0),read(2),stage(3)  # Read/write version from TOML files using tomllib/tomli.
   redeploy/version/sources/yaml_.py:
     e: YamlAdapter
-    YamlAdapter: _get_yaml_lib(0),read(2),write(3),stage(3)  # Read/write version from YAML files.
+    YamlAdapter: _get_yaml_lib(0),read(2),stage(3)  # Read/write version from YAML files.
   redeploy/version/transaction.py:
     e: StagingResult,VersionBumpTransaction
     StagingResult:  # Result of staging one source.
     VersionBumpTransaction: __init__(2),prepare(0),_stage_one(1),commit(0),rollback(0),get_summary(0)  # Atomic transaction for bumping version across multiple sourc
   redeploy/version.py:
-    e: read_local_version,read_remote_version,check_version,check_version_http
-    read_local_version(workspace_root;app)
-    read_remote_version(remote;remote_dir;app)
-    check_version(local;remote)
-    check_version_http(base_url;expected_version;timeout;endpoint)
+  tests/test_hardware_config.py:
+    e: test_add_new_line_to_all_section,test_no_op_when_line_already_present,test_replace_existing_dsi_overlay,test_replace_is_idempotent_for_same_line,test_add_to_pi5_section,test_add_to_existing_section,test_no_op_for_existing_line_in_section,test_ensure_lines_multiple,test_ensure_lines_no_change_when_all_present,test_ensure_lines_partial_update,test_all_panels_non_empty,test_waveshare_8_inch_registered,test_overlay_line_dsi1,test_overlay_line_dsi0,test_official_rpi_panel_registered,test_hyperpixel_panels_registered,test_raspi_config_i2c_enable,test_raspi_config_spi_disable,test_raspi_config_invalid_interface,test_raspi_config_invalid_state
+    test_add_new_line_to_all_section()
+    test_no_op_when_line_already_present()
+    test_replace_existing_dsi_overlay()
+    test_replace_is_idempotent_for_same_line()
+    test_add_to_pi5_section()
+    test_add_to_existing_section()
+    test_no_op_for_existing_line_in_section()
+    test_ensure_lines_multiple()
+    test_ensure_lines_no_change_when_all_present()
+    test_ensure_lines_partial_update()
+    test_all_panels_non_empty()
+    test_waveshare_8_inch_registered()
+    test_overlay_line_dsi1()
+    test_overlay_line_dsi0()
+    test_official_rpi_panel_registered()
+    test_hyperpixel_panels_registered()
+    test_raspi_config_i2c_enable()
+    test_raspi_config_spi_disable()
+    test_raspi_config_invalid_interface()
+    test_raspi_config_invalid_state()
+  tests/test_hardware_rules.py:
+    e: _hw,_dsi_output,_backlight,test_no_dsi_overlay_when_dsi_overlays_empty,test_no_dsi_overlay_rule_absent_when_overlay_present,test_auto_detect_conflict_flagged,test_auto_detect_no_conflict_when_zero,test_overlay_but_no_drm_connector_flagged,test_overlay_with_drm_connector_no_connector_error,test_dsi_disconnected_flagged,test_no_backlight_when_dsi_connected,test_backlight_power_off_flagged,test_backlight_brightness_zero_flagged,test_all_ok_emits_info,test_all_ok_no_wayland_warns,test_i2c_chip_missing_flagged,test_i2c_chip_present_no_warn
+    _hw()
+    _dsi_output(status)
+    _backlight(name;brightness;bl_power)
+    test_no_dsi_overlay_when_dsi_overlays_empty()
+    test_no_dsi_overlay_rule_absent_when_overlay_present()
+    test_auto_detect_conflict_flagged()
+    test_auto_detect_no_conflict_when_zero()
+    test_overlay_but_no_drm_connector_flagged()
+    test_overlay_with_drm_connector_no_connector_error()
+    test_dsi_disconnected_flagged()
+    test_no_backlight_when_dsi_connected()
+    test_backlight_power_off_flagged()
+    test_backlight_brightness_zero_flagged()
+    test_all_ok_emits_info()
+    test_all_ok_no_wayland_warns()
+    test_i2c_chip_missing_flagged()
+    test_i2c_chip_present_no_warn()
   tests/test_iac.py:
     e: write_compose,TestParsedSpec,TestPortParsing,TestVolumeParsing,TestDockerComposeParserCanParse,TestDockerComposeParserBasic,TestParserRegistry,TestGlobalRegistry,TestSummary
     TestParsedSpec: test_all_images_deduplicated(0),test_all_ports_deduplicated(0),test_summary_shows_counts(0),test_add_warning(0)

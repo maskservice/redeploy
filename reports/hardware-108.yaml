@@ -1,0 +1,224 @@
+board: Raspberry Pi 5 Model B Rev 1.1
+kernel: 6.12.75+rpt-rpi-2712
+config_txt: '# For more options and information see
+
+  # http://rptl.io/configtxt
+
+  # Some settings may impact device functionality. See link above for details
+
+
+  # Uncomment some or all of these to enable the optional hardware interfaces
+
+  #dtparam=i2c_arm=on
+
+  #dtparam=i2s=on
+
+  #dtparam=spi=on
+
+
+  # Enable audio (loads snd_bcm2835)
+
+  dtparam=audio=on
+
+
+  # Additional overlays and parameters are documented
+
+  # /boot/firmware/overlays/README
+
+
+  # Automatically load overlays for detected cameras
+
+  camera_auto_detect=1
+
+
+  # Automatically load overlays for detected DSI displays
+
+  # display_auto_detect=1
+
+
+  # Automatically load initramfs files, if found
+
+  auto_initramfs=1
+
+
+  # Enable DRM VC4 V3D driver
+
+  dtoverlay=vc4-kms-v3d
+
+  max_framebuffers=2
+
+
+  # Don''t have the firmware create an initial video= setting in cmdline.txt.
+
+  # Use the kernel''s default instead.
+
+  disable_fw_kms_setup=1
+
+
+  # Run in 64-bit mode
+
+  arm_64bit=1
+
+
+  # Disable compensation for displays with overscan
+
+  disable_overscan=1
+
+
+  # Run as fast as firmware / board allows
+
+  arm_boost=1
+
+
+  [cm4]
+
+  # Enable host mode on the 2711 built-in XHCI USB controller.
+
+  # This line should be removed if the legacy DWC2 controller is required
+
+  # (e.g. for USB device mode) or if USB support is not required.
+
+  otg_mode=1
+
+
+  [cm5]
+
+  dtoverlay=dwc2,dr_mode=host
+
+
+  [all]
+
+
+  # WaveShare 7.9" DSI Configuration
+
+  dtoverlay=vc4-kms-dsi-waveshare-panel-v2,8_0_inch_a
+
+  hdmi_force_hotplug=1
+
+
+  # Stability settings for DSI display
+
+  gpu_mem=128
+
+  disable_overscan=1
+
+  avoid_warnings=1
+
+
+  # Disable HDMI to prevent DSI conflicts
+
+  hdmi_force_hotplug=0
+
+  hdmi_ignore_hotplug=1
+
+
+  # Display rotation for landscape orientation'
+config_txt_path: /boot/firmware/config.txt
+drm_outputs:
+- name: card1-DSI-2
+  connector: DSI-2
+  status: connected
+  enabled: enabled
+  modes:
+  - 800x1280@60
+  transform: '270'
+  position: 0,0
+  scale: '1.000000'
+- name: card2-HDMI-A-1
+  connector: HDMI-A-1
+  status: disconnected
+  enabled: disabled
+  modes: []
+  transform: normal
+  position: 0,0
+  scale: '1.0'
+- name: card2-HDMI-A-2
+  connector: HDMI-A-2
+  status: disconnected
+  enabled: disabled
+  modes: []
+  transform: normal
+  position: 0,0
+  scale: '1.0'
+- name: card2-Writeback-1
+  connector: Writeback-1
+  status: unknown
+  enabled: disabled
+  modes: []
+  transform: normal
+  position: 0,0
+  scale: '1.0'
+- name: card2-Writeback-2
+  connector: Writeback-2
+  status: unknown
+  enabled: disabled
+  modes: []
+  transform: normal
+  position: 0,0
+  scale: '1.0'
+backlights:
+- name: 11-0045
+  brightness: 255
+  max_brightness: 255
+  bl_power: 0
+  display_name: DSI-2
+framebuffers:
+- /dev/fb0
+wlr_outputs:
+- output: DSI-2
+  enabled: true
+  mode: 800x1280@60
+  transform: '270'
+  scale: '1.000000'
+dsi_overlays:
+- dtoverlay=vc4-kms-dsi-waveshare-panel-v2,8_0_inch_a
+dsi_dmesg:
+- '[    0.000000] Kernel command line: reboot=w coherent_pool=1M 8250.nr_uarts=1 pci=pcie_bus_safe
+  cgroup_disable=memory numa_policy=interleave nvme.max_host_mem_size_mb=0  numa=fake=4
+  system_heap.max_order=0 iommu_dma_numa_policy=interleave smsc95xx.macaddr=88:A2:9E:97:10:A1
+  vc_mem.mem_base=0x3fc00000 vc_mem.mem_size=0x40000000  console=ttyAMA10,115200 console=tty1
+  root=PARTUUID=01475327-02 rootfstype=ext4 fsck.repair=yes rootwait quiet splash
+  plymouth.ignore-serial-consoles cfg80211.ieee80211_regdom=GB video=DSI-2:panel_orientation=right_side_up'
+- '[    0.872183] drm-rp1-dsi 1f00130000.dsi: bcm2712_iommu_of_xlate: MMU 1000005280.iommu'
+- '[    0.872190] drm-rp1-dsi 1f00130000.dsi: bcm2712_iommu_probe_device: MMU 1000005280.iommu'
+- '[    0.872196] drm-rp1-dsi 1f00130000.dsi: bcm2712_iommu_device_group: MMU 1000005280.iommu'
+- '[    0.872201] drm-rp1-dsi 1f00130000.dsi: Adding to iommu group 2'
+- '[    0.872204] drm-rp1-dsi 1f00130000.dsi: bcm2712_iommu_attach_dev: MMU 1000005280.iommu'
+- '[    5.293842] waveshare_touchscreen 11-0045: waveshare panel hw id = 0x1'
+- '[    5.301020] waveshare_touchscreen 11-0045: waveshare panel size = 80'
+- '[    5.309015] waveshare_touchscreen 11-0045: waveshare panel mcu version = 0x1'
+- '[    5.333615] waveshare-dsi 1f00130000.dsi.0: dsi panel: waveshare,8.0-dsi-touch-a'
+- '[    5.336856] waveshare-dsi 1f00130000.dsi.0: lanes: 2'
+- '[    5.336869] drm-rp1-dsi 1f00130000.dsi: rp1dsi_host_attach: Attach DSI device
+  name=8.0-dsi-touch-a channel=0 lanes=2 format=0 flags=0xc11 hs_rate=0 lp_rate=0'
+- '[    5.337054] [drm] cmdline forces connector DSI-2 panel_orientation to 3'
+- '[    5.338024] [drm] Initialized drm-rp1-dsi 1.0.0 for 1f00130000.dsi on minor
+  1'
+- '[    5.340971] drm-rp1-dsi 1f00130000.dsi: [drm] fb0: drm-rp1-dsidrmf frame buffer
+  device'
+- '[    5.360921] drm-rp1-dsi 1f00130000.dsi: rp1dsi_bind succeeded'
+- '[    5.457127] drm-rp1-dsi 1f00130000.dsi: [drm] rp1dsi: Command time (outvact):
+  10'
+- '[    5.457702] drm-rp1-dsi 1f00130000.dsi: [drm] rp1dsi: Nominal Byte clock 105000000
+  DPI clock 70000000 (parent rate 105000000)'
+i2c_buses:
+- bus: 11
+  devices: []
+- bus: 13
+  devices: []
+- bus: 14
+  devices: []
+- bus: 4
+  devices: []
+gpio_4pin_detected: null
+diagnostics:
+- component: overlay
+  severity: warning
+  message: display_auto_detect=1 may conflict with manual DSI overlay
+  fix: "Set display_auto_detect=0 in /boot/firmware/config.txt\n  sudo sed -i 's/^display_auto_detect=1/display_auto_detect=0/'\
+    \ /boot/firmware/config.txt"
+- component: dsi
+  severity: info
+  message: DSI display appears correctly configured (connected, backlight on)
+  fix: null
+

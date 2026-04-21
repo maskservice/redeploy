@@ -6,17 +6,15 @@ SUMD - Structured Unified Markdown Descriptor for AI-aware project refactorizati
 
 - [Metadata](#metadata)
 - [Architecture](#architecture)
-- [Workflows](#workflows)
 - [Dependencies](#dependencies)
 - [Source Map](#source-map)
-- [Call Graph](#call-graph)
 - [Refactoring Analysis](#refactoring-analysis)
 - [Intent](#intent)
 
 ## Metadata
 
 - **name**: `redeploy`
-- **version**: `0.2.34`
+- **version**: `0.2.39`
 - **python_requires**: `>=3.11`
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
 - **ecosystem**: SUMD + DOQL + testql + taskfile
@@ -109,8 +107,6 @@ environment[name="local"] {
 - `redeploy.verify`
 - `redeploy.version`
 
-## Workflows
-
 ## Dependencies
 
 ### Runtime
@@ -150,6 +146,9 @@ class ConflictSeverity:
 class StepAction:
 class StepStatus:
 class DeployStrategy:
+class PersistedModel:  # Mixin for models that can be persisted to/from YAML files.
+    def to_yaml()  # CC=1
+    def load(cls, path)  # CC=5
 class ServiceInfo:
 class PortInfo:
 class ConflictInfo:
@@ -161,6 +160,7 @@ class I2CBusInfo:
 class HardwareDiagnostic:  # Problem found during hardware probe.
 class HardwareInfo:  # Hardware state produced by hardware probe.
     def has_dsi()  # CC=2
+    def kms_enabled()  # CC=3
     def dsi_connected()  # CC=3
     def dsi_enabled()  # CC=3
     def backlight_on()  # CC=3
@@ -193,9 +193,7 @@ class KnownDevice:  # Device known to redeploy — persisted in ~/.config/redepl
 class DeviceMap:  # Full, persisted snapshot of a device: identity + InfraState 
     def has_errors()  # CC=2
     def display_summary()  # CC=7
-    def to_yaml()  # CC=1
     def save(path)  # CC=4
-    def load(cls, path)  # CC=5
     def load_for(cls, device_id)  # CC=2
     def list_saved(cls)  # CC=2
 class ServicePort:  # A single port mapping for a container service.
@@ -205,9 +203,7 @@ class HardwareRequirements:  # Hardware capabilities required to run the bluepri
 class BlueprintSource:  # Where the blueprint was extracted from — audit trail.
 class DeviceBlueprint:  # Self-contained, portable deployment recipe.
     def service(name)  # CC=3
-    def to_yaml()  # CC=1
     def save(path)  # CC=4
-    def load(cls, path)  # CC=5
     def list_saved(cls)  # CC=2
 class DeviceRegistry:  # Persistent device registry — stored at ~/.config/redeploy/de
     def get(device_id)  # CC=3
@@ -380,84 +376,6 @@ class DiscoveredHost:
 class ProbeResult:  # Full autonomous probe result for a single host.
 ```
 
-## Call Graph
-
-*12 nodes · 7 edges · 6 modules · CC̄=4.3*
-
-### Hubs (by degree)
-
-| Function | CC | in | out | total |
-|----------|----|----|-----|-------|
-| `run` *(in redeploy.cli)* | 12 ⚠ | 0 | 48 | **48** |
-| `run` *(in redeploy.detect.detector.Detector)* | 9 | 0 | 30 | **30** |
-| `apply` *(in redeploy.cli)* | 9 | 0 | 22 | **22** |
-| `probe_runtime` *(in redeploy.detect.probes)* | 5 | 1 | 15 | **16** |
-| `probe_ports` *(in redeploy.detect.probes)* | 6 | 1 | 11 | **12** |
-| `_detect_key` *(in redeploy.ssh.SshClient)* | 6 | 1 | 8 | **9** |
-| `probe_iptables_dnat` *(in redeploy.detect.probes)* | 7 | 1 | 5 | **6** |
-| `from_file` *(in redeploy.models.MigrationSpec)* | 1 | 1 | 4 | **5** |
-
-```toon markpact:analysis path=project/calls.toon.yaml
-# code2llm call graph | /home/tom/github/maskservice/redeploy
-# nodes: 12 | edges: 7 | modules: 6
-# CC̄=4.3
-
-HUBS[20]:
-  redeploy.cli.run
-    CC=12  in:0  out:48  total:48
-  redeploy.detect.detector.Detector.run
-    CC=9  in:0  out:30  total:30
-  redeploy.cli.apply
-    CC=9  in:0  out:22  total:22
-  redeploy.detect.probes.probe_runtime
-    CC=5  in:1  out:15  total:16
-  redeploy.detect.probes.probe_ports
-    CC=6  in:1  out:11  total:12
-  redeploy.ssh.SshClient._detect_key
-    CC=6  in:1  out:8  total:9
-  redeploy.detect.probes.probe_iptables_dnat
-    CC=7  in:1  out:5  total:6
-  redeploy.models.MigrationSpec.from_file
-    CC=1  in:1  out:4  total:5
-  redeploy.apply.executor.Executor.from_file
-    CC=1  in:1  out:4  total:5
-  redeploy.cli.cli
-    CC=1  in:0  out:5  total:5
-  redeploy.cli._setup_logging
-    CC=2  in:1  out:2  total:3
-  redeploy.ssh.SshClient._detect_ssh_key
-    CC=1  in:0  out:1  total:1
-
-MODULES:
-  redeploy.apply.executor  [1 funcs]
-    from_file  CC=1  out:4
-  redeploy.cli  [4 funcs]
-    _setup_logging  CC=2  out:2
-    apply  CC=9  out:22
-    cli  CC=1  out:5
-    run  CC=12  out:48
-  redeploy.detect.detector  [1 funcs]
-    run  CC=9  out:30
-  redeploy.detect.probes  [3 funcs]
-    probe_iptables_dnat  CC=7  out:5
-    probe_ports  CC=6  out:11
-    probe_runtime  CC=5  out:15
-  redeploy.models  [1 funcs]
-    from_file  CC=1  out:4
-  redeploy.ssh  [2 funcs]
-    _detect_key  CC=6  out:8
-    _detect_ssh_key  CC=1  out:1
-
-EDGES:
-  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_runtime
-  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_ports
-  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_iptables_dnat
-  redeploy.ssh.SshClient._detect_ssh_key → redeploy.ssh.SshClient._detect_key
-  redeploy.cli.cli → redeploy.cli._setup_logging
-  redeploy.cli.apply → redeploy.apply.executor.Executor.from_file
-  redeploy.cli.run → redeploy.models.MigrationSpec.from_file
-```
-
 ## Refactoring Analysis
 
 *Pre-refactoring snapshot — use this section to identify targets. Generated from `project/` toon files.*
@@ -587,114 +505,69 @@ EXTERNAL:
 ### Duplication (`project/duplication.toon.yaml`)
 
 ```toon markpact:analysis path=project/duplication.toon.yaml
-# redup/duplication | 9 groups | 104f 20683L | 2026-04-21
+# redup/duplication | 4 groups | 118f 21285L | 2026-04-21
 
 SUMMARY:
-  files_scanned: 104
-  total_lines:   20683
-  dup_groups:    9
-  dup_fragments: 21
-  saved_lines:   146
-  scan_ms:       4028
+  files_scanned: 118
+  total_lines:   21285
+  dup_groups:    4
+  dup_fragments: 8
+  saved_lines:   59
+  scan_ms:       4777
 
-HOTSPOTS[7] (files with most duplication):
-  redeploy/apply/handlers.py  dup=110L  groups=2  frags=4  (0.5%)
-  redeploy/version.py  dup=77L  groups=4  frags=4  (0.4%)
-  redeploy/version/__init__.py  dup=67L  groups=4  frags=4  (0.3%)
-  redeploy/models.py  dup=24L  groups=2  frags=4  (0.1%)
-  redeploy/version/sources/json_.py  dup=3L  groups=1  frags=1  (0.0%)
-  redeploy/version/sources/plain.py  dup=3L  groups=1  frags=1  (0.0%)
-  redeploy/version/sources/regex.py  dup=3L  groups=1  frags=1  (0.0%)
+HOTSPOTS[4] (files with most duplication):
+  redeploy/cli/commands/version/helpers.py  dup=38L  groups=2  frags=2  (0.2%)
+  redeploy/cli/commands/version/release.py  dup=38L  groups=2  frags=2  (0.2%)
+  redeploy/hardware/fixes.py  dup=26L  groups=1  frags=2  (0.1%)
+  redeploy/apply/handlers.py  dup=16L  groups=1  frags=2  (0.1%)
 
-DUPLICATES[9] (ranked by impact):
-  [56acbb246cf8c2ad] ! STRU  run_docker_build  L=51 N=2 saved=51 sim=1.00
-      redeploy/apply/handlers.py:74-124  (run_docker_build)
-      redeploy/apply/handlers.py:127-177  (run_podman_build)
-  [2260446c0ed30fbb] ! STRU  check_version_http  L=40 N=2 saved=40 sim=1.00
-      redeploy/version/__init__.py:69-108  (check_version_http)
-      redeploy/version.py:52-96  (check_version_http)
-  [417dbd5e07eaa506]   EXAC  write  L=3 N=5 saved=12 sim=1.00
-      redeploy/version/sources/json_.py:45-47  (write)
-      redeploy/version/sources/plain.py:20-22  (write)
-      redeploy/version/sources/regex.py:33-35  (write)
-      redeploy/version/sources/toml_.py:65-67  (write)
-      redeploy/version/sources/yaml_.py:56-58  (write)
-  [baed60e8fcf7d577]   EXAC  read_local_version  L=11 N=2 saved=11 sim=1.00
-      redeploy/version/__init__.py:36-46  (read_local_version)
-      redeploy/version.py:14-24  (read_local_version)
-  [7f61e5aca9b95c89]   EXAC  check_version  L=9 N=2 saved=9 sim=1.00
-      redeploy/version/__init__.py:58-66  (check_version)
-      redeploy/version.py:41-49  (check_version)
-  [176bf0935b9e1846]   EXAC  to_yaml  L=8 N=2 saved=8 sim=1.00
-      redeploy/models.py:722-729  (to_yaml)
-      redeploy/models.py:866-873  (to_yaml)
-  [f269e2bd5ad747d0]   STRU  read_remote_version  L=7 N=2 saved=7 sim=1.00
-      redeploy/version/__init__.py:49-55  (read_remote_version)
-      redeploy/version.py:27-38  (read_remote_version)
-  [44a7054400014003]   EXAC  _ssh_build  L=4 N=2 saved=4 sim=1.00
-      redeploy/apply/handlers.py:89-92  (_ssh_build)
-      redeploy/apply/handlers.py:142-145  (_ssh_build)
-  [2ffafbd29f2bce76]   STRU  load  L=4 N=2 saved=4 sim=1.00
-      redeploy/models.py:738-741  (load)
-      redeploy/models.py:882-885  (load)
+DUPLICATES[4] (ranked by impact):
+  [bb546964bbb3b9b9]   EXAC  _resolve_package_release_git_config  L=22 N=2 saved=22 sim=1.00
+      redeploy/cli/commands/version/helpers.py:60-81  (_resolve_package_release_git_config)
+      redeploy/cli/commands/version/release.py:114-135  (_resolve_package_release_git_config)
+  [7764f64185066b87]   EXAC  _resolve_package_release_changelog_config  L=16 N=2 saved=16 sim=1.00
+      redeploy/cli/commands/version/helpers.py:84-99  (_resolve_package_release_changelog_config)
+      redeploy/cli/commands/version/release.py:138-153  (_resolve_package_release_changelog_config)
+  [834af96e195aeafb]   STRU  fix_enable_i2c  L=13 N=2 saved=13 sim=1.00
+      redeploy/hardware/fixes.py:137-149  (fix_enable_i2c)
+      redeploy/hardware/fixes.py:152-164  (fix_enable_spi)
+  [069a3d8b69b2d778]   STRU  run_docker_build  L=8 N=2 saved=8 sim=1.00
+      redeploy/apply/handlers.py:74-81  (run_docker_build)
+      redeploy/apply/handlers.py:84-91  (run_podman_build)
 
-REFACTOR[9] (ranked by priority):
-  [1] ○ extract_module     → redeploy/apply/utils/run_docker_build.py
-      WHY: 2 occurrences of 51-line block across 1 files — saves 51 lines
-      FILES: redeploy/apply/handlers.py
-  [2] ◐ extract_function   → redeploy/utils/check_version_http.py
-      WHY: 2 occurrences of 40-line block across 2 files — saves 40 lines
-      FILES: redeploy/version.py, redeploy/version/__init__.py
-  [3] ○ extract_function   → redeploy/version/sources/utils/write.py
-      WHY: 5 occurrences of 3-line block across 5 files — saves 12 lines
-      FILES: redeploy/version/sources/json_.py, redeploy/version/sources/plain.py, redeploy/version/sources/regex.py, redeploy/version/sources/toml_.py, redeploy/version/sources/yaml_.py
-  [4] ○ extract_function   → redeploy/utils/read_local_version.py
-      WHY: 2 occurrences of 11-line block across 2 files — saves 11 lines
-      FILES: redeploy/version.py, redeploy/version/__init__.py
-  [5] ○ extract_function   → redeploy/utils/check_version.py
-      WHY: 2 occurrences of 9-line block across 2 files — saves 9 lines
-      FILES: redeploy/version.py, redeploy/version/__init__.py
-  [6] ○ extract_function   → redeploy/utils/to_yaml.py
+REFACTOR[4] (ranked by priority):
+  [1] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
+      WHY: 2 occurrences of 22-line block across 2 files — saves 22 lines
+      FILES: redeploy/cli/commands/version/helpers.py, redeploy/cli/commands/version/release.py
+  [2] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
+      WHY: 2 occurrences of 16-line block across 2 files — saves 16 lines
+      FILES: redeploy/cli/commands/version/helpers.py, redeploy/cli/commands/version/release.py
+  [3] ○ extract_function   → redeploy/hardware/utils/fix_enable_i2c.py
+      WHY: 2 occurrences of 13-line block across 1 files — saves 13 lines
+      FILES: redeploy/hardware/fixes.py
+  [4] ○ extract_function   → redeploy/apply/utils/run_docker_build.py
       WHY: 2 occurrences of 8-line block across 1 files — saves 8 lines
-      FILES: redeploy/models.py
-  [7] ○ extract_function   → redeploy/utils/read_remote_version.py
-      WHY: 2 occurrences of 7-line block across 2 files — saves 7 lines
-      FILES: redeploy/version.py, redeploy/version/__init__.py
-  [8] ○ extract_function   → redeploy/apply/utils/_ssh_build.py
-      WHY: 2 occurrences of 4-line block across 1 files — saves 4 lines
       FILES: redeploy/apply/handlers.py
-  [9] ○ extract_function   → redeploy/utils/load.py
-      WHY: 2 occurrences of 4-line block across 1 files — saves 4 lines
-      FILES: redeploy/models.py
 
-QUICK_WINS[6] (low risk, high savings — do first):
-  [1] extract_module     saved=51L  → redeploy/apply/utils/run_docker_build.py
+QUICK_WINS[4] (low risk, high savings — do first):
+  [1] extract_function   saved=22L  → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
+      FILES: helpers.py, release.py
+  [2] extract_function   saved=16L  → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
+      FILES: helpers.py, release.py
+  [3] extract_function   saved=13L  → redeploy/hardware/utils/fix_enable_i2c.py
+      FILES: fixes.py
+  [4] extract_function   saved=8L  → redeploy/apply/utils/run_docker_build.py
       FILES: handlers.py
-  [3] extract_function   saved=12L  → redeploy/version/sources/utils/write.py
-      FILES: json_.py, plain.py, regex.py +2
-  [4] extract_function   saved=11L  → redeploy/utils/read_local_version.py
-      FILES: version.py, __init__.py
-  [5] extract_function   saved=9L  → redeploy/utils/check_version.py
-      FILES: version.py, __init__.py
-  [6] extract_function   saved=8L  → redeploy/utils/to_yaml.py
-      FILES: models.py
-  [7] extract_function   saved=7L  → redeploy/utils/read_remote_version.py
-      FILES: version.py, __init__.py
 
-EFFORT_ESTIMATE (total ≈ 6.4h):
-  hard   run_docker_build                    saved=51L  ~153min
-  hard   check_version_http                  saved=40L  ~120min
-  easy   write                               saved=12L  ~24min
-  easy   read_local_version                  saved=11L  ~22min
-  easy   check_version                       saved=9L  ~18min
-  easy   to_yaml                             saved=8L  ~16min
-  easy   read_remote_version                 saved=7L  ~14min
-  easy   _ssh_build                          saved=4L  ~8min
-  easy   load                                saved=4L  ~8min
+EFFORT_ESTIMATE (total ≈ 2.0h):
+  medium _resolve_package_release_git_config saved=22L  ~44min
+  medium _resolve_package_release_changelog_config saved=16L  ~32min
+  easy   fix_enable_i2c                      saved=13L  ~26min
+  easy   run_docker_build                    saved=8L  ~16min
 
 METRICS-TARGET:
-  dup_groups:  9 → 0
-  saved_lines: 146 lines recoverable
+  dup_groups:  4 → 0
+  saved_lines: 59 lines recoverable
 ```
 
 ### Evolution / Churn (`project/evolution.toon.yaml`)

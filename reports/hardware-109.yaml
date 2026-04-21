@@ -1,0 +1,200 @@
+board: Raspberry Pi 5 Model B Rev 1.1
+kernel: 6.12.75+rpt-rpi-2712
+config_txt: '# For more options and information see
+
+  # http://rptl.io/configtxt
+
+  # Some settings may impact device functionality. See link above for details
+
+
+  # Uncomment some or all of these to enable the optional hardware interfaces
+
+  dtparam=i2c_arm=on
+
+  #dtparam=i2s=on
+
+  dtparam=spi=on
+
+
+  # Enable audio (loads snd_bcm2835)
+
+  dtparam=audio=on
+
+
+  # Additional overlays and parameters are documented
+
+  # /boot/firmware/overlays/README
+
+
+  # Automatically load overlays for detected cameras
+
+  camera_auto_detect=1
+
+
+  # Automatically load overlays for detected DSI displays
+
+  display_auto_detect=0
+
+
+  # Automatically load initramfs files, if found
+
+  auto_initramfs=1
+
+
+  # Enable DRM VC4 V3D driver
+
+  dtoverlay=vc4-kms-v3d
+
+  max_framebuffers=2
+
+
+  # Don''t have the firmware create an initial video= setting in cmdline.txt.
+
+  # Use the kernel''s default instead.
+
+  disable_fw_kms_setup=1
+
+
+  # Run in 64-bit mode
+
+  arm_64bit=1
+
+
+  # Disable compensation for displays with overscan
+
+  disable_overscan=1
+
+
+  # Run as fast as firmware / board allows
+
+  arm_boost=1
+
+
+  [cm4]
+
+  # Enable host mode on the 2711 built-in XHCI USB controller.
+
+  # This line should be removed if the legacy DWC2 controller is required
+
+  # (e.g. for USB device mode) or if USB support is not required.
+
+  otg_mode=1
+
+
+  [cm5]
+
+  dtoverlay=dwc2,dr_mode=host
+
+
+  [all]
+
+  dtparam=uart0=on
+
+
+  # Waveshare 8" DSI LCD (C) - 1280x800 - Product 23448
+
+  # https://www.waveshare.com/wiki/8inch_DSI_LCD_(C)
+
+  # RPi5: connect to DSI1 port (22-pin connector)
+
+  # display_auto_detect=0 disabled to avoid conflict with manual overlay
+
+  dtoverlay=vc4-kms-dsi-waveshare-panel-v2,8_0_inch_a'
+config_txt_path: /boot/firmware/config.txt
+drm_outputs:
+- name: card1-DSI-2
+  connector: DSI-2
+  status: connected
+  enabled: enabled
+  modes:
+  - 800x1280@60
+  transform: normal
+  position: 0,0
+  scale: '1.000000'
+- name: card2-HDMI-A-1
+  connector: HDMI-A-1
+  status: disconnected
+  enabled: disabled
+  modes: []
+  transform: normal
+  position: 0,0
+  scale: '1.0'
+- name: card2-HDMI-A-2
+  connector: HDMI-A-2
+  status: disconnected
+  enabled: disabled
+  modes: []
+  transform: normal
+  position: 0,0
+  scale: '1.0'
+- name: card2-Writeback-1
+  connector: Writeback-1
+  status: unknown
+  enabled: disabled
+  modes: []
+  transform: normal
+  position: 0,0
+  scale: '1.0'
+- name: card2-Writeback-2
+  connector: Writeback-2
+  status: unknown
+  enabled: disabled
+  modes: []
+  transform: normal
+  position: 0,0
+  scale: '1.0'
+backlights:
+- name: 11-0045
+  brightness: 255
+  max_brightness: 255
+  bl_power: 0
+  display_name: DSI-2
+framebuffers:
+- /dev/fb0
+wlr_outputs:
+- output: DSI-2
+  enabled: true
+  mode: 800x1280@60
+  transform: normal
+  scale: '1.000000'
+dsi_overlays:
+- dtoverlay=vc4-kms-dsi-waveshare-panel-v2,8_0_inch_a
+dsi_dmesg:
+- '[    0.727980] drm-rp1-dsi 1f00130000.dsi: bcm2712_iommu_of_xlate: MMU 1000005280.iommu'
+- '[    0.727989] drm-rp1-dsi 1f00130000.dsi: bcm2712_iommu_probe_device: MMU 1000005280.iommu'
+- '[    0.727996] drm-rp1-dsi 1f00130000.dsi: bcm2712_iommu_device_group: MMU 1000005280.iommu'
+- '[    0.728002] drm-rp1-dsi 1f00130000.dsi: Adding to iommu group 2'
+- '[    0.728008] drm-rp1-dsi 1f00130000.dsi: bcm2712_iommu_attach_dev: MMU 1000005280.iommu'
+- '[    0.757954] waveshare-dsi 1f00130000.dsi.0: dsi panel: waveshare,8.0-dsi-touch-a'
+- '[    0.758776] waveshare-dsi 1f00130000.dsi.0: lanes: 2'
+- '[    0.758779] drm-rp1-dsi 1f00130000.dsi: rp1dsi_host_attach: Attach DSI device
+  name=8.0-dsi-touch-a channel=0 lanes=2 format=0 flags=0xc11 hs_rate=0 lp_rate=0'
+- '[    0.759411] [drm] Initialized drm-rp1-dsi 1.0.0 for 1f00130000.dsi on minor
+  1'
+- '[    0.764058] drm-rp1-dsi 1f00130000.dsi: [drm] rp1dsi: Command time (outvact):
+  10'
+- '[    0.765686] drm-rp1-dsi 1f00130000.dsi: [drm] rp1dsi: Nominal Byte clock 105000000
+  DPI clock 70000000 (parent rate 105000000)'
+- '[    1.143989] waveshare-dsi 1f00130000.dsi.0: [drm:drm_panel_enable [drm]] failed
+  to enable backlight: -121'
+- '[    1.175234] drm-rp1-dsi 1f00130000.dsi: [drm] fb0: drm-rp1-dsidrmf frame buffer
+  device'
+- '[    1.189396] drm-rp1-dsi 1f00130000.dsi: rp1dsi_bind succeeded'
+i2c_buses:
+- bus: 1
+  devices: []
+- bus: 11
+  devices: []
+- bus: 13
+  devices: []
+- bus: 14
+  devices: []
+- bus: 4
+  devices: []
+gpio_4pin_detected: null
+diagnostics:
+- component: dsi
+  severity: info
+  message: DSI display appears correctly configured (connected, backlight on)
+  fix: null
+

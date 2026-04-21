@@ -41,7 +41,7 @@ from rich.table import Table
 @click.option("--out", "out_path", default=None, type=click.Path(), help="Save to specific file")
 @click.option(
     "--format", "output_fmt",
-    default="rich",
+    default="yaml",
     type=click.Choice(["rich", "yaml", "json"]),
     help="Output format",
 )

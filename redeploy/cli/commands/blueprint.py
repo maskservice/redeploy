@@ -53,7 +53,7 @@ def blueprint_cmd():
 @click.option("--save", is_flag=True, help="Save to ~/.config/redeploy/blueprints/")
 @click.option("--out", "out_path", default=None, type=click.Path(),
               help="Save to specific file instead")
-@click.option("--format", "fmt", default="rich", type=click.Choice(["rich", "yaml", "json"]))
+@click.option("--format", "fmt", default="yaml", type=click.Choice(["rich", "yaml", "json"]))
 @click.option("--tag", "tags", multiple=True)
 def capture(host, name, compose_files, migration_file, device_map_file,
             live, save, out_path, fmt, tags):
@@ -180,7 +180,7 @@ def deploy(blueprint_file, target_host, out_path, remote_dir, no_transfer,
 
 @blueprint_cmd.command("show")
 @click.argument("blueprint_file", type=click.Path(exists=True))
-@click.option("--format", "fmt", default="rich", type=click.Choice(["rich", "yaml", "json"]))
+@click.option("--format", "fmt", default="yaml", type=click.Choice(["rich", "yaml", "json"]))
 def show(blueprint_file, fmt):
     """Display a saved DeviceBlueprint."""
     from ...models import DeviceBlueprint

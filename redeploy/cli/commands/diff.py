@@ -20,7 +20,7 @@ from rich.console import Console
     help="Right side: IaC file/directory or SSH host"
 )
 @click.option(
-    "--format", "out_format", default="text",
+    "--format", "out_format", default="json",
     type=click.Choice(["text", "json"]), show_default=True
 )
 def diff(ci_file, host, from_src, to_src, out_format):

@@ -197,14 +197,25 @@ def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
     if panel:
         console.print(f"  Panel: {panel.name}")
 
-    # Execute steps via Executor (simplified version)
-    from ...apply.executor import Executor
+    # Execute steps via handlers directly
+    from ...apply.handlers import run_ssh, run_ensure_config_line, run_raspi_config, run_wait
+    from ...models import StepAction
 
-    executor = Executor(probe=p, console=console, dry_run=False)
+    _handler_map = {
+        StepAction.SSH_CMD: lambda s: run_ssh(s, p),
+        StepAction.ENSURE_CONFIG_LINE: lambda s: run_ensure_config_line(s, p),
+        StepAction.RASPI_CONFIG: lambda s: run_raspi_config(s, p),
+        StepAction.WAIT: lambda s: run_wait(s),
+    }
+
     for step in steps:
         console.print(f"[cyan]→ {step.description}[/cyan]")
+        handler = _handler_map.get(step.action)
+        if handler is None:
+            console.print(f"[yellow]  ? skip (no handler for {step.action})[/yellow]")
+            continue
         try:
-            executor._run_single_step(step)
+            handler(step)
             console.print(f"[green]  ✓ done[/green]")
         except Exception as exc:
             console.print(f"[red]  ✗ failed: {exc}[/red]")
@@ -215,7 +226,7 @@ def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
 @click.argument("host", required=False, default=None)
 @click.option(
     "--format", "output_fmt",
-    default="rich",
+    default="yaml",
     type=click.Choice(["rich", "yaml", "json"]),
     help="Output format",
 )

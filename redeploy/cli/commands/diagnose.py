@@ -14,7 +14,7 @@ from rich.table import Table
 @click.option("--host", default=None, help="Override target host (default: spec.target.host)")
 @click.option("--ssh-key", default=None, type=click.Path(), help="Path to SSH private key")
 @click.option(
-    "--format", "output_fmt", default="rich", type=click.Choice(["rich", "yaml", "json"]), help="Report format"
+    "--format", "output_fmt", default="yaml", type=click.Choice(["rich", "yaml", "json"]), help="Report format"
 )
 @click.option("--exit-on-fail", is_flag=True, help="Exit with non-zero status if any check fails")
 @click.pass_context
