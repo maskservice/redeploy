@@ -1,17 +1,17 @@
-# code2llm/evolution | 2452 func | 134f | 2026-04-21
+# code2llm/evolution | 2528 func | 134f | 2026-04-21
 
 NEXT[10] (ranked by impact):
   [1] !! SPLIT           redeploy/models.py
-      WHY: 996L, 33 classes, max CC=19
-      EFFORT: ~4h  IMPACT: 18924
+      WHY: 1033L, 34 classes, max CC=19
+      EFFORT: ~4h  IMPACT: 19627
 
   [2] !! SPLIT           redeploy/discovery.py
       WHY: 789L, 2 classes, max CC=17
       EFFORT: ~4h  IMPACT: 13413
 
   [3] !! SPLIT           redeploy/plan/planner.py
-      WHY: 620L, 1 classes, max CC=10
-      EFFORT: ~4h  IMPACT: 6200
+      WHY: 621L, 1 classes, max CC=10
+      EFFORT: ~4h  IMPACT: 6210
 
   [4] !! SPLIT-FUNC      DockerComposeParser._parse_service  CC=37  fan=23
       WHY: CC=37 exceeds 15
@@ -33,13 +33,13 @@ NEXT[10] (ranked by impact):
       WHY: CC=26 exceeds 15
       EFFORT: ~1h  IMPACT: 546
 
-  [9] !! SPLIT-FUNC      ConfigHintsParser._parse_k8s_yaml  CC=26  fan=20
+  [9] !  SPLIT-FUNC      import_cmd  CC=21  fan=26
+      WHY: CC=21 exceeds 15
+      EFFORT: ~1h  IMPACT: 546
+
+  [10] !! SPLIT-FUNC      ConfigHintsParser._parse_k8s_yaml  CC=26  fan=20
       WHY: CC=26 exceeds 15
       EFFORT: ~1h  IMPACT: 520
-
-  [10] !  SPLIT-FUNC      fix_cmd  CC=17  fan=30
-      WHY: CC=17 exceeds 15
-      EFFORT: ~1h  IMPACT: 510
 
 
 RISKS[3]:
@@ -48,7 +48,7 @@ RISKS[3]:
   ⚠ Splitting redeploy/plan/planner.py may break 21 import paths
 
 METRICS-TARGET:
-  CC̄:          1.7 → ≤1.2
+  CC̄:          1.6 → ≤1.1
   max-CC:      37 → ≤18
   god-modules: 7 → 0
   high-CC(≥15): 38 → ≤19
@@ -79,4 +79,4 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=1.6 → now CC̄=1.7
+  prev CC̄=1.7 → now CC̄=1.6

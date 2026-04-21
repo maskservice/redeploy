@@ -54,6 +54,7 @@ class Planner:
             estimated_downtime=downtime,
             steps=self._steps,
             notes=self._notes,
+            hooks=list(getattr(self.target, "hooks", []) or []),
         )
 
     # ── conflict fixes ────────────────────────────────────────────────────────

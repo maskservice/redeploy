@@ -8,7 +8,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from ..models import InfraSpec, MigrationSpec, MigrationStep
+from ..models import InfraSpec, MigrationSpec, MigrationStep, _migrate_legacy_post_deploy
 from ..steps import StepLibrary
 from .models import MarkpactBlock, MarkpactDocument
 
@@ -27,6 +27,8 @@ _COMMON_CONFIG_WRAPPERS = {"deployment", "migration", "spec"}
 
 def compile_markpact_document(document: MarkpactDocument) -> MigrationSpec:
     data = compile_markpact_document_to_data(document)
+    # Backward-compat: translate legacy post_deploy/pre_deploy blocks → generic hooks.
+    data = _migrate_legacy_post_deploy(data)
     try:
         return MigrationSpec(**data)
     except ValidationError as exc:
@@ -103,6 +105,9 @@ def _normalize_config_payload(payload: Any, path: Path, block: MarkpactBlock) ->
         raise MarkpactCompileError(
             f"{path}:{block.start_line}: {block.label} must compile to a mapping."
         )
+
+    # Backward-compat: translate legacy post_deploy/pre_deploy → hooks before key validation.
+    payload = _migrate_legacy_post_deploy(payload)
 
     unknown_top = sorted(set(payload) - _ALLOWED_SPEC_KEYS)
     if unknown_top:

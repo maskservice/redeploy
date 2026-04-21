@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.51-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-25.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.52-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-27.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $7.5000 (71 commits)
-- 👤 **Human dev:** ~$2496 (25.0h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $7.5000 (72 commits)
+- 👤 **Human dev:** ~$2695 (27.0h @ $100/h, 30min dedup)
 
 Generated on 2026-04-21 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.51-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.52-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -654,6 +654,43 @@ Parser plugin extension:
 - Python entry points: `redeploy.iac.parsers`
 - Project-local parsers: `./redeploy_iac_parsers/*.py`
 - User-global parsers: `~/.redeploy/iac_parsers/*.py`
+
+Built-in template generator:
+- `redeploy import --list-plugin-templates`
+- `redeploy import --plugin-template helm-kustomize`
+- `redeploy import --plugin-template argocd-flux --plugin-dir redeploy_iac_parsers`
+
+Example external plugin (Helm + Ansible):
+- Source template: `examples/redeploy_iac_parsers/helm_ansible.py`
+- Quick start:
+  1. `mkdir -p redeploy_iac_parsers`
+  2. `cp examples/redeploy_iac_parsers/helm_ansible.py redeploy_iac_parsers/`
+  3. `redeploy import path/to/Chart.yaml`
+  4. `redeploy import path/to/playbook.yml`
+
+Example external plugin (Helm templates + Kustomize):
+- Source template: `examples/redeploy_iac_parsers/helm_kustomize.py`
+- Quick start:
+  1. `mkdir -p redeploy_iac_parsers`
+  2. `cp examples/redeploy_iac_parsers/helm_kustomize.py redeploy_iac_parsers/`
+  3. `redeploy import path/to/chart/templates/deployment.yaml`
+  4. `redeploy import path/to/kustomization.yaml`
+
+Example external plugin (ArgoCD Application + Flux Kustomization):
+- Source template: `examples/redeploy_iac_parsers/argocd_flux.py`
+- Quick start:
+  1. `mkdir -p redeploy_iac_parsers`
+  2. `cp examples/redeploy_iac_parsers/argocd_flux.py redeploy_iac_parsers/`
+  3. `redeploy import path/to/argocd-application.yaml`
+  4. `redeploy import path/to/flux-kustomization.yaml`
+
+Example external plugin (GitOps CI for ArgoCD/Flux):
+- Source template: `examples/redeploy_iac_parsers/gitops_ci.py`
+- Quick start:
+  1. `mkdir -p redeploy_iac_parsers`
+  2. `cp examples/redeploy_iac_parsers/gitops_ci.py redeploy_iac_parsers/`
+  3. `redeploy import .github/workflows/deploy-gitops.yml`
+  4. `redeploy import .gitlab-ci.yml`
 
 ## Examples
 

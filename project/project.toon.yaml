@@ -1,7 +1,7 @@
-# redeploy | 2459 func | 137f | 69836L | python | 2026-04-21
+# redeploy | 2553 func | 141f | 71724L | python | 2026-04-21
 
 HEALTH:
-  CC̄=1.7  critical=108 (limit:10)  dup=55  cycles=0
+  CC̄=1.7  critical=117 (limit:10)  dup=55  cycles=0
 
 ALERTS[20]:
   !!! cc_exceeded      DockerComposeParser._parse_service = 37 (limit:15)
@@ -12,26 +12,26 @@ ALERTS[20]:
   !!! cc_exceeded      probe = 26 (limit:15)
   !!! cc_exceeded      version_init = 26 (limit:15)
   !!! cc_exceeded      ConfigHintsParser._parse_k8s_yaml = 26 (limit:15)
+  !!! high_fan_out     import_cmd = 26 (limit:10)
   !!! high_fan_out     version_init = 26 (limit:10)
-  !!! cc_exceeded      FleetDevice.verify_expectations = 25 (limit:15)
 
-MODULES[302] (top by size):
-  M[project/calls.yaml] 5893L C:0 F:0 CC↑0 D:0 (yaml)
-  M[SUMR.md] 2719L C:50 F:139 CC↑0 D:0 (md)
-  M[SUMD.md] 2658L C:50 F:780 CC↑0 D:0 (md)
-  M[docs/README.md] 2401L C:0 F:1 CC↑0 D:0 (md)
-  M[project/map.toon.yaml] 1616L C:0 F:674 CC↑0 D:2 (yaml)
-  M[CHANGELOG.md] 1003L C:0 F:1 CC↑0 D:0 (md)
-  M[redeploy/models.py] 996L C:33 F:29 CC↑19 D:0 (python)
-  M[README.md] 966L C:0 F:1 CC↑0 D:0 (md)
+MODULES[311] (top by size):
+  M[project/calls.yaml] 6030L C:0 F:0 CC↑0 D:0 (yaml)
+  M[SUMR.md] 2762L C:50 F:139 CC↑0 D:0 (md)
+  M[SUMD.md] 2750L C:50 F:815 CC↑0 D:0 (md)
+  M[docs/README.md] 2451L C:0 F:1 CC↑0 D:0 (md)
+  M[project/map.toon.yaml] 1697L C:0 F:709 CC↑0 D:3 (yaml)
+  M[CHANGELOG.md] 1038L C:0 F:1 CC↑0 D:0 (md)
+  M[redeploy/models.py] 1033L C:34 F:29 CC↑19 D:0 (python)
+  M[README.md] 1003L C:0 F:1 CC↑0 D:0 (md)
   M[redeploy/discovery.py] 789L C:2 F:26 CC↑17 D:5 (python)
-  M[project/context.md] 736L C:0 F:0 CC↑0 D:0 (md)
+  M[project/context.md] 723L C:0 F:0 CC↑0 D:0 (md)
   M[code2llm_output/context.md] 722L C:0 F:0 CC↑0 D:0 (md)
   M[project/validation.toon.yaml] 683L C:0 F:0 CC↑0 D:0 (yaml)
-  M[redeploy/plan/planner.py] 620L C:1 F:21 CC↑10 D:0 (python)
+  M[redeploy/plan/planner.py] 621L C:1 F:21 CC↑10 D:0 (python)
   M[redeploy/apply/handlers.py] 616L C:0 F:20 CC↑16 D:2 (python)
   M[redeploy/audit.py] 609L C:6 F:32 CC↑14 D:1 (python)
-  LANGS: python:149/yaml:95/md:51/shell:2/other:1/yml:1/txt:1/toml:1/json:1
+  LANGS: python:153/yaml:99/md:52/shell:2/other:1/yml:1/txt:1/toml:1/json:1
 
 HOTSPOTS[10]:
   ★ fix_cmd fan=30  // Self-healing deploy: bump version, then run with LLM auto-fix on failure.
@@ -47,7 +47,9 @@ Checks DSI display, DRM connector
   ★ run fan=27  // Execute migration from a single YAML spec (source + target in one file).
 
 SPEC d
-  ★ version_init fan=26  // Initialize .redeploy/version.yaml manifest.
+  ★ import_cmd fan=26  // Parse an IaC/CI-CD file and produce a migration.yaml scaffold.
+
+    Auto-detects
 
 REFACTOR[15]:
   [1] H/L Split FleetDevice.verify_expectations (CC=25)
@@ -57,4 +59,4 @@ REFACTOR[15]:
   [5] H/L Split _build_manifest (CC=25)
 
 EVOLUTION:
-  2026-04-21 CC̄=1.7 crit=108 69836L // Automated analysis
+  2026-04-21 CC̄=1.7 crit=117 71724L // Automated analysis

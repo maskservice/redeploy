@@ -10,9 +10,52 @@ adapters live here now.
 """
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Optional, Sequence
 
-from opstree.integrations import make_compat_helpers
+try:
+    from opstree.integrations import make_compat_helpers
+except ImportError as _op3_import_error:
+    def make_compat_helpers(*, env_var: str, default_layers: tuple[str, ...], install_hint: str):
+        """Fallback compat helpers when opstree is not installed.
+
+        Keeps redeploy importable and allows callers to branch cleanly with
+        ``op3_available()``/``should_use_op3()``.
+        """
+
+        class _FallbackHelpers:
+            @staticmethod
+            def op3_available() -> bool:
+                return False
+
+            @staticmethod
+            def op3_enabled() -> bool:
+                raw = os.getenv(env_var, "1").strip().lower()
+                return raw not in {"0", "false", "no", "off"}
+
+            @classmethod
+            def should_use_op3(cls) -> bool:
+                return cls.op3_enabled() and cls.op3_available()
+
+            @staticmethod
+            def require_op3(feature: str = "This feature") -> None:
+                raise RuntimeError(
+                    f"{feature} requires opstree. Install with: {install_hint}"
+                ) from _op3_import_error
+
+            @staticmethod
+            def make_ssh_context(*args, **kwargs):
+                _FallbackHelpers.require_op3("SSH context")
+
+            @staticmethod
+            def make_mock_context(*args, **kwargs):
+                _FallbackHelpers.require_op3("Mock op3 context")
+
+            @staticmethod
+            def make_scanner(layers=None):
+                _FallbackHelpers.require_op3("op3 scanner")
+
+        return _FallbackHelpers()
 
 if TYPE_CHECKING:
     from opstree.probes.context import SSHContext

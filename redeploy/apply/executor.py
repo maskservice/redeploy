@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import IO, Optional
+from typing import IO, Any, Optional
 
 import yaml
 from loguru import logger
 
 from ..detect.remote import RemoteProbe
-from ..models import MigrationPlan, MigrationStep, StepAction, StepStatus
+from ..models import Hook, MigrationPlan, MigrationStep, StepAction, StepStatus
 from .exceptions import StepError
 from .handlers import (
     run_ssh, run_scp, run_rsync, run_docker_build, run_podman_build,
@@ -100,11 +100,13 @@ class Executor:
             logger.info(f"resume: skipping {len(skip_ids)} already-completed step(s): "
                         f"{', '.join(sorted(skip_ids))}")
 
+        self._fire_hooks("before_apply")
         ok = self._execute_steps_loop(skip_ids)
         elapsed = time.monotonic() - self._t0
 
         self._handle_completion(ok, elapsed)
         self._write_audit(ok=ok, elapsed_s=elapsed)
+        self._fire_hooks("always", ok=ok, elapsed_s=elapsed)
         return ok
 
     def _execute_steps_loop(self, skip_ids: set[str]) -> bool:
@@ -118,13 +120,16 @@ class Executor:
             try:
                 if self._emitter:
                     self._emitter.step_start(i, step)
+                self._fire_hooks("before_step", step=step)
                 self._execute_step(step)
                 self._completed.append(step)
                 if self._state is not None:
                     self._state.mark_done(step.id)
                 if self._emitter:
                     self._emitter.step_done(i, step)
+                self._fire_hooks("after_step", step=step)
             except StepError as e:
+                self._fire_hooks("on_step_failure", step=step, error=str(e))
                 self._handle_step_failure(i, step, e)
                 ok = False
                 break
@@ -159,10 +164,91 @@ class Executor:
             # Plan finished cleanly — drop the checkpoint.
             if self._state is not None:
                 self._state.remove()
+            self._fire_hooks("after_apply", elapsed_s=elapsed)
         else:
             if self._state is not None and self._state_path is not None:
                 logger.info(f"resume: checkpoint saved → {self._state_path} "
                             f"({self._state.completed_count}/{self._state.total_steps} done)")
+            self._fire_hooks("on_failure", elapsed_s=elapsed)
+
+    # ── Pipeline hooks (generic) ─────────────────────────────────────────────
+
+    def _fire_hooks(self, phase: str, **context: Any) -> None:
+        """Fire all hooks registered for a given phase. Honors ``when`` + ``on_failure``."""
+        hooks = [h for h in getattr(self.plan, "hooks", []) if h.phase == phase]
+        if not hooks:
+            return
+        for hook in hooks:
+            if hook.when and not self._eval_hook_condition(hook.when, context):
+                continue
+            try:
+                self._execute_hook(hook, context)
+            except Exception as exc:  # noqa: BLE001
+                self._handle_hook_failure(hook, exc)
+
+    def _eval_hook_condition(self, expr: str, context: dict) -> bool:
+        """Evaluate a simple hook condition against the context.
+
+        Supports only ``step.id == 'foo'`` / ``step.id != 'foo'`` for now to avoid
+        executing arbitrary expressions. Extend with jmespath when needed.
+        """
+        step = context.get("step")
+        step_id = getattr(step, "id", None)
+        expr = expr.strip()
+        for op in ("==", "!="):
+            if op in expr:
+                left, right = [p.strip() for p in expr.split(op, 1)]
+                right = right.strip("'\"")
+                if left == "step.id":
+                    return (step_id == right) if op == "==" else (step_id != right)
+        logger.warning(f"hook: unsupported when expression: {expr!r}")
+        return True
+
+    def _execute_hook(self, hook: "Hook", context: dict) -> None:
+        """Execute a hook. Built-in actions handled inline; rest delegated to step runners."""
+        action = hook.action
+        extra = hook.model_dump(exclude={"id", "phase", "action", "description", "when", "on_failure"})
+        logger.info(f"hook[{hook.phase}] {hook.id}: {action}")
+        if self.dry_run:
+            return
+
+        # Built-in: local_cmd — run a command on the controller machine (opens browser, clears local cache, etc.)
+        if action == "local_cmd":
+            import subprocess
+            cmd = extra.get("command") or ""
+            if not cmd:
+                raise ValueError(f"hook {hook.id}: local_cmd requires 'command'")
+            subprocess.run(cmd, shell=True, check=True)
+            return
+
+        # Built-in: open_url — open a URL in the default browser (controller machine)
+        if action == "open_url":
+            import webbrowser
+            url = extra.get("url") or extra.get("command") or ""
+            if not url:
+                raise ValueError(f"hook {hook.id}: open_url requires 'url'")
+            webbrowser.open(url)
+            return
+
+        # Fallback: treat hook like a MigrationStep and let existing runners handle it.
+        step = MigrationStep(
+            id=hook.id,
+            action=action,  # pydantic will validate against StepAction enum
+            description=hook.description or f"hook:{hook.phase}:{hook.id}",
+            **extra,
+        )
+        self._execute_step(step)
+
+    def _handle_hook_failure(self, hook: "Hook", exc: Exception) -> None:
+        policy = hook.on_failure
+        msg = f"hook {hook.id} ({hook.phase}) failed: {exc}"
+        if policy == "abort":
+            logger.error(msg)
+            raise exc
+        if policy == "warn":
+            logger.warning(msg)
+        else:  # continue
+            logger.debug(msg)
 
     def _compute_skip_set(self) -> set[str]:
         """Determine which step ids should be skipped this run.

@@ -1,7 +1,7 @@
 <!-- code2docs:start --># redeploy
 
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2592-green)
-> **2592** functions | **258** classes | **309** files | CC̄ = 5.0
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2687-green)
+> **2687** functions | **267** classes | **318** files | CC̄ = 5.1
 
 > Auto-generated project documentation from source code analysis.
 
@@ -93,6 +93,7 @@ redeploy/
     ├── markpact-implementation-plan
     ├── fleet
     ├── dsl-migration
+    ├── op3-migration
     ├── observe
     ├── README
     ├── markpact-audit
@@ -109,7 +110,6 @@ redeploy/
 ├── redeploy/
     ├── parse
     ├── fleet
-    ├── models
     ├── verify
     ├── spec_loader
     ├── ssh
@@ -208,7 +208,6 @@ redeploy/
     ├── apply/
         ├── state_apply
         ├── handlers
-        ├── executor
         ├── rollback
         ├── utils/
         ├── bump
@@ -255,6 +254,10 @@ redeploy/
         ├── enable-i2c-spi
         ├── waveshare-8-inch-dsi
         ├── official-dsi-7-inch
+        ├── argocd_flux
+        ├── helm_kustomize
+        ├── gitops_ci
+        ├── helm_ansible
         ├── README
             ├── migration
             ├── README
@@ -317,12 +320,14 @@ redeploy/
             ├── test-local-6bb4cec7
             ├── test-local-c05a99a2
             ├── test-local-ec3c5638
+            ├── test-local-ec6ccce4
             ├── test-local-eac354f9
             ├── migration-local-92efc860
             ├── test-local-ed7da478
             ├── test-local-46c5e2ce
             ├── test-local-abe8802f
             ├── test-local-831fd1ab
+            ├── test-local-2859ad55
             ├── test-local-e1009318
             ├── test-local-563ceb24
             ├── test-local-036bc2a0
@@ -356,26 +361,30 @@ redeploy/
             ├── test-local-a70e54ce
             ├── test-local-ad30ec23
             ├── test-local-a929f336
+            ├── test-local-4cea1066
             ├── test-local-5a1d7483
             ├── test-local-e069dd9f
             ├── test-local-36935faf
+            ├── test-local-1d287d51
     ├── quality_gate
     ├── hardware-108
     ├── hardware-109
         ├── toon
-    ├── prompt
         ├── toon
         ├── context
         ├── README
             ├── toon
-        ├── toon
-    ├── README
-        ├── toon
+    ├── prompt
         ├── toon
     ├── context
         ├── toon
+        ├── toon
+    ├── README
+        ├── toon
     ├── calls
         ├── toon
+        ├── executor
+    ├── models
 ```
 
 ## API Overview
@@ -495,39 +504,6 @@ redeploy/
 - **`FleetDevice`** — Generic device descriptor — superset of ``deploy``'s DeviceConfig.
 - **`FleetConfig`** — Top-level fleet manifest — list of devices with stage / tag organisation.
 - **`Fleet`** — Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
-- **`ConflictSeverity`** — —
-- **`StepAction`** — —
-- **`StepStatus`** — —
-- **`DeployStrategy`** — —
-- **`PersistedModel`** — Mixin for models that can be persisted to/from YAML files.
-- **`ServiceInfo`** — —
-- **`PortInfo`** — —
-- **`ConflictInfo`** — —
-- **`RuntimeInfo`** — —
-- **`AppHealthInfo`** — —
-- **`DrmOutput`** — One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1).
-- **`BacklightInfo`** — Sysfs backlight device.
-- **`I2CBusInfo`** — —
-- **`HardwareDiagnostic`** — Problem found during hardware probe.
-- **`HardwareInfo`** — Hardware state produced by hardware probe.
-- **`InfraState`** — Full detected state of infrastructure — output of `detect`.
-- **`TargetConfig`** — Desired infrastructure state — input to `plan`.
-- **`MigrationStep`** — —
-- **`InfraSpec`** — Declarative description of one infrastructure state (from OR to).
-- **`MigrationSpec`** — Single YAML file describing full migration: from-state → to-state.
-- **`MigrationPlan`** — Full migration plan — output of `plan`, input to `apply`.
-- **`EnvironmentConfig`** — One named environment (prod / dev / rpi5 / staging …) in redeploy.yaml.
-- **`ProjectManifest`** — Per-project redeploy.yaml — replaces repetitive Makefile variables.
-- **`DeployRecord`** — Single deployment event recorded for a device.
-- **`KnownDevice`** — Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml.
-- **`DeviceMap`** — Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
-- **`ServicePort`** — A single port mapping for a container service.
-- **`VolumeMount`** — —
-- **`ServiceSpec`** — Complete specification of a single containerised service.
-- **`HardwareRequirements`** — Hardware capabilities required to run the blueprint.
-- **`BlueprintSource`** — Where the blueprint was extracted from — audit trail.
-- **`DeviceBlueprint`** — Self-contained, portable deployment recipe.
-- **`DeviceRegistry`** — Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
 - **`VerifyContext`** — Accumulates check results during verification.
 - **`SpecLoaderError`** — Base error raised when a deployment spec cannot be loaded.
 - **`UnsupportedSpecFormatError`** — Raised when the spec file uses an unsupported format.
@@ -589,7 +565,6 @@ redeploy/
 - **`StateHandler`** — Base class for a declarative state applier.
 - **`HardwareStateHandler`** — Applies HardwareInfo-shaped YAML: display transforms, backlight, etc.
 - **`InfraStateHandler`** — Placeholder — applies InfraState-shaped YAML (services, ports, etc.).
-- **`Executor`** — Execute MigrationPlan steps on a remote host.
 - **`GitTransactionResult`** — Result of full version bump transaction with git.
 - **`GitVersionBumpTransaction`** — Version bump transaction with Git integration.
 - **`StagingResult`** — Result of staging one source.
@@ -631,6 +606,49 @@ redeploy/
 - **`ParserRegistry`** — Dispatch file → registered parser.
 - **`ConfigHintsParser`** — Best-effort parser for common DevOps/IaC config files.
 - **`DockerComposeParser`** — Parser for Docker Compose files (v2 + v3 schema, Compose Spec).
+- **`ArgoCDApplicationParser`** — —
+- **`FluxKustomizationParser`** — —
+- **`HelmTemplatesParser`** — —
+- **`KustomizationParser`** — —
+- **`GitHubActionsGitOpsParser`** — —
+- **`GitLabCIGitOpsParser`** — —
+- **`HelmChartParser`** — —
+- **`AnsiblePlaybookParser`** — —
+- **`Executor`** — Execute MigrationPlan steps on a remote host.
+- **`ConflictSeverity`** — —
+- **`StepAction`** — —
+- **`StepStatus`** — —
+- **`DeployStrategy`** — —
+- **`PersistedModel`** — Mixin for models that can be persisted to/from YAML files.
+- **`ServiceInfo`** — —
+- **`PortInfo`** — —
+- **`ConflictInfo`** — —
+- **`RuntimeInfo`** — —
+- **`AppHealthInfo`** — —
+- **`DrmOutput`** — One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1).
+- **`BacklightInfo`** — Sysfs backlight device.
+- **`I2CBusInfo`** — —
+- **`HardwareDiagnostic`** — Problem found during hardware probe.
+- **`HardwareInfo`** — Hardware state produced by hardware probe.
+- **`InfraState`** — Full detected state of infrastructure — output of `detect`.
+- **`Hook`** — Generyczny hook w pipeline: faza + akcja (reuse StepAction) + opcjonalny warunek.
+- **`TargetConfig`** — Desired infrastructure state — input to `plan`.
+- **`MigrationStep`** — —
+- **`InfraSpec`** — Declarative description of one infrastructure state (from OR to).
+- **`MigrationSpec`** — Single YAML file describing full migration: from-state → to-state.
+- **`MigrationPlan`** — Full migration plan — output of `plan`, input to `apply`.
+- **`EnvironmentConfig`** — One named environment (prod / dev / rpi5 / staging …) in redeploy.yaml.
+- **`ProjectManifest`** — Per-project redeploy.yaml — replaces repetitive Makefile variables.
+- **`DeployRecord`** — Single deployment event recorded for a device.
+- **`KnownDevice`** — Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml.
+- **`DeviceMap`** — Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
+- **`ServicePort`** — A single port mapping for a container service.
+- **`VolumeMount`** — —
+- **`ServiceSpec`** — Complete specification of a single containerised service.
+- **`HardwareRequirements`** — Hardware capabilities required to run the blueprint.
+- **`BlueprintSource`** — Where the blueprint was extracted from — audit trail.
+- **`DeviceBlueprint`** — Self-contained, portable deployment recipe.
+- **`DeviceRegistry`** — Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
 
 ### Functions
 
@@ -895,6 +913,7 @@ redeploy/
 - `apply_fix_to_spec()` — —
 - `write_repair_log()` — —
 - `parse_failed_step()` — —
+- `parse_json_file()` — —
 - `parse_file()` — —
 - `parse_dir()` — —
 - `make_op3_context_from_ssh_client()` — —
@@ -1064,6 +1083,13 @@ redeploy/
 - `test_make_ssh_context_forwards_key()` — —
 - `test_end_to_end_mock_scan_physical_display()` — —
 - `compose_file()` — —
+- `test_example_module_exposes_parsers()` — —
+- `test_argocd_application_parser()` — —
+- `test_flux_kustomization_parser()` — —
+- `test_github_actions_gitops_parser()` — —
+- `test_gitlab_ci_gitops_parser()` — —
+- `test_helm_templates_parser_extracts_images()` — —
+- `test_kustomize_parser_extracts_resources_and_images()` — —
 - `test_add_new_line_to_all_section()` — —
 - `test_no_op_when_line_already_present()` — —
 - `test_replace_existing_dsi_overlay()` — —
@@ -1130,6 +1156,21 @@ redeploy/
 - `test_i2c_chip_missing_flagged()` — —
 - `test_i2c_chip_present_no_warn()` — —
 - `write_compose()` — —
+- `test_can_parse_dockerfile()` — —
+- `test_parse_dockerfile_images()` — —
+- `test_parse_nginx_conf_ports()` — —
+- `test_parse_k8s_yaml()` — —
+- `test_parse_terraform()` — —
+- `test_parse_toml()` — —
+- `test_parse_vite_config()` — —
+- `test_parse_github_actions()` — —
+- `test_parse_gitlab_ci()` — —
+- `test_load_local_parsers_from_project_dir()` — —
+- `test_load_local_parsers_from_user_dir()` — —
+- `test_list_plugin_templates()` — —
+- `test_copy_plugin_template()` — —
+- `test_copy_plugin_template_dry_run()` — —
+- `test_source_required_without_plugin_template()` — —
 - `test_parse_docker_ps_full_format()` — —
 - `test_parse_docker_ps_partial_format()` — —
 - `test_parse_docker_ps_skips_empty_lines()` — —
@@ -1166,6 +1207,9 @@ redeploy/
 - `test_prompt_uses_real_spec_paths()` — —
 - `test_prompt_cli_schema_only()` — —
 - `test_prompt_cli_dry_run_no_confirm()` — —
+- `test_parse_llm_response_escapes_control_characters()` — —
+- `test_parse_llm_response_handles_markdown_fences()` — —
+- `test_parse_llm_response_preserves_newlines()` — —
 - `test_placeholder()` — —
 - `test_import()` — —
 - `to_yaml()` — —
@@ -1539,8 +1583,8 @@ redeploy/
 - `render_yaml()` — —
 - `render_json()` — —
 - `render_rich()` — —
-- `extract_blueprint()` — —
 - `import_cmd()` — —
+- `extract_blueprint()` — —
 - `merge_compose_files()` — —
 - `blueprint_cmd()` — —
 - `capture()` — —
@@ -1585,10 +1629,9 @@ redeploy/
 - `run_ensure_kanshi_profile()` — —
 - `run_ensure_autostart_entry()` — —
 - `run_ensure_browser_kiosk_script()` — —
-- `prompt_cmd()` — —
 - `push()` — —
 - `main()` — —
-- `build_schema()` — —
+- `prompt_cmd()` — —
 - `audit_spec()` — —
 - `hardware_diagnostic()` — —
 - `ensure_line()` — —
@@ -1600,6 +1643,7 @@ redeploy/
 - `extract_script_from_markdown()` — —
 - `parse_file()` — —
 - `parse_dir()` — —
+- `build_schema()` — —
 - `probe_runtime()` — —
 - `probe_ports()` — —
 - `probe_iptables_dnat()` — —
@@ -1628,6 +1672,7 @@ redeploy/
 - `parse_health_info()` — —
 - `status()` — —
 - `systemd_reload()` — —
+- `detect()` — —
 - `process_control()` — —
 - `compile_markpact_document()` — —
 - `compile_markpact_document_to_data()` — —
@@ -1642,7 +1687,6 @@ redeploy/
 - `exec_cmd()` — —
 - `exec_multi_cmd()` — —
 - `init()` — —
-- `detect()` — —
 - `workflow_cmd()` — —
 - `make_op3_context_from_ssh_client()` — —
 - `snapshot_to_infra_state()` — —
@@ -1769,6 +1813,83 @@ redeploy/
 - `verify_all_services()` — —
 - `exit()` — —
 - `generate_readme()` — —
+- `has_dsi()` — —
+- `kms_enabled()` — —
+- `dsi_connected()` — —
+- `dsi_physically_connected()` — —
+- `dsi_enabled()` — —
+- `backlight_on()` — —
+- `errors()` — —
+- `warnings()` — —
+- `resolve_versions()` — —
+- `to_infra_state()` — —
+- `to_target_config()` — —
+- `find_and_load()` — —
+- `find_css()` — —
+- `env()` — —
+- `resolve_env()` — —
+- `from_dotenv()` — —
+- `apply_to_spec()` — —
+- `last_deploy()` — —
+- `is_reachable()` — —
+- `record_deploy()` — —
+- `has_errors()` — —
+- `display_summary()` — —
+- `save()` — —
+- `load_for()` — —
+- `service()` — —
+- `upsert()` — —
+- `remove()` — —
+- `default_path()` — —
+- `ok()` — —
+- `add()` — —
+- `passed()` — —
+- `failed()` — —
+- `warned()` — —
+- `skipped()` — —
+- `summary()` — —
+- `to_dict()` — —
+- `extras()` — —
+- `collect()` — —
+- `has_binary()` — —
+- `has_path()` — —
+- `port_listening()` — —
+- `has_image()` — —
+- `has_systemd_unit()` — —
+- `apt_package()` — —
+- `disk_free_gib()` — —
+- `ts()` — —
+- `host()` — —
+- `app()` — —
+- `from_strategy()` — —
+- `to_strategy()` — —
+- `elapsed_s()` — —
+- `steps_total()` — —
+- `steps_ok()` — —
+- `steps_failed()` — —
+- `pattern()` — —
+- `version()` — —
+- `dry_run()` — —
+- `steps()` — —
+- `error()` — —
+- `record()` — —
+- `tail()` — —
+- `filter()` — —
+- `clear()` — —
+- `text()` — —
+- `yaml()` — —
+- `summary_line()` — —
+- `ssh_user()` — —
+- `ssh_ip()` — —
+- `is_local()` — —
+- `is_prod()` — —
+- `has_tag()` — —
+- `has_expectation()` — —
+- `verify_expectations()` — —
+- `get_device()` — —
+- `prod_devices()` — —
+- `from_config()` — —
+- `prod()` — —
 - `run_container_build()` — —
 - `test_nodes_of_type()` — —
 - `test_manifest_to_css_roundtrip()` — —
@@ -1879,6 +2000,13 @@ redeploy/
 - `test_make_ssh_context_forwards_key()` — —
 - `test_end_to_end_mock_scan_physical_display()` — —
 - `compose_file()` — —
+- `test_example_module_exposes_parsers()` — —
+- `test_argocd_application_parser()` — —
+- `test_flux_kustomization_parser()` — —
+- `test_github_actions_gitops_parser()` — —
+- `test_gitlab_ci_gitops_parser()` — —
+- `test_helm_templates_parser_extracts_images()` — —
+- `test_kustomize_parser_extracts_resources_and_images()` — —
 - `test_add_new_line_to_all_section()` — —
 - `test_no_op_when_line_already_present()` — —
 - `test_replace_existing_dsi_overlay()` — —
@@ -1945,6 +2073,21 @@ redeploy/
 - `test_i2c_chip_missing_flagged()` — —
 - `test_i2c_chip_present_no_warn()` — —
 - `write_compose()` — —
+- `test_can_parse_dockerfile()` — —
+- `test_parse_dockerfile_images()` — —
+- `test_parse_nginx_conf_ports()` — —
+- `test_parse_k8s_yaml()` — —
+- `test_parse_terraform()` — —
+- `test_parse_toml()` — —
+- `test_parse_vite_config()` — —
+- `test_parse_github_actions()` — —
+- `test_parse_gitlab_ci()` — —
+- `test_load_local_parsers_from_project_dir()` — —
+- `test_load_local_parsers_from_user_dir()` — —
+- `test_list_plugin_templates()` — —
+- `test_copy_plugin_template()` — —
+- `test_copy_plugin_template_dry_run()` — —
+- `test_source_required_without_plugin_template()` — —
 - `test_parse_docker_ps_full_format()` — —
 - `test_parse_docker_ps_partial_format()` — —
 - `test_parse_docker_ps_skips_empty_lines()` — —
@@ -1981,85 +2124,11 @@ redeploy/
 - `test_prompt_uses_real_spec_paths()` — —
 - `test_prompt_cli_schema_only()` — —
 - `test_prompt_cli_dry_run_no_confirm()` — —
+- `test_parse_llm_response_escapes_control_characters()` — —
+- `test_parse_llm_response_handles_markdown_fences()` — —
+- `test_parse_llm_response_preserves_newlines()` — —
 - `test_placeholder()` — —
 - `test_import()` — —
-- `has_dsi()` — —
-- `kms_enabled()` — —
-- `dsi_connected()` — —
-- `dsi_physically_connected()` — —
-- `dsi_enabled()` — —
-- `backlight_on()` — —
-- `errors()` — —
-- `warnings()` — —
-- `resolve_versions()` — —
-- `to_infra_state()` — —
-- `to_target_config()` — —
-- `find_and_load()` — —
-- `find_css()` — —
-- `env()` — —
-- `resolve_env()` — —
-- `from_dotenv()` — —
-- `apply_to_spec()` — —
-- `last_deploy()` — —
-- `is_reachable()` — —
-- `record_deploy()` — —
-- `has_errors()` — —
-- `display_summary()` — —
-- `save()` — —
-- `load_for()` — —
-- `service()` — —
-- `upsert()` — —
-- `remove()` — —
-- `default_path()` — —
-- `ok()` — —
-- `add()` — —
-- `passed()` — —
-- `failed()` — —
-- `warned()` — —
-- `skipped()` — —
-- `summary()` — —
-- `to_dict()` — —
-- `extras()` — —
-- `collect()` — —
-- `has_binary()` — —
-- `has_path()` — —
-- `port_listening()` — —
-- `has_image()` — —
-- `has_systemd_unit()` — —
-- `apt_package()` — —
-- `disk_free_gib()` — —
-- `ts()` — —
-- `host()` — —
-- `app()` — —
-- `from_strategy()` — —
-- `to_strategy()` — —
-- `elapsed_s()` — —
-- `steps_total()` — —
-- `steps_ok()` — —
-- `steps_failed()` — —
-- `pattern()` — —
-- `version()` — —
-- `dry_run()` — —
-- `steps()` — —
-- `error()` — —
-- `record()` — —
-- `tail()` — —
-- `filter()` — —
-- `clear()` — —
-- `text()` — —
-- `yaml()` — —
-- `summary_line()` — —
-- `ssh_user()` — —
-- `ssh_ip()` — —
-- `is_local()` — —
-- `is_prod()` — —
-- `has_tag()` — —
-- `has_expectation()` — —
-- `verify_expectations()` — —
-- `get_device()` — —
-- `prod_devices()` — —
-- `from_config()` — —
-- `prod()` — —
 
 
 ## Project Structure
@@ -2070,11 +2139,14 @@ redeploy/
 📄 `.redeploy.state.test-local-09b68243`
 📄 `.redeploy.state.test-local-0a0a5446`
 📄 `.redeploy.state.test-local-179edfed`
+📄 `.redeploy.state.test-local-1d287d51`
 📄 `.redeploy.state.test-local-24cd498c`
+📄 `.redeploy.state.test-local-2859ad55`
 📄 `.redeploy.state.test-local-35782b9c`
 📄 `.redeploy.state.test-local-36935faf`
 📄 `.redeploy.state.test-local-3ad44506`
 📄 `.redeploy.state.test-local-46c5e2ce`
+📄 `.redeploy.state.test-local-4cea1066`
 📄 `.redeploy.state.test-local-4d4cf12b`
 📄 `.redeploy.state.test-local-50622a24`
 📄 `.redeploy.state.test-local-563ceb24`
@@ -2109,6 +2181,7 @@ redeploy/
 📄 `.redeploy.state.test-local-ea908429`
 📄 `.redeploy.state.test-local-eac354f9`
 📄 `.redeploy.state.test-local-ec3c5638`
+📄 `.redeploy.state.test-local-ec6ccce4`
 📄 `.redeploy.state.test-local-ed7da478`
 📄 `.redeploy.state.test-local-ee51c059`
 📄 `.redeploy.state.test-local-efd3d620`
@@ -2120,7 +2193,7 @@ redeploy/
 📄 `README` (1 functions)
 📄 `REFACTORING` (9 functions, 6 classes)
 📄 `REPAIR_LOG`
-📄 `SUMD` (859 functions, 50 classes)
+📄 `SUMD` (898 functions, 50 classes)
 📄 `SUMR` (163 functions, 50 classes)
 📄 `TODO` (11 functions, 1 classes)
 📄 `code2llm_output.README`
@@ -2132,6 +2205,7 @@ redeploy/
 📄 `docs.markpact-audit`
 📄 `docs.markpact-implementation-plan` (1 functions)
 📄 `docs.observe`
+📄 `docs.op3-migration`
 📄 `docs.parsers.README` (2 functions, 1 classes)
 📄 `docs.patterns` (5 functions, 1 classes)
 📄 `examples.README`
@@ -2150,6 +2224,10 @@ redeploy/
 📄 `examples.md.03-docker-to-podman-quadlet.migration`
 📄 `examples.md.04-v3-state-reconciliation.migration`
 📄 `examples.md.README`
+📄 `examples.redeploy_iac_parsers.argocd_flux` (4 functions, 2 classes)
+📄 `examples.redeploy_iac_parsers.gitops_ci` (5 functions, 2 classes)
+📄 `examples.redeploy_iac_parsers.helm_ansible` (4 functions, 2 classes)
+📄 `examples.redeploy_iac_parsers.helm_kustomize` (5 functions, 2 classes)
 📄 `examples.yaml.01-vps-version-bump.README`
 📄 `examples.yaml.01-vps-version-bump.migration`
 📄 `examples.yaml.02-k3s-to-docker.README`
@@ -2205,7 +2283,7 @@ redeploy/
 📄 `project.context`
 📄 `project.duplication.toon`
 📄 `project.evolution.toon`
-📄 `project.map.toon` (2241 functions)
+📄 `project.map.toon` (2326 functions)
 📄 `project.project.toon`
 📄 `project.prompt`
 📄 `project.validation.toon`
@@ -2214,7 +2292,7 @@ redeploy/
 📦 `redeploy`
 📦 `redeploy.apply`
 📄 `redeploy.apply.exceptions` (1 functions, 1 classes)
-📄 `redeploy.apply.executor` (13 functions, 1 classes)
+📄 `redeploy.apply.executor` (17 functions, 1 classes)
 📄 `redeploy.apply.handlers` (20 functions)
 📄 `redeploy.apply.progress` (11 functions, 1 classes)
 📄 `redeploy.apply.rollback` (1 functions)
@@ -2246,7 +2324,7 @@ redeploy/
 📄 `redeploy.cli.commands.exec_` (6 functions)
 📄 `redeploy.cli.commands.export` (6 functions)
 📄 `redeploy.cli.commands.hardware` (11 functions)
-📄 `redeploy.cli.commands.import_` (4 functions)
+📄 `redeploy.cli.commands.import_` (8 functions)
 📄 `redeploy.cli.commands.init` (1 functions)
 📄 `redeploy.cli.commands.inspect` (2 functions)
 📄 `redeploy.cli.commands.mcp_cmd` (1 functions)
@@ -2324,7 +2402,7 @@ redeploy/
 📄 `redeploy.markpact.models` (2 classes)
 📄 `redeploy.markpact.parser` (9 functions, 1 classes)
 📄 `redeploy.mcp_server` (14 functions)
-📄 `redeploy.models` (29 functions, 33 classes)
+📄 `redeploy.models` (29 functions, 34 classes)
 📄 `redeploy.observe` (14 functions, 3 classes)
 📄 `redeploy.parse` (10 functions)
 📄 `redeploy.patterns` (11 functions, 4 classes)
@@ -2337,7 +2415,7 @@ redeploy/
 📄 `redeploy.plugins.builtin.notify` (7 functions)
 📄 `redeploy.plugins.builtin.process_control` (3 functions)
 📄 `redeploy.plugins.builtin.systemd_reload` (2 functions)
-📄 `redeploy.schema` (5 functions)
+📄 `redeploy.schema` (6 functions)
 📄 `redeploy.spec_loader` (1 functions, 2 classes)
 📄 `redeploy.ssh` (17 functions, 4 classes)
 📦 `redeploy.steps` (4 functions, 1 classes)

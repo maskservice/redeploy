@@ -7,17 +7,19 @@ Public API (stable from 0.2.0, semver guaranteed)::
 
 Everything not listed in ``__all__`` is internal and may change without notice.
 """
-__version__ = "0.2.51"
+__version__ = "0.2.52"
 
 # ── Core models ───────────────────────────────────────────────────────────────
 from .models import (  # noqa: F401
     ConflictSeverity,
     DeployStrategy,
+    Hook,
     InfraSpec,
     InfraState,
     MigrationPlan,
     MigrationSpec,
     MigrationStep,
+    PipelinePhase,
     StepAction,
     StepStatus,
     TargetConfig,
@@ -91,11 +93,13 @@ __all__ = [
     # models
     "ConflictSeverity",
     "DeployStrategy",
+    "Hook",
     "InfraSpec",
     "InfraState",
     "MigrationPlan",
     "MigrationSpec",
     "MigrationStep",
+    "PipelinePhase",
     "StepAction",
     "StepStatus",
     "TargetConfig",

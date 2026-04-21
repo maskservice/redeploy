@@ -19,6 +19,7 @@ import os
 import re
 import textwrap
 import datetime
+from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -248,6 +249,33 @@ def parse_failed_step(executor_summary: str, executor=None) -> tuple[str | None,
     return None, ""
 
 
+class HealLoopDetector:
+    """Detect repeated non-converging heal hints for a given step."""
+
+    def __init__(self, max_identical_hints: int = 3):
+        self.max_identical_hints = max_identical_hints
+        self._history: dict[str, list[str]] = defaultdict(list)
+
+    def observe(self, step_id: str, hint: str) -> bool:
+        """Return True when the latest hints indicate a heal loop.
+
+        A loop is defined as ``max_identical_hints`` identical non-empty hints
+        in a row for the same failed step.
+        """
+        normalized = (hint or "").strip()
+        if not normalized:
+            return False
+
+        history = self._history[step_id]
+        history.append(normalized)
+
+        if len(history) < self.max_identical_hints:
+            return False
+
+        recent = history[-self.max_identical_hints :]
+        return all(item == recent[0] for item in recent)
+
+
 class HealRunner:
     """
     Wraps Executor with self-healing loop.
@@ -296,6 +324,7 @@ class HealRunner:
         self._state_file = executor_kwargs.pop("state_file", None)
         self._no_state = executor_kwargs.pop("no_state", False)
         self.repairs: list[dict] = []
+        self._loop_detector = HealLoopDetector(max_identical_hints=3)
 
         from rich.console import Console
         self.console = console or Console()
@@ -401,6 +430,14 @@ class HealRunner:
                 "fixed": fixed,
             })
             write_repair_log(self.spec_path, self.version, self.repairs)
+
+            loop_hint = f"{summary} | {diag_hint}".strip()
+            if self._loop_detector.observe(failed_step, loop_hint):
+                self.console.print(
+                    "[yellow]heal: detected repeating non-converging hint pattern; "
+                    "stopping auto-retry to avoid loop[/yellow]"
+                )
+                break
 
             # Retry
             executor = self._make_executor(resume=True)

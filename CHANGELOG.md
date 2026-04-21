@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.52] - 2026-04-21
+
+### Docs
+- Update README.md
+- Update SUMD.md
+- Update SUMR.md
+- Update docs/README.md
+- Update docs/op3-migration.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update tests/test_example_argocd_flux_plugin.py
+- Update tests/test_example_gitops_ci_plugin.py
+- Update tests/test_example_helm_kustomize_plugin.py
+- Update tests/test_iac_plugin_loading.py
+- Update tests/test_import_plugin_template.py
+- Update tests/test_prompt_llm.py
+
+### Other
+- Update .redeploy/state/test-local-1d287d51.yaml
+- Update .redeploy/state/test-local-2859ad55.yaml
+- Update .redeploy/state/test-local-4cea1066.yaml
+- Update .redeploy/state/test-local-cba6eec3.yaml
+- Update .redeploy/state/test-local-ec6ccce4.yaml
+- Update app.doql.less
+- Update examples/redeploy_iac_parsers/argocd_flux.py
+- Update examples/redeploy_iac_parsers/gitops_ci.py
+- Update examples/redeploy_iac_parsers/helm_ansible.py
+- Update examples/redeploy_iac_parsers/helm_kustomize.py
+- ... and 30 more files
+
 ## [0.2.51] - 2026-04-21
 
 ### Docs

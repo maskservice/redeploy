@@ -105,7 +105,26 @@ def detect(
 
     try:
         d = Detector(host=host, app=app_name, domain=domain)
-        state = d.run()
+        from ...integrations.op3_bridge import should_use_op3
+        if should_use_op3():
+            from ...integrations.op3_bridge import (
+                make_scanner,
+                make_ssh_context,
+                snapshot_to_infra_state,
+            )
+            scanner = make_scanner(
+                [
+                    "runtime.container",
+                    "service.containers",
+                    "endpoint.http",
+                    "business.health",
+                ]
+            )
+            ctx = make_ssh_context(target=host)
+            snapshot = scanner.scan(host, ctx.execute)
+            state = snapshot_to_infra_state(snapshot, host=host)
+        else:
+            state = d.run()
         d.save(state, out_path)
     except ConnectionError as e:
         console.print(f"[red]✗ {e}[/red]")

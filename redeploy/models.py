@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import yaml
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
@@ -282,6 +282,37 @@ class InfraState(BaseModel):
     current_version: Optional[str] = None
 
 
+# ── Pipeline Hooks (generic pre/post/failure lifecycle) ──────────────────────
+
+PipelinePhase = Literal[
+    "before_plan",       # przed wygenerowaniem planu
+    "before_apply",      # po planie, przed pierwszym krokiem
+    "before_step",       # przed każdym krokiem (użyj when: step.id == ...)
+    "after_step",        # po każdym kroku
+    "on_step_failure",   # gdy krok zawiedzie
+    "on_step_retry",     # przed ponowną próbą kroku
+    "after_apply",       # po pomyślnym wykonaniu wszystkich kroków
+    "on_failure",        # gdy cały plan zawiedzie
+    "always",            # zawsze, niezależnie od wyniku
+]
+
+
+class Hook(BaseModel):
+    """Generyczny hook w pipeline: faza + akcja (reuse StepAction) + opcjonalny warunek.
+
+    Zastępuje ad-hoc pola typu ``post_deploy``/``pre_deploy``/``insert_before``.
+    Dodatkowe pola specyficzne dla akcji (command, url, ...) idą do ``extra``.
+    """
+    id: str
+    phase: PipelinePhase
+    action: str                                  # StepAction value (ssh_cmd, http_check, local_cmd, ...)
+    description: str = ""
+    when: Optional[str] = None                   # opcjonalny warunek (prosta ewaluacja na kontekście)
+    on_failure: Literal["abort", "continue", "warn"] = "warn"
+
+    model_config = {"extra": "allow"}            # zachowuje dodatkowe pola (command, url, ...)
+
+
 # ── Target (input to plan) ─────────────────────────────────────────────────────
 
 class TargetConfig(BaseModel):
@@ -313,6 +344,9 @@ class TargetConfig(BaseModel):
     # Deploy pattern (Phase 4) — optional multi-step strategy overlay
     pattern: Optional[str] = None           # "blue_green" | "canary" | "rollback_on_failure"
     pattern_config: dict[str, Any] = Field(default_factory=dict)
+
+    # Generic pipeline hooks (replaces ad-hoc pre_deploy/post_deploy)
+    hooks: list[Hook] = Field(default_factory=list)
 
 
 # ── MigrationStep ─────────────────────────────────────────────────────────────
@@ -395,6 +429,63 @@ class InfraSpec(BaseModel):
     verify_version: Optional[str] = None
 
 
+def _migrate_legacy_post_deploy(raw: dict) -> dict:
+    """Convert legacy ``post_deploy`` / ``pre_deploy`` blocks into generic ``hooks``.
+
+    Backward-compat shim: old specs used flat ``post_deploy: {open_browser, browser_url,
+    refresh_cache}`` keys (either top-level or under ``target:``). They are translated
+    into ``hooks: [...]`` with ``phase: after_apply`` entries. Safe to call even if
+    no legacy keys are present.
+    """
+    if not isinstance(raw, dict):
+        return raw
+
+    hooks = list(raw.get("hooks") or [])
+
+    def _consume(container: dict, phase: str) -> None:
+        legacy = container.pop("post_deploy", None) if phase == "after_apply" else container.pop("pre_deploy", None)
+        if not isinstance(legacy, dict):
+            return
+        url = legacy.get("browser_url") or legacy.get("url") or ""
+        if legacy.get("refresh_cache"):
+            hooks.append({
+                "id": f"{phase}_refresh_cache",
+                "phase": phase,
+                "action": "local_cmd",
+                "description": "refresh cache (legacy post_deploy.refresh_cache)",
+                "command": f"curl -fsS -X POST {url}/api/v3/cache/clear || true",
+                "on_failure": "warn",
+            })
+        if legacy.get("open_browser") and url:
+            hooks.append({
+                "id": f"{phase}_open_browser",
+                "phase": phase,
+                "action": "open_url",
+                "description": "open browser tab (legacy post_deploy.open_browser)",
+                "url": url,
+                "on_failure": "warn",
+            })
+        if legacy.get("command"):
+            hooks.append({
+                "id": f"{phase}_cmd",
+                "phase": phase,
+                "action": "local_cmd",
+                "command": legacy["command"],
+                "on_failure": "warn",
+            })
+
+    _consume(raw, "after_apply")
+    _consume(raw, "before_apply")
+    target = raw.get("target")
+    if isinstance(target, dict):
+        _consume(target, "after_apply")
+        _consume(target, "before_apply")
+
+    if hooks:
+        raw["hooks"] = hooks
+    return raw
+
+
 class MigrationSpec(BaseModel):
     """Single YAML file describing full migration: from-state → to-state.
 
@@ -411,12 +502,17 @@ class MigrationSpec(BaseModel):
     extra_steps: list[dict] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
+    # Generic pipeline hooks (top-level; applied around target deploy)
+    hooks: list[Hook] = Field(default_factory=list)
+
     @classmethod
     def from_file(cls, path: "Path") -> "MigrationSpec":  # type: ignore[name-defined]
         import yaml
         from pathlib import Path
         with Path(path).open() as f:
-            return cls(**yaml.safe_load(f))
+            raw = yaml.safe_load(f) or {}
+        raw = _migrate_legacy_post_deploy(raw)
+        return cls(**raw)
 
     def resolve_versions(self, manifest_version: Optional[str] = None) -> None:
         """Resolve @manifest references in version fields.
@@ -463,6 +559,7 @@ class MigrationSpec(BaseModel):
             delete_k3s_namespaces=self.source.delete_k3s_namespaces,
             verify_url=self.target.verify_url,
             verify_version=self.target.verify_version or self.target.version,
+            hooks=list(self.hooks),
         )
 
 
@@ -485,6 +582,9 @@ class MigrationPlan(BaseModel):
     steps: list[MigrationStep] = Field(default_factory=list)
 
     notes: list[str] = Field(default_factory=list)
+
+    # Generic pipeline hooks (propagated from TargetConfig.hooks by the planner)
+    hooks: list[Hook] = Field(default_factory=list)
 
 
 # ── ProjectManifest (redeploy.yaml — project-level config) ───────────────────

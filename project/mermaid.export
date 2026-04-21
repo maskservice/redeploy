@@ -22,6 +22,8 @@ flowchart TD
         REFACTORING__expand["expand"]
     end
     subgraph SUMD
+        SUMD___is_gitops_command["_is_gitops_command"]
+        SUMD___extract_images_from_container_spec["_extract_images_from_container_spec"]
         SUMD__run_ssh["run_ssh"]
         SUMD__run_scp["run_scp"]
         SUMD__run_rsync["run_rsync"]
@@ -80,8 +82,6 @@ flowchart TD
         SUMD__twin["twin"]
         SUMD__deploy["deploy"]
         SUMD__show["show"]
-        SUMD__list_blueprints["list_blueprints"]
-        SUMD___print_blueprint["_print_blueprint"]
     end
     subgraph SUMR
         SUMR__to_yaml["to_yaml"]
@@ -201,7 +201,29 @@ flowchart TD
         examples__md__03_all_actions__migration__print["print"]
         examples__md__03_all_actions__migration__exit["exit"]
     end
+    subgraph examples__redeploy_iac_parsers
+        examples__redeploy_iac_parsers__argocd_flux__ArgoCDApplicationParser__can_parse["can_parse"]
+        examples__redeploy_iac_parsers__argocd_flux__ArgoCDApplicationParser__parse("parse CC=13")
+        examples__redeploy_iac_parsers__argocd_flux__FluxKustomizationParser__can_parse["can_parse"]
+        examples__redeploy_iac_parsers__argocd_flux__FluxKustomizationParser__parse("parse CC=11")
+        examples__redeploy_iac_parsers__helm_kustomize___extract_images_from_container_spec["_extract_images_from_container_spec"]
+        examples__redeploy_iac_parsers__helm_kustomize__HelmTemplatesParser__can_parse["can_parse"]
+        examples__redeploy_iac_parsers__helm_kustomize__HelmTemplatesParser__parse{{parse CC=17}}
+        examples__redeploy_iac_parsers__helm_kustomize__KustomizationParser__can_parse["can_parse"]
+        examples__redeploy_iac_parsers__helm_kustomize__KustomizationParser__parse{{parse CC=17}}
+        examples__redeploy_iac_parsers__gitops_ci___is_gitops_command["_is_gitops_command"]
+        examples__redeploy_iac_parsers__gitops_ci__GitHubActionsGitOpsParser__can_parse("can_parse CC=13")
+        examples__redeploy_iac_parsers__gitops_ci__GitHubActionsGitOpsParser__parse{{parse CC=16}}
+        examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__can_parse("can_parse CC=11")
+        examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__parse("parse CC=12")
+        examples__redeploy_iac_parsers__helm_ansible__HelmChartParser__can_parse["can_parse"]
+        examples__redeploy_iac_parsers__helm_ansible__HelmChartParser__parse["parse"]
+        examples__redeploy_iac_parsers__helm_ansible__AnsiblePlaybookParser__can_parse["can_parse"]
+        examples__redeploy_iac_parsers__helm_ansible__AnsiblePlaybookParser__parse("parse CC=11")
+    end
     subgraph project__map
+        project__map__toon___is_gitops_command["_is_gitops_command"]
+        project__map__toon___extract_images_from_container_spec["_extract_images_from_container_spec"]
         project__map__toon__run_ssh["run_ssh"]
         project__map__toon__run_scp["run_scp"]
         project__map__toon__run_rsync["run_rsync"]
@@ -260,8 +282,6 @@ flowchart TD
         project__map__toon__twin["twin"]
         project__map__toon__deploy["deploy"]
         project__map__toon__show["show"]
-        project__map__toon__list_blueprints["list_blueprints"]
-        project__map__toon___print_blueprint["_print_blueprint"]
     end
     subgraph redeploy__apply
         redeploy__apply__progress__ProgressEmitter____init__["__init__"]
@@ -662,19 +682,6 @@ flowchart TD
         redeploy__iac__base__ParserRegistry__parser_for["parser_for"]
         redeploy__iac__base__ParserRegistry__parse["parse"]
         redeploy__iac__base__ParserRegistry__parse_dir["parse_dir"]
-        redeploy__iac__parsers__compose__DockerComposeParser__can_parse["can_parse"]
-        redeploy__iac__parsers__compose__DockerComposeParser__parse{{parse CC=19}}
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_service{{_parse_service CC=21}}
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_build["_parse_build"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_command["_parse_command"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_ports["_parse_ports"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_port_entry["_parse_port_entry"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_volumes["_parse_volumes"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_volume_entry["_parse_volume_entry"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_env("_parse_env CC=8")
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_depends_on["_parse_depends_on"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_labels["_parse_labels"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_healthcheck["_parse_healthcheck"]
         redeploy__iac__registry___load_entrypoint_parsers["_load_entrypoint_parsers"]
         redeploy__iac__registry___load_local_parsers("_load_local_parsers CC=14")
         redeploy__iac__registry__parse_file["parse_file"]
@@ -694,6 +701,19 @@ flowchart TD
         redeploy__iac__config_hints__ConfigHintsParser___parse_gitlab_ci{{_parse_gitlab_ci CC=15}}
         redeploy__iac__config_hints__ConfigHintsParser___parse_jenkinsfile["_parse_jenkinsfile"]
         redeploy__iac__config_hints__parse_json_file["parse_json_file"]
+        redeploy__iac__parsers__compose__DockerComposeParser__can_parse["can_parse"]
+        redeploy__iac__parsers__compose__DockerComposeParser__parse{{parse CC=19}}
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_service{{_parse_service CC=21}}
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_build["_parse_build"]
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_command["_parse_command"]
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_ports["_parse_ports"]
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_port_entry["_parse_port_entry"]
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_volumes["_parse_volumes"]
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_volume_entry["_parse_volume_entry"]
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_env("_parse_env CC=8")
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_depends_on["_parse_depends_on"]
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_labels["_parse_labels"]
+        redeploy__iac__parsers__compose__DockerComposeParser___parse_healthcheck["_parse_healthcheck"]
     end
     subgraph redeploy__integrations
         redeploy__integrations__op3_bridge__make_op3_context_from_ssh_client["make_op3_context_from_ssh_client"]
@@ -809,7 +829,7 @@ flowchart TD
     end
     subgraph redeploy__plan
         redeploy__plan__planner__Planner____init__["__init__"]
-        redeploy__plan__planner__Planner__run["run"]
+        redeploy__plan__planner__Planner__run("run CC=8")
         redeploy__plan__planner__Planner___plan_conflict_fixes["_plan_conflict_fixes"]
         redeploy__plan__planner__Planner___plan_stop_old_services["_plan_stop_old_services"]
         redeploy__plan__planner__Planner___plan_deploy_new["_plan_deploy_new"]
@@ -873,6 +893,7 @@ flowchart TD
         redeploy__schema___discover_specs("_discover_specs CC=14")
         redeploy__schema___read_version["_read_version"]
         redeploy__schema___git_branch["_git_branch"]
+        redeploy__schema___iac_info["_iac_info"]
         redeploy__schema__build_schema["build_schema"]
     end
     subgraph redeploy__spec_loader
@@ -975,9 +996,6 @@ flowchart TD
         redeploy__version__git_integration__GitIntegration__get_current_branch["get_current_branch"]
         redeploy__version__diff__diff_manifest_vs_spec["diff_manifest_vs_spec"]
     end
-    redeploy__schema__build_schema --> redeploy__schema___read_version
-    redeploy__schema__build_schema --> redeploy__schema___git_branch
-    redeploy__schema__build_schema --> redeploy__schema___discover_specs
     redeploy__observe__DeployAuditLog__record --> redeploy__steps__StepLibrary__list
     redeploy__heal__collect_diagnostics --> redeploy__heal___ssh
     redeploy__heal__HealRunner___reload_migration --> docs__markpact_implementation_plan__load_migration_spec
@@ -994,9 +1012,6 @@ flowchart TD
     redeploy__fleet__Fleet____init__ --> redeploy__steps__StepLibrary__list
     redeploy__fleet__Fleet__from_registry --> redeploy__steps__StepLibrary__list
     redeploy__fleet__Fleet__merge --> redeploy__steps__StepLibrary__list
-    redeploy__models__ProjectManifest__find_and_load --> redeploy__steps__StepLibrary__list
-    redeploy__models__ProjectManifest__find_and_load --> redeploy__dsl__loader__load_css
-    redeploy__models__ProjectManifest__find_css --> redeploy__steps__StepLibrary__list
     redeploy__spec_loader__load_migration_spec --> redeploy__markpact__compiler__compile_markpact_document
     redeploy__spec_loader__load_migration_spec --> redeploy__markpact__parser__parse_markpact_file
     redeploy__patterns__BlueGreenPattern__expand --> redeploy__patterns___step
@@ -1031,15 +1046,15 @@ flowchart TD
     redeploy__audit___Extractor___from_step --> redeploy__audit___extract_port
     redeploy__audit__audit_spec --> docs__markpact_implementation_plan__load_migration_spec
     redeploy__mcp_server___run --> redeploy__mcp_server___redeploy_bin
-    redeploy__mcp_server__schema --> redeploy__schema__build_schema
+    redeploy__mcp_server__schema --> project__map__toon__build_schema
     redeploy__mcp_server__plan_spec --> redeploy__mcp_server___run
     redeploy__mcp_server__run_spec --> redeploy__mcp_server___run
     redeploy__mcp_server__fix_spec --> redeploy__mcp_server___run
     redeploy__mcp_server__bump_version --> redeploy__mcp_server___run
     redeploy__mcp_server__diagnose --> redeploy__mcp_server___run
-    redeploy__mcp_server__list_specs --> redeploy__schema__build_schema
+    redeploy__mcp_server__list_specs --> project__map__toon__build_schema
     redeploy__mcp_server__nlp_command --> redeploy__mcp_server___run
-    redeploy__mcp_server__get_workspace --> redeploy__schema__build_schema
+    redeploy__mcp_server__get_workspace --> project__map__toon__build_schema
     redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_runtime
     redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_ports
     redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_iptables_dnat
@@ -1136,6 +1151,10 @@ flowchart TD
     redeploy__cli__commands__probe__probe --> redeploy__discovery__discover
     redeploy__cli__commands__mcp_cmd__mcp_cmd --> redeploy__mcp_server__serve
     redeploy__cli__commands__plugin__plugin_cmd --> redeploy__plugins__load_user_plugins
+    redeploy__cli__commands__import___import_cmd --> redeploy__cli__commands__import____print_plugin_templates
+    redeploy__cli__commands__import____print_plugin_templates --> redeploy__cli__commands__import____plugin_templates
+    redeploy__cli__commands__import____copy_plugin_template --> redeploy__cli__commands__import____plugin_templates
+    redeploy__cli__commands__import____copy_plugin_template --> redeploy__cli__commands__import____examples_plugin_dir
     redeploy__cli__commands__plan_apply___apply_manifest_to_spec --> redeploy__cli__core__find_manifest_path
     redeploy__cli__commands__detect__detect --> redeploy__cli__display__print_infrastructure_summary
     redeploy__cli__commands__detect__detect --> redeploy__cli__display__print_docker_services
@@ -1152,7 +1171,6 @@ flowchart TD
     redeploy__cli__commands__hardware___apply_fix --> redeploy__apply__handlers__run_raspi_config
     redeploy__cli__commands__hardware___apply_fix --> redeploy__apply__handlers__run_wait
     redeploy__cli__commands__hardware__hardware --> redeploy__cli__commands__hardware___probe_hardware
-    redeploy__cli__commands__prompt_cmd__prompt_cmd --> redeploy__schema__build_schema
     redeploy__cli__commands__workflow__workflow_cmd --> redeploy__dsl__loader__load_css
     redeploy__cli__commands__workflow__workflow_cmd --> redeploy__cli__commands__workflow___execute_workflow
     redeploy__cli__commands__workflow__workflow_cmd --> redeploy__cli__commands__workflow___list_workflows
@@ -1313,7 +1331,6 @@ flowchart TD
     redeploy__version__changelog__ChangelogManager___categorize_commits --> redeploy__version__commits__parse_conventional
     redeploy__version__manifest__VersionManifest__list_packages --> redeploy__steps__StepLibrary__list
     redeploy__version__commits__analyze_commits --> redeploy__version__commits__parse_conventional
-    redeploy__plan__planner__Planner___plan_pattern --> redeploy__patterns__get_pattern
     redeploy__blueprint__extractor__extract_blueprint --> redeploy__blueprint__sources__compose__merge_compose_files
     redeploy__blueprint__extractor__extract_blueprint --> redeploy__blueprint__sources__hardware__build_hw_requirements
     redeploy__blueprint__extractor__extract_blueprint --> redeploy__blueprint__sources__infra__infer_app_url
@@ -1338,13 +1355,27 @@ flowchart TD
     redeploy__dsl__parser__RedeployDSLParser__parse --> redeploy__dsl__parser___strip_comments
     redeploy__iac__docker_compose__DockerComposeParser___load_merged --> redeploy__markpact__compiler___deep_merge
     redeploy__iac__docker_compose__DockerComposeParser___parse_service --> redeploy__iac__docker_compose___env_dict
-    redeploy__iac__parsers__compose__DockerComposeParser___parse_service --> redeploy__steps__StepLibrary__list
-    redeploy__iac__parsers__compose__DockerComposeParser___parse_depends_on --> redeploy__steps__StepLibrary__list
-    redeploy__cli__commands__import___import_cmd --> redeploy__cli__commands__import____print_import_spec
     redeploy__iac__registry___load_local_parsers --> redeploy__steps__StepLibrary__list
     redeploy__iac__config_hints__ConfigHintsParser___parse_k8s_yaml --> redeploy__steps__StepLibrary__list
+    redeploy__iac__parsers__compose__DockerComposeParser___parse_service --> redeploy__steps__StepLibrary__list
+    redeploy__iac__parsers__compose__DockerComposeParser___parse_depends_on --> redeploy__steps__StepLibrary__list
+    examples__redeploy_iac_parsers__helm_kustomize__HelmTemplatesParser__parse --> redeploy__steps__StepLibrary__list
+    examples__redeploy_iac_parsers__helm_kustomize__HelmTemplatesParser__parse --> examples__redeploy_iac_parsers__helm_kustomize___extract_images_from_container_spec
+    examples__redeploy_iac_parsers__gitops_ci__GitHubActionsGitOpsParser__can_parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
+    examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__can_parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
+    examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
+    redeploy__schema__build_schema --> redeploy__schema___read_version
+    redeploy__schema__build_schema --> redeploy__schema___git_branch
+    redeploy__schema__build_schema --> redeploy__schema___discover_specs
+    redeploy__schema__build_schema --> redeploy__schema___iac_info
+    redeploy__plan__planner__Planner__run --> redeploy__steps__StepLibrary__list
+    redeploy__plan__planner__Planner___plan_pattern --> redeploy__patterns__get_pattern
+    redeploy__models__ProjectManifest__find_and_load --> redeploy__steps__StepLibrary__list
+    redeploy__models__ProjectManifest__find_and_load --> redeploy__dsl__loader__load_css
+    redeploy__models__ProjectManifest__find_css --> redeploy__steps__StepLibrary__list
+    redeploy__cli__commands__prompt_cmd__prompt_cmd --> project__map__toon__build_schema
 
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
-    class redeploy__heal__HealRunner__run,redeploy__fleet__FleetDevice__verify_expectations,redeploy__models__ProjectManifest__apply_to_spec,redeploy__discovery__update_registry,redeploy__discovery___parse_probe_output,redeploy__detect__workflow__DetectionWorkflow___collect_hosts,redeploy__cli__commands__devices__devices,redeploy__cli__commands__device_map_renderers__render_rich,redeploy__cli__commands__bump_fix___find_spec,redeploy__cli__commands__bump_fix__fix_cmd,redeploy__cli__commands__blueprint___print_blueprint,redeploy__cli__commands__probe__probe,redeploy__cli__commands__device_map__device_map_cmd,redeploy__cli__commands__prompt_cmd__prompt_cmd,redeploy__cli__commands__push__push,redeploy__cli__commands__audit__audit,redeploy__cli__commands__version__commands__version_init,redeploy__cli__commands__version__helpers___bump_single,redeploy__plugins__builtin__browser_reload__browser_reload,redeploy__dsl_python__runner__PythonMigrationRunner__run_file,redeploy__apply__state_apply__HardwareStateHandler__apply,redeploy__apply__handlers__run_ensure_autostart_entry,redeploy__version__commits__analyze_commits,redeploy__blueprint__extractor__extract_blueprint,redeploy__blueprint__sources__compose___merge_compose,redeploy__blueprint__generators__docker_compose___build_service,redeploy__blueprint__generators__migration__generate_migration,redeploy__dsl__loader___build_manifest,redeploy__iac__docker_compose__DockerComposeParser__parse,redeploy__iac__docker_compose__DockerComposeParser___parse_service highCC
-    class redeploy__schema___discover_specs,redeploy__observe__DeployAuditLog__record,redeploy__observe__DeployAuditLog__filter,redeploy__observe__DeployReport__text,redeploy__heal__ask_llm,redeploy__heal__parse_failed_step,redeploy__parse__parse_docker_ps,redeploy__parse__parse_system_info,redeploy__parse___apply_system_line,redeploy__fleet__FleetConfig__from_file,redeploy__models__ProjectManifest__resolve_env,redeploy__models__ProjectManifest__from_dotenv,redeploy__verify__VerifyContext__check,redeploy__discovery___scan_known_hosts,redeploy__discovery___scan_arp_cache,redeploy__discovery___detect_local_subnet,redeploy__discovery___merge,redeploy__discovery__discover,redeploy__discovery___collect_ssh_keys,redeploy__discovery___try_ssh_credentials,redeploy__discovery___infer_strategy,redeploy__audit___Extractor___from_step,redeploy__audit___Extractor___from_command,redeploy__audit__Auditor___probe_one,redeploy__detect__detector__Detector__run,redeploy__detect__templates___load_templates_from_yaml,redeploy__detect__workflow__WorkflowResult__generated_redeploy_yaml,redeploy__detect__workflow__WorkflowResult__generated_migration_yaml,redeploy__detect__workflow__DetectionWorkflow__run,redeploy__detect__probes__probe_docker_services medCC
+    class redeploy__heal__HealRunner__run,redeploy__fleet__FleetDevice__verify_expectations,redeploy__discovery__update_registry,redeploy__discovery___parse_probe_output,redeploy__detect__workflow__DetectionWorkflow___collect_hosts,redeploy__cli__commands__devices__devices,redeploy__cli__commands__device_map_renderers__render_rich,redeploy__cli__commands__bump_fix___find_spec,redeploy__cli__commands__bump_fix__fix_cmd,redeploy__cli__commands__blueprint___print_blueprint,redeploy__cli__commands__probe__probe,redeploy__cli__commands__import___import_cmd,redeploy__cli__commands__import____print_import_spec,redeploy__cli__commands__import____spec_to_migration_yaml,redeploy__cli__commands__device_map__device_map_cmd,redeploy__cli__commands__push__push,redeploy__cli__commands__audit__audit,redeploy__cli__commands__version__commands__version_init,redeploy__cli__commands__version__helpers___bump_single,redeploy__plugins__builtin__browser_reload__browser_reload,redeploy__dsl_python__runner__PythonMigrationRunner__run_file,redeploy__apply__state_apply__HardwareStateHandler__apply,redeploy__apply__handlers__run_ensure_autostart_entry,redeploy__version__commits__analyze_commits,redeploy__blueprint__extractor__extract_blueprint,redeploy__blueprint__sources__compose___merge_compose,redeploy__blueprint__generators__docker_compose___build_service,redeploy__blueprint__generators__migration__generate_migration,redeploy__dsl__loader___build_manifest,redeploy__iac__docker_compose__DockerComposeParser__parse highCC
+    class redeploy__observe__DeployAuditLog__record,redeploy__observe__DeployAuditLog__filter,redeploy__observe__DeployReport__text,redeploy__heal__ask_llm,redeploy__heal__parse_failed_step,redeploy__parse__parse_docker_ps,redeploy__parse__parse_system_info,redeploy__parse___apply_system_line,redeploy__fleet__FleetConfig__from_file,redeploy__verify__VerifyContext__check,redeploy__discovery___scan_known_hosts,redeploy__discovery___scan_arp_cache,redeploy__discovery___detect_local_subnet,redeploy__discovery___merge,redeploy__discovery__discover,redeploy__discovery___collect_ssh_keys,redeploy__discovery___try_ssh_credentials,redeploy__discovery___infer_strategy,redeploy__audit___Extractor___from_step,redeploy__audit___Extractor___from_command,redeploy__audit__Auditor___probe_one,redeploy__detect__detector__Detector__run,redeploy__detect__templates___load_templates_from_yaml,redeploy__detect__workflow__WorkflowResult__generated_redeploy_yaml,redeploy__detect__workflow__WorkflowResult__generated_migration_yaml,redeploy__detect__workflow__DetectionWorkflow__run,redeploy__detect__probes__probe_docker_services,redeploy__detect__probes__probe_systemd_services,redeploy__detect__probes__detect_conflicts,redeploy__detect__probes__detect_strategy medCC

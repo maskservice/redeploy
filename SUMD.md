@@ -23,7 +23,7 @@ Infrastructure migration toolkit: detect → plan → apply
 ## Metadata
 
 - **name**: `redeploy`
-- **version**: `0.2.50`
+- **version**: `0.2.51`
 - **python_requires**: `>=3.11`
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
 - **ecosystem**: SUMD + DOQL + testql + taskfile
@@ -43,7 +43,7 @@ SUMD (description) → DOQL/source (code) → taskfile (automation) → testql (
 
 app {
   name: redeploy;
-  version: 0.2.50;
+  version: 0.2.51;
 }
 
 interface[type="cli"] {
@@ -169,7 +169,7 @@ pipeline:
 ```yaml
 project:
   name: redeploy
-  version: 0.2.50
+  version: 0.2.51
   env: local
 ```
 
@@ -271,19 +271,23 @@ pip install -e .[dev]
 ### `project/map.toon.yaml`
 
 ```toon markpact:analysis path=project/map.toon.yaml
-# redeploy | 206f 38715L | python:203,shell:2,less:1 | 2026-04-21
-# stats: 708 func | 340 cls | 206 mod | CC̄=4.8 | critical:84 | cycles:0
+# redeploy | 215f 40052L | python:212,shell:2,less:1 | 2026-04-21
+# stats: 740 func | 349 cls | 215 mod | CC̄=4.8 | critical:84 | cycles:0
 # alerts[5]: CC probe=26; CC version_init=26; CC _bump_single=25; CC _build_manifest=25; CC extract_blueprint=22
-# hotspots[5]: fix_cmd fan=29; hardware fan=28; device_map_cmd fan=27; version_init fan=26; run fan=25
+# hotspots[5]: fix_cmd fan=29; hardware fan=28; device_map_cmd fan=27; version_init fan=26; import_cmd fan=25
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[206]:
+M[215]:
   app.doql.less,60
+  examples/redeploy_iac_parsers/argocd_flux.py,130
+  examples/redeploy_iac_parsers/gitops_ci.py,138
+  examples/redeploy_iac_parsers/helm_ansible.py,95
+  examples/redeploy_iac_parsers/helm_kustomize.py,114
   project.sh,35
   redeploy/__init__.py,150
   redeploy/apply/__init__.py,60
   redeploy/apply/exceptions.py,13
-  redeploy/apply/executor.py,269
+  redeploy/apply/executor.py,355
   redeploy/apply/handlers.py,617
   redeploy/apply/progress.py,108
   redeploy/apply/rollback.py,45
@@ -307,7 +311,7 @@ M[206]:
   redeploy/cli/commands/audit.py,127
   redeploy/cli/commands/blueprint.py,334
   redeploy/cli/commands/bump_fix.py,349
-  redeploy/cli/commands/detect.py,119
+  redeploy/cli/commands/detect.py,138
   redeploy/cli/commands/device_map.py,300
   redeploy/cli/commands/device_map_renderers.py,171
   redeploy/cli/commands/devices.py,227
@@ -316,7 +320,7 @@ M[206]:
   redeploy/cli/commands/exec_.py,252
   redeploy/cli/commands/export.py,127
   redeploy/cli/commands/hardware.py,465
-  redeploy/cli/commands/import_.py,257
+  redeploy/cli/commands/import_.py,358
   redeploy/cli/commands/init.py,112
   redeploy/cli/commands/inspect.py,74
   redeploy/cli/commands/mcp_cmd.py,55
@@ -324,7 +328,7 @@ M[206]:
   redeploy/cli/commands/plan_apply.py,506
   redeploy/cli/commands/plugin.py,80
   redeploy/cli/commands/probe.py,145
-  redeploy/cli/commands/prompt_cmd.py,239
+  redeploy/cli/commands/prompt_cmd.py,265
   redeploy/cli/commands/push.py,111
   redeploy/cli/commands/state.py,119
   redeploy/cli/commands/status.py,56
@@ -394,12 +398,12 @@ M[206]:
   redeploy/markpact/models.py,27
   redeploy/markpact/parser.py,281
   redeploy/mcp_server.py,315
-  redeploy/models.py,997
+  redeploy/models.py,1097
   redeploy/observe.py,314
   redeploy/parse.py,191
   redeploy/patterns.py,408
   redeploy/plan/__init__.py,5
-  redeploy/plan/planner.py,621
+  redeploy/plan/planner.py,622
   redeploy/plugins/__init__.py,181
   redeploy/plugins/builtin/__init__.py,2
   redeploy/plugins/builtin/browser_reload.py,121
@@ -407,7 +411,7 @@ M[206]:
   redeploy/plugins/builtin/notify.py,169
   redeploy/plugins/builtin/process_control.py,124
   redeploy/plugins/builtin/systemd_reload.py,99
-  redeploy/schema.py,243
+  redeploy/schema.py,310
   redeploy/spec_loader.py,48
   redeploy/ssh.py,302
   redeploy/steps/__init__.py,77
@@ -474,17 +478,40 @@ M[206]:
   tests/test_blueprint_sources.py,187
   tests/test_blueprint_sources_compose.py,154
   tests/test_cli_query.py,80
+  tests/test_example_argocd_flux_plugin.py,83
+  tests/test_example_gitops_ci_plugin.py,75
+  tests/test_example_helm_kustomize_plugin.py,73
   tests/test_hardware_config.py,163
   tests/test_hardware_kiosk.py,231
   tests/test_hardware_rules.py,190
   tests/test_iac.py,512
   tests/test_iac_config_hints.py,130
+  tests/test_iac_plugin_loading.py,80
+  tests/test_import_plugin_template.py,56
   tests/test_parse.py,158
-  tests/test_prompt_llm.py,270
+  tests/test_prompt_llm.py,363
   tests/test_redeploy.py,12
   tests/test_steps_kiosk.py,94
   tree.sh,2
 D:
+  examples/redeploy_iac_parsers/argocd_flux.py:
+    e: ArgoCDApplicationParser,FluxKustomizationParser
+    ArgoCDApplicationParser: can_parse(1),parse(1)
+    FluxKustomizationParser: can_parse(1),parse(1)
+  examples/redeploy_iac_parsers/gitops_ci.py:
+    e: _is_gitops_command,GitHubActionsGitOpsParser,GitLabCIGitOpsParser
+    GitHubActionsGitOpsParser: can_parse(1),parse(1)
+    GitLabCIGitOpsParser: can_parse(1),parse(1)
+    _is_gitops_command(text)
+  examples/redeploy_iac_parsers/helm_ansible.py:
+    e: HelmChartParser,AnsiblePlaybookParser
+    HelmChartParser: can_parse(1),parse(1)
+    AnsiblePlaybookParser: can_parse(1),parse(1)
+  examples/redeploy_iac_parsers/helm_kustomize.py:
+    e: _extract_images_from_container_spec,HelmTemplatesParser,KustomizationParser
+    HelmTemplatesParser: can_parse(1),parse(1)
+    KustomizationParser: can_parse(1),parse(1)
+    _extract_images_from_container_spec(container_spec)
   redeploy/__init__.py:
   redeploy/apply/__init__.py:
   redeploy/apply/exceptions.py:
@@ -492,7 +519,7 @@ D:
     StepError: __init__(2)  # Exception raised when a migration step fails.
   redeploy/apply/executor.py:
     e: Executor
-    Executor: __init__(11),completed_steps(0),state(0),state_path(0),run(0),_execute_steps_loop(1),_skip_step(2),_handle_step_failure(3),_handle_completion(2),_compute_skip_set(0),_write_audit(0),_execute_step(1),_rollback(0),summary(0),from_file(1),save_results(1)  # Execute MigrationPlan steps on a remote host.
+    Executor: __init__(11),completed_steps(0),state(0),state_path(0),run(0),_execute_steps_loop(1),_skip_step(2),_handle_step_failure(3),_handle_completion(2),_fire_hooks(1),_eval_hook_condition(2),_execute_hook(2),_handle_hook_failure(2),_compute_skip_set(0),_write_audit(0),_execute_step(1),_rollback(0),summary(0),from_file(1),save_results(1)  # Execute MigrationPlan steps on a remote host.
   redeploy/apply/handlers.py:
     e: run_ssh,run_scp,run_rsync,run_docker_build,run_podman_build,run_docker_health_wait,_parse_container_statuses,_all_containers_healthy,run_container_log_tail,run_http_check,run_version_check,run_plugin,run_wait,run_inline_script,_resolve_command_ref,run_ensure_config_line,run_raspi_config,run_ensure_kanshi_profile,run_ensure_autostart_entry,run_ensure_browser_kiosk_script
     run_ssh(step;probe)
@@ -679,10 +706,14 @@ D:
     _apply_fix(console;p;hw;apply_fix_component;panel_id)
     hardware(host;output_fmt;show_fix;apply_fix_component;panel_id;list_panels;ssh_key;set_transform;apply_config;query_expr)
   redeploy/cli/commands/import_.py:
-    e: import_cmd,_print_import_spec,_default_output,_spec_to_migration_yaml
-    import_cmd(source;output;target_host;target_strategy;dry_run;out_format;parser)
+    e: import_cmd,_print_import_spec,_default_output,_plugin_templates,_examples_plugin_dir,_print_plugin_templates,_copy_plugin_template,_spec_to_migration_yaml
+    import_cmd(source;output;target_host;target_strategy;dry_run;out_format;parser;plugin_template;plugin_dir;list_plugin_templates)
     _print_import_spec(console;spec)
     _default_output(src;spec)
+    _plugin_templates()
+    _examples_plugin_dir()
+    _print_plugin_templates(console)
+    _copy_plugin_template(console)
     _spec_to_migration_yaml(spec)
   redeploy/cli/commands/init.py:
     e: init
@@ -1129,7 +1160,7 @@ D:
     get_workspace()
     serve(transport;host;port)
   redeploy/models.py:
-    e: ConflictSeverity,StepAction,StepStatus,DeployStrategy,PersistedModel,ServiceInfo,PortInfo,ConflictInfo,RuntimeInfo,AppHealthInfo,DrmOutput,BacklightInfo,I2CBusInfo,HardwareDiagnostic,HardwareInfo,InfraState,TargetConfig,MigrationStep,InfraSpec,MigrationSpec,MigrationPlan,EnvironmentConfig,ProjectManifest,DeployRecord,KnownDevice,DeviceMap,ServicePort,VolumeMount,ServiceSpec,HardwareRequirements,BlueprintSource,DeviceBlueprint,DeviceRegistry
+    e: _migrate_legacy_post_deploy,ConflictSeverity,StepAction,StepStatus,DeployStrategy,PersistedModel,ServiceInfo,PortInfo,ConflictInfo,RuntimeInfo,AppHealthInfo,DrmOutput,BacklightInfo,I2CBusInfo,HardwareDiagnostic,HardwareInfo,InfraState,Hook,TargetConfig,MigrationStep,InfraSpec,MigrationSpec,MigrationPlan,EnvironmentConfig,ProjectManifest,DeployRecord,KnownDevice,DeviceMap,ServicePort,VolumeMount,ServiceSpec,HardwareRequirements,BlueprintSource,DeviceBlueprint,DeviceRegistry
     ConflictSeverity:
     StepAction:
     StepStatus:
@@ -1146,6 +1177,7 @@ D:
     HardwareDiagnostic:  # Problem found during hardware probe.
     HardwareInfo: has_dsi(0),kms_enabled(0),dsi_connected(0),dsi_physically_connected(0),dsi_enabled(0),backlight_on(0),errors(0),warnings(0)  # Hardware state produced by hardware probe.
     InfraState:  # Full detected state of infrastructure — output of `detect`.
+    Hook:  # Generyczny hook w pipeline: faza + akcja (reuse StepAction) 
     TargetConfig: _accept_strategy_aliases(2)  # Desired infrastructure state — input to `plan`.
     MigrationStep:
     InfraSpec:  # Declarative description of one infrastructure state (from OR
@@ -1163,6 +1195,7 @@ D:
     BlueprintSource:  # Where the blueprint was extracted from — audit trail.
     DeviceBlueprint: service(1),save(1),list_saved(1)  # Self-contained, portable deployment recipe.
     DeviceRegistry: get(1),upsert(1),remove(1),by_tag(1),by_strategy(1),reachable(0),default_path(1),load(2),save(1)  # Persistent device registry — stored at ~/.config/redeploy/de
+    _migrate_legacy_post_deploy(raw)
   redeploy/observe.py:
     e: AuditEntry,DeployAuditLog,DeployReport
     AuditEntry: __init__(1),ts(0),host(0),app(0),from_strategy(0),to_strategy(0),ok(0),elapsed_s(0),steps_total(0),steps_ok(0),steps_failed(0),pattern(0),version(0),dry_run(0),steps(0),error(0),to_dict(0),__repr__(0)  # Single audit log entry — immutable snapshot of one deploymen
@@ -1239,11 +1272,12 @@ D:
     systemd_reload(ctx)
     _wait_for_active(ctx;unit;timeout)
   redeploy/schema.py:
-    e: _parse_spec_meta,_discover_specs,_read_version,_git_branch,build_schema
+    e: _parse_spec_meta,_discover_specs,_read_version,_git_branch,_iac_info,build_schema
     _parse_spec_meta(path)
     _discover_specs(root;max_specs)
     _read_version(root)
     _git_branch(root)
+    _iac_info()
     build_schema(root)
   redeploy/spec_loader.py:
     e: load_migration_spec,SpecLoaderError,UnsupportedSpecFormatError
@@ -1758,6 +1792,24 @@ D:
     e: _FakeModel,TestExecuteQuery
     _FakeModel: __init__(1),model_dump(0)  # Minimal stand-in for a Pydantic model.
     TestExecuteQuery: test_basic_dict_result(1),test_json_format(1),test_yaml_format(1),test_no_match_message(1),test_jmespath_expression(1),test_jmespath_error_exits(1),test_custom_echo(0),test_json_with_non_serializable_default(1)
+  tests/test_example_argocd_flux_plugin.py:
+    e: _load_example_module,test_example_module_exposes_parsers,test_argocd_application_parser,test_flux_kustomization_parser
+    _load_example_module()
+    test_example_module_exposes_parsers()
+    test_argocd_application_parser(tmp_path)
+    test_flux_kustomization_parser(tmp_path)
+  tests/test_example_gitops_ci_plugin.py:
+    e: _load_example_module,test_example_module_exposes_parsers,test_github_actions_gitops_parser,test_gitlab_ci_gitops_parser
+    _load_example_module()
+    test_example_module_exposes_parsers()
+    test_github_actions_gitops_parser(tmp_path)
+    test_gitlab_ci_gitops_parser(tmp_path)
+  tests/test_example_helm_kustomize_plugin.py:
+    e: _load_example_module,test_example_module_exposes_parsers,test_helm_templates_parser_extracts_images,test_kustomize_parser_extracts_resources_and_images
+    _load_example_module()
+    test_example_module_exposes_parsers()
+    test_helm_templates_parser_extracts_images(tmp_path)
+    test_kustomize_parser_extracts_resources_and_images(tmp_path)
   tests/test_hardware_config.py:
     e: test_add_new_line_to_all_section,test_no_op_when_line_already_present,test_replace_existing_dsi_overlay,test_replace_is_idempotent_for_same_line,test_add_to_pi5_section,test_add_to_existing_section,test_no_op_for_existing_line_in_section,test_ensure_lines_multiple,test_ensure_lines_no_change_when_all_present,test_ensure_lines_partial_update,test_all_panels_non_empty,test_waveshare_8_inch_registered,test_overlay_line_dsi1,test_overlay_line_dsi0,test_official_rpi_panel_registered,test_hyperpixel_panels_registered,test_raspi_config_i2c_enable,test_raspi_config_spi_disable,test_raspi_config_invalid_interface,test_raspi_config_invalid_state
     test_add_new_line_to_all_section()
@@ -1854,6 +1906,16 @@ D:
     test_parse_vite_config(tmp_path)
     test_parse_github_actions(tmp_path)
     test_parse_gitlab_ci(tmp_path)
+  tests/test_iac_plugin_loading.py:
+    e: test_load_local_parsers_from_project_dir,test_load_local_parsers_from_user_dir
+    test_load_local_parsers_from_project_dir(tmp_path;monkeypatch)
+    test_load_local_parsers_from_user_dir(tmp_path;monkeypatch)
+  tests/test_import_plugin_template.py:
+    e: test_list_plugin_templates,test_copy_plugin_template,test_copy_plugin_template_dry_run,test_source_required_without_plugin_template
+    test_list_plugin_templates()
+    test_copy_plugin_template(tmp_path)
+    test_copy_plugin_template_dry_run(tmp_path)
+    test_source_required_without_plugin_template(tmp_path)
   tests/test_parse.py:
     e: test_parse_docker_ps_full_format,test_parse_docker_ps_partial_format,test_parse_docker_ps_skips_empty_lines,test_parse_docker_ps_skips_no_containers_marker,test_parse_docker_ps_empty,test_parse_container_line_full,test_parse_container_line_no_image,test_parse_container_line_invalid_returns_none,test_parse_system_info_basic,test_parse_system_info_disk,test_parse_system_info_memory,test_parse_system_info_unknown_lines_ignored,test_parse_diagnostics_sections,test_parse_diagnostics_empty,test_parse_diagnostics_docker_section_alias,test_parse_diagnostics_skips_no_markers,test_parse_health_info_full,test_parse_health_info_invalid_health_code,test_parse_health_info_empty
     test_parse_docker_ps_full_format()
@@ -1876,13 +1938,14 @@ D:
     test_parse_health_info_invalid_health_code()
     test_parse_health_info_empty()
   tests/test_prompt_llm.py:
-    e: _load_env,build_c2004_schema,call_llm,test_schema_discovers_c2004_specs,test_schema_has_command_catalogue,test_schema_has_version_and_cwd,test_prompt_dry_run_plan_polish,test_prompt_deploy_english,test_prompt_diagnose_polish,test_prompt_fix_kiosk_polish,test_prompt_bump_minor,test_prompt_fix_with_hint,test_prompt_list_specs,test_prompt_response_has_required_fields,test_prompt_argv_always_starts_with_redeploy,test_prompt_uses_real_spec_paths,test_prompt_cli_schema_only,test_prompt_cli_dry_run_no_confirm
+    e: _load_env,build_c2004_schema,call_llm,test_schema_discovers_c2004_specs,test_schema_has_command_catalogue,test_schema_has_version_and_cwd,test_schema_has_iac_metadata,test_prompt_dry_run_plan_polish,test_prompt_deploy_english,test_prompt_diagnose_polish,test_prompt_fix_kiosk_polish,test_prompt_bump_minor,test_prompt_fix_with_hint,test_prompt_list_specs,test_prompt_plugin_template_list,test_prompt_plugin_template_generation,test_prompt_response_has_required_fields,test_prompt_argv_always_starts_with_redeploy,test_prompt_uses_real_spec_paths,test_prompt_cli_schema_only,test_prompt_cli_dry_run_no_confirm,test_parse_llm_response_escapes_control_characters,test_parse_llm_response_handles_markdown_fences,test_parse_llm_response_preserves_newlines
     _load_env()
     build_c2004_schema()
     call_llm(instruction;schema)
     test_schema_discovers_c2004_specs()
     test_schema_has_command_catalogue()
     test_schema_has_version_and_cwd()
+    test_schema_has_iac_metadata()
     test_prompt_dry_run_plan_polish()
     test_prompt_deploy_english()
     test_prompt_diagnose_polish()
@@ -1890,11 +1953,16 @@ D:
     test_prompt_bump_minor()
     test_prompt_fix_with_hint()
     test_prompt_list_specs()
+    test_prompt_plugin_template_list()
+    test_prompt_plugin_template_generation()
     test_prompt_response_has_required_fields()
     test_prompt_argv_always_starts_with_redeploy()
     test_prompt_uses_real_spec_paths()
     test_prompt_cli_schema_only(tmp_path)
     test_prompt_cli_dry_run_no_confirm(tmp_path)
+    test_parse_llm_response_escapes_control_characters()
+    test_parse_llm_response_handles_markdown_fences()
+    test_parse_llm_response_preserves_newlines()
   tests/test_redeploy.py:
     e: test_placeholder,test_import
     test_placeholder()
@@ -1915,6 +1983,7 @@ D:
 ### `redeploy.models` (`redeploy/models.py`)
 
 ```python
+def _migrate_legacy_post_deploy(raw)  # CC=5, fan=6
 class ConflictSeverity:
 class StepAction:
 class StepStatus:
@@ -1941,12 +2010,13 @@ class HardwareInfo:  # Hardware state produced by hardware probe.
     def errors()  # CC=3
     def warnings()  # CC=3
 class InfraState:  # Full detected state of infrastructure — output of `detect`.
+class Hook:  # Generyczny hook w pipeline: faza + akcja (reuse StepAction) 
 class TargetConfig:  # Desired infrastructure state — input to `plan`.
     def _accept_strategy_aliases(cls, v)  # CC=2
 class MigrationStep:
 class InfraSpec:  # Declarative description of one infrastructure state (from OR
 class MigrationSpec:  # Single YAML file describing full migration: from-state → to-
-    def from_file(cls, path)  # CC=1
+    def from_file(cls, path)  # CC=2
     def resolve_versions(manifest_version)  # CC=5
     def to_infra_state()  # CC=4
     def to_target_config()  # CC=2
@@ -2152,7 +2222,7 @@ class ProbeResult:  # Full autonomous probe result for a single host.
 
 ## Call Graph
 
-*343 nodes · 314 edges · 91 modules · CC̄=1.7*
+*352 nodes · 320 edges · 94 modules · CC̄=1.7*
 
 ### Hubs (by degree)
 
@@ -2160,16 +2230,16 @@ class ProbeResult:  # Full autonomous probe result for a single host.
 |----------|----|----|-----|-------|
 | `_parse_service` *(in redeploy.iac.docker_compose.DockerComposeParser)* | 37 ⚠ | 0 | 61 | **61** |
 | `snapshot_to_hardware_info` *(in redeploy.integrations.op3_bridge)* | 10 ⚠ | 2 | 49 | **51** |
-| `list` *(in redeploy.steps.StepLibrary)* | 1 | 44 | 2 | **46** |
+| `list` *(in redeploy.steps.StepLibrary)* | 1 | 46 | 2 | **48** |
 | `run` *(in redeploy.heal.HealRunner)* | 17 ⚠ | 0 | 42 | **42** |
 | `exec_cmd` *(in redeploy.cli.commands.exec_)* | 9 | 0 | 40 | **40** |
 | `_bump_single` *(in redeploy.cli.commands.version.helpers)* | 25 ⚠ | 4 | 35 | **39** |
-| `_parse_k8s_yaml` *(in redeploy.iac.config_hints.ConfigHintsParser)* | 26 ⚠ | 0 | 38 | **38** |
 | `plugin_cmd` *(in redeploy.cli.commands.plugin)* | 13 ⚠ | 0 | 38 | **38** |
+| `_parse_k8s_yaml` *(in redeploy.iac.config_hints.ConfigHintsParser)* | 26 ⚠ | 0 | 38 | **38** |
 
 ```toon markpact:analysis path=project/calls.toon.yaml
 # code2llm call graph | /home/tom/github/maskservice/redeploy
-# nodes: 343 | edges: 314 | modules: 91
+# nodes: 352 | edges: 320 | modules: 94
 # CC̄=1.7
 
 HUBS[20]:
@@ -2178,48 +2248,54 @@ HUBS[20]:
   redeploy.integrations.op3_bridge.snapshot_to_hardware_info
     CC=10  in:2  out:49  total:51
   redeploy.steps.StepLibrary.list
-    CC=1  in:44  out:2  total:46
+    CC=1  in:46  out:2  total:48
   redeploy.heal.HealRunner.run
     CC=17  in:0  out:42  total:42
   redeploy.cli.commands.exec_.exec_cmd
     CC=9  in:0  out:40  total:40
   redeploy.cli.commands.version.helpers._bump_single
     CC=25  in:4  out:35  total:39
-  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
-    CC=26  in:0  out:38  total:38
   redeploy.cli.commands.plugin.plugin_cmd
     CC=13  in:0  out:38  total:38
+  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
+    CC=26  in:0  out:38  total:38
   redeploy.cli.commands.version.commands.version_list
     CC=13  in:0  out:38  total:38
-  redeploy.cli.commands.prompt_cmd.prompt_cmd
-    CC=15  in:0  out:37  total:37
   redeploy.discovery.auto_probe
     CC=7  in:4  out:33  total:37
+  redeploy.cli.commands.prompt_cmd.prompt_cmd
+    CC=15  in:0  out:37  total:37
   redeploy.blueprint.sources.compose._merge_compose
     CC=21  in:1  out:33  total:34
-  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
-    CC=21  in:0  out:33  total:33
   redeploy.plugins.builtin.hardware_diagnostic._analyze_hardware
     CC=14  in:1  out:32  total:33
+  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
+    CC=21  in:0  out:33  total:33
   redeploy.cli.commands.target.target
     CC=10  in:1  out:31  total:32
-  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
-    CC=15  in:0  out:30  total:30
   redeploy.detect.detector.Detector.run
     CC=9  in:0  out:30  total:30
+  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
+    CC=15  in:0  out:30  total:30
   redeploy.apply.executor.Executor._execute_step
     CC=4  in:0  out:27  total:27
-  redeploy.apply.state_apply.HardwareStateHandler.apply
-    CC=18  in:0  out:27  total:27
   redeploy.schema._discover_specs
     CC=14  in:1  out:26  total:27
+  redeploy.apply.state_apply.HardwareStateHandler.apply
+    CC=18  in:0  out:27  total:27
 
 MODULES:
   DOQL-INTEGRATION  [1 funcs]
     print  CC=0  out:0
   docs.markpact-implementation-plan  [1 funcs]
     load_migration_spec  CC=0  out:0
-  project.map.toon  [1 funcs]
+  examples.redeploy_iac_parsers.gitops_ci  [2 funcs]
+    can_parse  CC=11  out:9
+    _is_gitops_command  CC=2  out:2
+  examples.redeploy_iac_parsers.helm_kustomize  [1 funcs]
+    parse  CC=17  out:27
+  project.map.toon  [2 funcs]
+    build_schema  CC=0  out:0
     run_container_build  CC=0  out:0
   redeploy.apply.executor  [3 funcs]
     __init__  CC=14  out:8
@@ -2314,6 +2390,11 @@ MODULES:
     _apply_fix  CC=8  out:18
     _execute_query  CC=1  out:2
     _probe_hardware  CC=4  out:6
+  redeploy.cli.commands.import_  [4 funcs]
+    _copy_plugin_template  CC=3  out:12
+    _examples_plugin_dir  CC=1  out:2
+    _plugin_templates  CC=1  out:0
+    _print_plugin_templates  CC=2  out:4
   redeploy.cli.commands.inspect  [2 funcs]
     _find_css_path  CC=4  out:4
     inspect  CC=4  out:22
@@ -2584,11 +2665,12 @@ MODULES:
     process_control  CC=9  out:19
   redeploy.plugins.builtin.systemd_reload  [1 funcs]
     systemd_reload  CC=12  out:23
-  redeploy.schema  [4 funcs]
+  redeploy.schema  [5 funcs]
     _discover_specs  CC=14  out:26
     _git_branch  CC=3  out:2
+    _iac_info  CC=2  out:0
     _read_version  CC=3  out:4
-    build_schema  CC=2  out:6
+    build_schema  CC=2  out:7
   redeploy.spec_loader  [1 funcs]
     load_migration_spec  CC=4  out:8
   redeploy.steps  [2 funcs]
@@ -2621,9 +2703,6 @@ MODULES:
     _stage_one  CC=6  out:7
 
 EDGES:
-  redeploy.schema.build_schema → redeploy.schema._read_version
-  redeploy.schema.build_schema → redeploy.schema._git_branch
-  redeploy.schema.build_schema → redeploy.schema._discover_specs
   redeploy.observe.DeployAuditLog.record → redeploy.steps.StepLibrary.list
   redeploy.heal.collect_diagnostics → redeploy.heal._ssh
   redeploy.heal.HealRunner._reload_migration → docs.markpact-implementation-plan.load_migration_spec
@@ -2638,9 +2717,6 @@ EDGES:
   redeploy.fleet.Fleet.__init__ → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.from_registry → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.merge → redeploy.steps.StepLibrary.list
-  redeploy.models.ProjectManifest.find_and_load → redeploy.steps.StepLibrary.list
-  redeploy.models.ProjectManifest.find_and_load → redeploy.dsl.loader.load_css
-  redeploy.models.ProjectManifest.find_css → redeploy.steps.StepLibrary.list
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.compiler.compile_markpact_document
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.parser.parse_markpact_file
   redeploy.patterns.BlueGreenPattern.expand → redeploy.patterns._step
@@ -2671,6 +2747,12 @@ EDGES:
   redeploy.audit._Extractor._from_target → redeploy.audit._extract_port
   redeploy.audit._Extractor._from_target → redeploy.audit._normalize_path
   redeploy.audit.audit_spec → docs.markpact-implementation-plan.load_migration_spec
+  redeploy.mcp_server._run → redeploy.mcp_server._redeploy_bin
+  redeploy.mcp_server.schema → project.map.toon.build_schema
+  redeploy.mcp_server.plan_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.run_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.fix_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.bump_version → redeploy.mcp_server._run
 ```
 
 ## Intent

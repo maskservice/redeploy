@@ -23,6 +23,21 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 COMMAND_CATALOGUE: dict[str, dict[str, Any]] = {
+    "import": {
+        "description": "Parse IaC/CI-CD files and scaffold migration metadata, or copy a parser plugin template into the project.",
+        "primary_arg": "SOURCE (IaC file or directory) or use --plugin-template",
+        "key_options": [
+            "--format [yaml|json|summary]",
+            "--target-host HOST",
+            "--target-strategy STRATEGY",
+            "--parser NAME     -- force a specific parser",
+            "--plugin-template NAME   -- copy a ready-made parser plugin template",
+            "--plugin-dir PATH        -- destination for plugin template copy",
+            "--list-plugin-templates  -- list built-in parser plugin templates",
+            "--dry-run                -- preview without writing files",
+        ],
+        "example": "redeploy import --plugin-template helm-kustomize",
+    },
     "fix": {
         "description": "Self-healing deploy: bump version, apply spec, retry with LLM on failure.",
         "primary_arg": "spec_or_dir (PATH to migration spec or directory)",
@@ -110,6 +125,26 @@ COMMAND_CATALOGUE: dict[str, dict[str, Any]] = {
         "primary_arg": "SPEC",
         "key_options": [],
         "example": "redeploy inspect migration.yaml",
+    },
+}
+
+
+PLUGIN_TEMPLATES: dict[str, dict[str, str]] = {
+    "helm-ansible": {
+        "file": "helm_ansible.py",
+        "description": "Helm Chart/values + Ansible playbook parser examples",
+    },
+    "helm-kustomize": {
+        "file": "helm_kustomize.py",
+        "description": "Helm templates + Kustomize parser examples",
+    },
+    "argocd-flux": {
+        "file": "argocd_flux.py",
+        "description": "ArgoCD Application + Flux Kustomization parser examples",
+    },
+    "gitops-ci": {
+        "file": "gitops_ci.py",
+        "description": "GitHub Actions / GitLab CI GitOps parser examples",
     },
 }
 
@@ -213,6 +248,37 @@ def _git_branch(root: Path) -> str | None:
     return None
 
 
+def _iac_info() -> dict[str, Any]:
+    """Return parser/plugin-template info for LLM routing.
+
+    Best-effort only; schema building must stay robust even if parser imports fail.
+    """
+    parser_names: list[str] = []
+    try:
+        from redeploy.iac import parser_registry
+
+        parser_names = parser_registry.registered
+    except Exception:
+        parser_names = []
+
+    supported_file_hints = [
+        "docker-compose.yml / compose.yaml",
+        "Dockerfile / *.Dockerfile",
+        "nginx.conf / *.conf",
+        "Kubernetes YAML manifests",
+        "Terraform (*.tf, *.tfvars)",
+        "TOML / pyproject.toml",
+        "Vite config (vite.config.ts/js/mjs/cjs)",
+        "GitHub Actions / GitLab CI / Jenkinsfile",
+    ]
+
+    return {
+        "parsers": parser_names,
+        "plugin_templates": PLUGIN_TEMPLATES,
+        "supported_file_hints": supported_file_hints,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -239,4 +305,5 @@ def build_schema(root: Path | None = None) -> dict[str, Any]:
         "git_branch": _git_branch(root),
         "specs": _discover_specs(root),
         "commands": COMMAND_CATALOGUE,
+        "iac": _iac_info(),
     }

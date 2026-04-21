@@ -35,6 +35,7 @@ You will receive a JSON schema describing the current workspace with:
 - git_branch  : current git branch
 - specs       : list of discovered migration specs (path, version, target, name)
 - commands    : catalogue of available redeploy commands with descriptions and examples
+- iac         : parser/plugin-template info for IaC/CI-CD imports
 
 Your task: map the user's instruction to a single redeploy command.
 
@@ -49,9 +50,23 @@ Output ONLY valid JSON (no markdown fences, no extra text) with this structure:
 Rules:
 - argv[0] MUST be "redeploy".
 - Use relative paths for specs (relative to cwd).
+- If the user asks about Dockerfile, nginx, Kubernetes, Terraform, TOML, Vite, GitHub Actions, GitLab CI, Jenkinsfile, Helm, Kustomize, ArgoCD, Flux, or GitOps configs, prefer `redeploy import ...`.
+- If the user asks to add support for a new IaC/CI/CD format and a matching template exists in schema["iac"]["plugin_templates"], prefer `redeploy import --plugin-template <name>`.
+- If the user asks what plugin templates or parsers are available, prefer `redeploy import --list-plugin-templates`.
 - If the user's intent is unclear, pick the safest command (e.g. "plan" with --dry-run=true).
 - Set confirm=false ONLY for read-only/safe commands (plan, inspect, status, audit, diff, diagnose).
-- Set confirm=true for commands that change state (fix, run, bump, push, init).
+- Set confirm=false for `import --list-plugin-templates` and `import --dry-run`.
+- Set confirm=true for `import --plugin-template ...` because it writes files.
+- Set confirm=false for "run --dry-run" (previewing a spec is safe, no changes made).
+- Set confirm=true for "fix" commands (even with --dry-run flag - repair operations need confirmation for safety).
+- Set confirm=true for "run" without --dry-run (actual deployment changes state).
+- Set confirm=true for "bump", "push", "init" (these change project state).
+- Examples:
+  * "pokaż plan" → argv=["redeploy", "run", "spec.md", "--dry-run"], confirm=false
+  * "deploy to pi109" → argv=["redeploy", "run", "spec.md"], confirm=true
+  * "napraw kiosk" → argv=["redeploy", "fix", "spec.md", "--dry-run"], confirm=true
+    * "dodaj parser helm + kustomize" → argv=["redeploy", "import", "--plugin-template", "helm-kustomize"], confirm=true
+    * "jakie plugin templates są dostępne" → argv=["redeploy", "import", "--list-plugin-templates"], confirm=false
 - If the user explicitly says "dry run" / "pokaż" / "sprawdź" / "plan", prefer --dry-run.
 - Never invent spec paths — use only paths from the schema["specs"] list.
 - If no matching spec exists, return argv=["redeploy", "plan", "--help"] and explain in human_summary.
@@ -102,7 +117,7 @@ def _call_llm(schema: dict, user_prompt: str) -> str:
 
 
 def _parse_llm_response(raw: str) -> dict:
-    """Parse JSON from LLM response, strip accidental fences."""
+    """Parse JSON from LLM response, strip accidental fences and escape control characters."""
     # Strip ```json ... ``` if present
     clean = raw.strip()
     if clean.startswith("```"):
@@ -111,6 +126,17 @@ def _parse_llm_response(raw: str) -> dict:
             line for line in lines
             if not line.strip().startswith("```")
         )
+    # Escape control characters (except \n, \r, \t) for JSON safety
+    def escape_control_char(match):
+        char = match.group(0)
+        # Keep allowed whitespace, escape others as \uXXXX
+        if char in "\n\r\t":
+            return char
+        return f"\\u{ord(char):04x}"
+    
+    # Match any control character (ord < 32) except \n, \r, \t
+    import re
+    clean = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", escape_control_char, clean)
     return json.loads(clean)
 
 

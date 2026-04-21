@@ -1,5 +1,5 @@
 # code2llm call graph | /home/tom/github/maskservice/redeploy
-# nodes: 343 | edges: 314 | modules: 91
+# nodes: 352 | edges: 320 | modules: 94
 # CC̄=1.7
 
 HUBS[20]:
@@ -8,48 +8,54 @@ HUBS[20]:
   redeploy.integrations.op3_bridge.snapshot_to_hardware_info
     CC=10  in:2  out:49  total:51
   redeploy.steps.StepLibrary.list
-    CC=1  in:44  out:2  total:46
+    CC=1  in:46  out:2  total:48
   redeploy.heal.HealRunner.run
     CC=17  in:0  out:42  total:42
   redeploy.cli.commands.exec_.exec_cmd
     CC=9  in:0  out:40  total:40
   redeploy.cli.commands.version.helpers._bump_single
     CC=25  in:4  out:35  total:39
-  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
-    CC=26  in:0  out:38  total:38
   redeploy.cli.commands.plugin.plugin_cmd
     CC=13  in:0  out:38  total:38
+  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
+    CC=26  in:0  out:38  total:38
   redeploy.cli.commands.version.commands.version_list
     CC=13  in:0  out:38  total:38
-  redeploy.cli.commands.prompt_cmd.prompt_cmd
-    CC=15  in:0  out:37  total:37
   redeploy.discovery.auto_probe
     CC=7  in:4  out:33  total:37
+  redeploy.cli.commands.prompt_cmd.prompt_cmd
+    CC=15  in:0  out:37  total:37
   redeploy.blueprint.sources.compose._merge_compose
     CC=21  in:1  out:33  total:34
-  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
-    CC=21  in:0  out:33  total:33
   redeploy.plugins.builtin.hardware_diagnostic._analyze_hardware
     CC=14  in:1  out:32  total:33
+  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
+    CC=21  in:0  out:33  total:33
   redeploy.cli.commands.target.target
     CC=10  in:1  out:31  total:32
-  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
-    CC=15  in:0  out:30  total:30
   redeploy.detect.detector.Detector.run
     CC=9  in:0  out:30  total:30
+  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
+    CC=15  in:0  out:30  total:30
   redeploy.apply.executor.Executor._execute_step
     CC=4  in:0  out:27  total:27
-  redeploy.apply.state_apply.HardwareStateHandler.apply
-    CC=18  in:0  out:27  total:27
   redeploy.schema._discover_specs
     CC=14  in:1  out:26  total:27
+  redeploy.apply.state_apply.HardwareStateHandler.apply
+    CC=18  in:0  out:27  total:27
 
 MODULES:
   DOQL-INTEGRATION  [1 funcs]
     print  CC=0  out:0
   docs.markpact-implementation-plan  [1 funcs]
     load_migration_spec  CC=0  out:0
-  project.map.toon  [1 funcs]
+  examples.redeploy_iac_parsers.gitops_ci  [2 funcs]
+    can_parse  CC=11  out:9
+    _is_gitops_command  CC=2  out:2
+  examples.redeploy_iac_parsers.helm_kustomize  [1 funcs]
+    parse  CC=17  out:27
+  project.map.toon  [2 funcs]
+    build_schema  CC=0  out:0
     run_container_build  CC=0  out:0
   redeploy.apply.executor  [3 funcs]
     __init__  CC=14  out:8
@@ -144,6 +150,11 @@ MODULES:
     _apply_fix  CC=8  out:18
     _execute_query  CC=1  out:2
     _probe_hardware  CC=4  out:6
+  redeploy.cli.commands.import_  [4 funcs]
+    _copy_plugin_template  CC=3  out:12
+    _examples_plugin_dir  CC=1  out:2
+    _plugin_templates  CC=1  out:0
+    _print_plugin_templates  CC=2  out:4
   redeploy.cli.commands.inspect  [2 funcs]
     _find_css_path  CC=4  out:4
     inspect  CC=4  out:22
@@ -414,11 +425,12 @@ MODULES:
     process_control  CC=9  out:19
   redeploy.plugins.builtin.systemd_reload  [1 funcs]
     systemd_reload  CC=12  out:23
-  redeploy.schema  [4 funcs]
+  redeploy.schema  [5 funcs]
     _discover_specs  CC=14  out:26
     _git_branch  CC=3  out:2
+    _iac_info  CC=2  out:0
     _read_version  CC=3  out:4
-    build_schema  CC=2  out:6
+    build_schema  CC=2  out:7
   redeploy.spec_loader  [1 funcs]
     load_migration_spec  CC=4  out:8
   redeploy.steps  [2 funcs]
@@ -451,9 +463,6 @@ MODULES:
     _stage_one  CC=6  out:7
 
 EDGES:
-  redeploy.schema.build_schema → redeploy.schema._read_version
-  redeploy.schema.build_schema → redeploy.schema._git_branch
-  redeploy.schema.build_schema → redeploy.schema._discover_specs
   redeploy.observe.DeployAuditLog.record → redeploy.steps.StepLibrary.list
   redeploy.heal.collect_diagnostics → redeploy.heal._ssh
   redeploy.heal.HealRunner._reload_migration → docs.markpact-implementation-plan.load_migration_spec
@@ -468,9 +477,6 @@ EDGES:
   redeploy.fleet.Fleet.__init__ → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.from_registry → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.merge → redeploy.steps.StepLibrary.list
-  redeploy.models.ProjectManifest.find_and_load → redeploy.steps.StepLibrary.list
-  redeploy.models.ProjectManifest.find_and_load → redeploy.dsl.loader.load_css
-  redeploy.models.ProjectManifest.find_css → redeploy.steps.StepLibrary.list
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.compiler.compile_markpact_document
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.parser.parse_markpact_file
   redeploy.patterns.BlueGreenPattern.expand → redeploy.patterns._step
@@ -501,3 +507,9 @@ EDGES:
   redeploy.audit._Extractor._from_target → redeploy.audit._extract_port
   redeploy.audit._Extractor._from_target → redeploy.audit._normalize_path
   redeploy.audit.audit_spec → docs.markpact-implementation-plan.load_migration_spec
+  redeploy.mcp_server._run → redeploy.mcp_server._redeploy_bin
+  redeploy.mcp_server.schema → project.map.toon.build_schema
+  redeploy.mcp_server.plan_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.run_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.fix_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.bump_version → redeploy.mcp_server._run

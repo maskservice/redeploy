@@ -17,7 +17,7 @@ SUMD - Structured Unified Markdown Descriptor for AI-aware project refactorizati
 ## Metadata
 
 - **name**: `redeploy`
-- **version**: `0.2.50`
+- **version**: `0.2.51`
 - **python_requires**: `>=3.11`
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
 - **ecosystem**: SUMD + DOQL + testql + taskfile
@@ -37,7 +37,7 @@ SUMD (description) → DOQL/source (code) → taskfile (automation) → testql (
 
 app {
   name: redeploy;
-  version: 0.2.50;
+  version: 0.2.51;
 }
 
 interface[type="cli"] {
@@ -187,6 +187,7 @@ pfix>=0.1.60
 ### `redeploy.models` (`redeploy/models.py`)
 
 ```python
+def _migrate_legacy_post_deploy(raw)  # CC=5, fan=6
 class ConflictSeverity:
 class StepAction:
 class StepStatus:
@@ -213,12 +214,13 @@ class HardwareInfo:  # Hardware state produced by hardware probe.
     def errors()  # CC=3
     def warnings()  # CC=3
 class InfraState:  # Full detected state of infrastructure — output of `detect`.
+class Hook:  # Generyczny hook w pipeline: faza + akcja (reuse StepAction) 
 class TargetConfig:  # Desired infrastructure state — input to `plan`.
     def _accept_strategy_aliases(cls, v)  # CC=2
 class MigrationStep:
 class InfraSpec:  # Declarative description of one infrastructure state (from OR
 class MigrationSpec:  # Single YAML file describing full migration: from-state → to-
-    def from_file(cls, path)  # CC=1
+    def from_file(cls, path)  # CC=2
     def resolve_versions(manifest_version)  # CC=5
     def to_infra_state()  # CC=4
     def to_target_config()  # CC=2
@@ -424,7 +426,7 @@ class ProbeResult:  # Full autonomous probe result for a single host.
 
 ## Call Graph
 
-*343 nodes · 314 edges · 91 modules · CC̄=1.7*
+*352 nodes · 320 edges · 94 modules · CC̄=1.7*
 
 ### Hubs (by degree)
 
@@ -432,16 +434,16 @@ class ProbeResult:  # Full autonomous probe result for a single host.
 |----------|----|----|-----|-------|
 | `_parse_service` *(in redeploy.iac.docker_compose.DockerComposeParser)* | 37 ⚠ | 0 | 61 | **61** |
 | `snapshot_to_hardware_info` *(in redeploy.integrations.op3_bridge)* | 10 ⚠ | 2 | 49 | **51** |
-| `list` *(in redeploy.steps.StepLibrary)* | 1 | 44 | 2 | **46** |
+| `list` *(in redeploy.steps.StepLibrary)* | 1 | 46 | 2 | **48** |
 | `run` *(in redeploy.heal.HealRunner)* | 17 ⚠ | 0 | 42 | **42** |
 | `exec_cmd` *(in redeploy.cli.commands.exec_)* | 9 | 0 | 40 | **40** |
 | `_bump_single` *(in redeploy.cli.commands.version.helpers)* | 25 ⚠ | 4 | 35 | **39** |
-| `_parse_k8s_yaml` *(in redeploy.iac.config_hints.ConfigHintsParser)* | 26 ⚠ | 0 | 38 | **38** |
 | `plugin_cmd` *(in redeploy.cli.commands.plugin)* | 13 ⚠ | 0 | 38 | **38** |
+| `_parse_k8s_yaml` *(in redeploy.iac.config_hints.ConfigHintsParser)* | 26 ⚠ | 0 | 38 | **38** |
 
 ```toon markpact:analysis path=project/calls.toon.yaml
 # code2llm call graph | /home/tom/github/maskservice/redeploy
-# nodes: 343 | edges: 314 | modules: 91
+# nodes: 352 | edges: 320 | modules: 94
 # CC̄=1.7
 
 HUBS[20]:
@@ -450,48 +452,54 @@ HUBS[20]:
   redeploy.integrations.op3_bridge.snapshot_to_hardware_info
     CC=10  in:2  out:49  total:51
   redeploy.steps.StepLibrary.list
-    CC=1  in:44  out:2  total:46
+    CC=1  in:46  out:2  total:48
   redeploy.heal.HealRunner.run
     CC=17  in:0  out:42  total:42
   redeploy.cli.commands.exec_.exec_cmd
     CC=9  in:0  out:40  total:40
   redeploy.cli.commands.version.helpers._bump_single
     CC=25  in:4  out:35  total:39
-  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
-    CC=26  in:0  out:38  total:38
   redeploy.cli.commands.plugin.plugin_cmd
     CC=13  in:0  out:38  total:38
+  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
+    CC=26  in:0  out:38  total:38
   redeploy.cli.commands.version.commands.version_list
     CC=13  in:0  out:38  total:38
-  redeploy.cli.commands.prompt_cmd.prompt_cmd
-    CC=15  in:0  out:37  total:37
   redeploy.discovery.auto_probe
     CC=7  in:4  out:33  total:37
+  redeploy.cli.commands.prompt_cmd.prompt_cmd
+    CC=15  in:0  out:37  total:37
   redeploy.blueprint.sources.compose._merge_compose
     CC=21  in:1  out:33  total:34
-  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
-    CC=21  in:0  out:33  total:33
   redeploy.plugins.builtin.hardware_diagnostic._analyze_hardware
     CC=14  in:1  out:32  total:33
+  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
+    CC=21  in:0  out:33  total:33
   redeploy.cli.commands.target.target
     CC=10  in:1  out:31  total:32
-  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
-    CC=15  in:0  out:30  total:30
   redeploy.detect.detector.Detector.run
     CC=9  in:0  out:30  total:30
+  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
+    CC=15  in:0  out:30  total:30
   redeploy.apply.executor.Executor._execute_step
     CC=4  in:0  out:27  total:27
-  redeploy.apply.state_apply.HardwareStateHandler.apply
-    CC=18  in:0  out:27  total:27
   redeploy.schema._discover_specs
     CC=14  in:1  out:26  total:27
+  redeploy.apply.state_apply.HardwareStateHandler.apply
+    CC=18  in:0  out:27  total:27
 
 MODULES:
   DOQL-INTEGRATION  [1 funcs]
     print  CC=0  out:0
   docs.markpact-implementation-plan  [1 funcs]
     load_migration_spec  CC=0  out:0
-  project.map.toon  [1 funcs]
+  examples.redeploy_iac_parsers.gitops_ci  [2 funcs]
+    can_parse  CC=11  out:9
+    _is_gitops_command  CC=2  out:2
+  examples.redeploy_iac_parsers.helm_kustomize  [1 funcs]
+    parse  CC=17  out:27
+  project.map.toon  [2 funcs]
+    build_schema  CC=0  out:0
     run_container_build  CC=0  out:0
   redeploy.apply.executor  [3 funcs]
     __init__  CC=14  out:8
@@ -586,6 +594,11 @@ MODULES:
     _apply_fix  CC=8  out:18
     _execute_query  CC=1  out:2
     _probe_hardware  CC=4  out:6
+  redeploy.cli.commands.import_  [4 funcs]
+    _copy_plugin_template  CC=3  out:12
+    _examples_plugin_dir  CC=1  out:2
+    _plugin_templates  CC=1  out:0
+    _print_plugin_templates  CC=2  out:4
   redeploy.cli.commands.inspect  [2 funcs]
     _find_css_path  CC=4  out:4
     inspect  CC=4  out:22
@@ -856,11 +869,12 @@ MODULES:
     process_control  CC=9  out:19
   redeploy.plugins.builtin.systemd_reload  [1 funcs]
     systemd_reload  CC=12  out:23
-  redeploy.schema  [4 funcs]
+  redeploy.schema  [5 funcs]
     _discover_specs  CC=14  out:26
     _git_branch  CC=3  out:2
+    _iac_info  CC=2  out:0
     _read_version  CC=3  out:4
-    build_schema  CC=2  out:6
+    build_schema  CC=2  out:7
   redeploy.spec_loader  [1 funcs]
     load_migration_spec  CC=4  out:8
   redeploy.steps  [2 funcs]
@@ -893,9 +907,6 @@ MODULES:
     _stage_one  CC=6  out:7
 
 EDGES:
-  redeploy.schema.build_schema → redeploy.schema._read_version
-  redeploy.schema.build_schema → redeploy.schema._git_branch
-  redeploy.schema.build_schema → redeploy.schema._discover_specs
   redeploy.observe.DeployAuditLog.record → redeploy.steps.StepLibrary.list
   redeploy.heal.collect_diagnostics → redeploy.heal._ssh
   redeploy.heal.HealRunner._reload_migration → docs.markpact-implementation-plan.load_migration_spec
@@ -910,9 +921,6 @@ EDGES:
   redeploy.fleet.Fleet.__init__ → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.from_registry → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.merge → redeploy.steps.StepLibrary.list
-  redeploy.models.ProjectManifest.find_and_load → redeploy.steps.StepLibrary.list
-  redeploy.models.ProjectManifest.find_and_load → redeploy.dsl.loader.load_css
-  redeploy.models.ProjectManifest.find_css → redeploy.steps.StepLibrary.list
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.compiler.compile_markpact_document
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.parser.parse_markpact_file
   redeploy.patterns.BlueGreenPattern.expand → redeploy.patterns._step
@@ -943,6 +951,12 @@ EDGES:
   redeploy.audit._Extractor._from_target → redeploy.audit._extract_port
   redeploy.audit._Extractor._from_target → redeploy.audit._normalize_path
   redeploy.audit.audit_spec → docs.markpact-implementation-plan.load_migration_spec
+  redeploy.mcp_server._run → redeploy.mcp_server._redeploy_bin
+  redeploy.mcp_server.schema → project.map.toon.build_schema
+  redeploy.mcp_server.plan_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.run_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.fix_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.bump_version → redeploy.mcp_server._run
 ```
 
 ## Refactoring Analysis
@@ -953,7 +967,7 @@ EDGES:
 
 ```toon markpact:analysis path=project/calls.toon.yaml
 # code2llm call graph | /home/tom/github/maskservice/redeploy
-# nodes: 343 | edges: 314 | modules: 91
+# nodes: 352 | edges: 320 | modules: 94
 # CC̄=1.7
 
 HUBS[20]:
@@ -962,48 +976,54 @@ HUBS[20]:
   redeploy.integrations.op3_bridge.snapshot_to_hardware_info
     CC=10  in:2  out:49  total:51
   redeploy.steps.StepLibrary.list
-    CC=1  in:44  out:2  total:46
+    CC=1  in:46  out:2  total:48
   redeploy.heal.HealRunner.run
     CC=17  in:0  out:42  total:42
   redeploy.cli.commands.exec_.exec_cmd
     CC=9  in:0  out:40  total:40
   redeploy.cli.commands.version.helpers._bump_single
     CC=25  in:4  out:35  total:39
-  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
-    CC=26  in:0  out:38  total:38
   redeploy.cli.commands.plugin.plugin_cmd
     CC=13  in:0  out:38  total:38
+  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
+    CC=26  in:0  out:38  total:38
   redeploy.cli.commands.version.commands.version_list
     CC=13  in:0  out:38  total:38
-  redeploy.cli.commands.prompt_cmd.prompt_cmd
-    CC=15  in:0  out:37  total:37
   redeploy.discovery.auto_probe
     CC=7  in:4  out:33  total:37
+  redeploy.cli.commands.prompt_cmd.prompt_cmd
+    CC=15  in:0  out:37  total:37
   redeploy.blueprint.sources.compose._merge_compose
     CC=21  in:1  out:33  total:34
-  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
-    CC=21  in:0  out:33  total:33
   redeploy.plugins.builtin.hardware_diagnostic._analyze_hardware
     CC=14  in:1  out:32  total:33
+  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
+    CC=21  in:0  out:33  total:33
   redeploy.cli.commands.target.target
     CC=10  in:1  out:31  total:32
-  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
-    CC=15  in:0  out:30  total:30
   redeploy.detect.detector.Detector.run
     CC=9  in:0  out:30  total:30
+  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
+    CC=15  in:0  out:30  total:30
   redeploy.apply.executor.Executor._execute_step
     CC=4  in:0  out:27  total:27
-  redeploy.apply.state_apply.HardwareStateHandler.apply
-    CC=18  in:0  out:27  total:27
   redeploy.schema._discover_specs
     CC=14  in:1  out:26  total:27
+  redeploy.apply.state_apply.HardwareStateHandler.apply
+    CC=18  in:0  out:27  total:27
 
 MODULES:
   DOQL-INTEGRATION  [1 funcs]
     print  CC=0  out:0
   docs.markpact-implementation-plan  [1 funcs]
     load_migration_spec  CC=0  out:0
-  project.map.toon  [1 funcs]
+  examples.redeploy_iac_parsers.gitops_ci  [2 funcs]
+    can_parse  CC=11  out:9
+    _is_gitops_command  CC=2  out:2
+  examples.redeploy_iac_parsers.helm_kustomize  [1 funcs]
+    parse  CC=17  out:27
+  project.map.toon  [2 funcs]
+    build_schema  CC=0  out:0
     run_container_build  CC=0  out:0
   redeploy.apply.executor  [3 funcs]
     __init__  CC=14  out:8
@@ -1098,6 +1118,11 @@ MODULES:
     _apply_fix  CC=8  out:18
     _execute_query  CC=1  out:2
     _probe_hardware  CC=4  out:6
+  redeploy.cli.commands.import_  [4 funcs]
+    _copy_plugin_template  CC=3  out:12
+    _examples_plugin_dir  CC=1  out:2
+    _plugin_templates  CC=1  out:0
+    _print_plugin_templates  CC=2  out:4
   redeploy.cli.commands.inspect  [2 funcs]
     _find_css_path  CC=4  out:4
     inspect  CC=4  out:22
@@ -1368,11 +1393,12 @@ MODULES:
     process_control  CC=9  out:19
   redeploy.plugins.builtin.systemd_reload  [1 funcs]
     systemd_reload  CC=12  out:23
-  redeploy.schema  [4 funcs]
+  redeploy.schema  [5 funcs]
     _discover_specs  CC=14  out:26
     _git_branch  CC=3  out:2
+    _iac_info  CC=2  out:0
     _read_version  CC=3  out:4
-    build_schema  CC=2  out:6
+    build_schema  CC=2  out:7
   redeploy.spec_loader  [1 funcs]
     load_migration_spec  CC=4  out:8
   redeploy.steps  [2 funcs]
@@ -1405,9 +1431,6 @@ MODULES:
     _stage_one  CC=6  out:7
 
 EDGES:
-  redeploy.schema.build_schema → redeploy.schema._read_version
-  redeploy.schema.build_schema → redeploy.schema._git_branch
-  redeploy.schema.build_schema → redeploy.schema._discover_specs
   redeploy.observe.DeployAuditLog.record → redeploy.steps.StepLibrary.list
   redeploy.heal.collect_diagnostics → redeploy.heal._ssh
   redeploy.heal.HealRunner._reload_migration → docs.markpact-implementation-plan.load_migration_spec
@@ -1422,9 +1445,6 @@ EDGES:
   redeploy.fleet.Fleet.__init__ → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.from_registry → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.merge → redeploy.steps.StepLibrary.list
-  redeploy.models.ProjectManifest.find_and_load → redeploy.steps.StepLibrary.list
-  redeploy.models.ProjectManifest.find_and_load → redeploy.dsl.loader.load_css
-  redeploy.models.ProjectManifest.find_css → redeploy.steps.StepLibrary.list
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.compiler.compile_markpact_document
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.parser.parse_markpact_file
   redeploy.patterns.BlueGreenPattern.expand → redeploy.patterns._step
@@ -1455,22 +1475,27 @@ EDGES:
   redeploy.audit._Extractor._from_target → redeploy.audit._extract_port
   redeploy.audit._Extractor._from_target → redeploy.audit._normalize_path
   redeploy.audit.audit_spec → docs.markpact-implementation-plan.load_migration_spec
+  redeploy.mcp_server._run → redeploy.mcp_server._redeploy_bin
+  redeploy.mcp_server.schema → project.map.toon.build_schema
+  redeploy.mcp_server.plan_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.run_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.fix_spec → redeploy.mcp_server._run
+  redeploy.mcp_server.bump_version → redeploy.mcp_server._run
 ```
 
 ### Code Analysis (`project/analysis.toon.yaml`)
 
 ```toon markpact:analysis path=project/analysis.toon.yaml
-# code2llm | 302f 54728L | python:149,yaml:95,md:51,shell:2,toml:1,yml:1,txt:1,json:1 | 2026-04-21
-# CC̄=1.7 | critical:38/2459 | dups:0 | cycles:0
+# code2llm | 311f 56116L | python:153,yaml:99,md:52,shell:2,toml:1,yml:1,txt:1,json:1 | 2026-04-21
+# CC̄=1.7 | critical:41/2553 | dups:0 | cycles:0
 
 HEALTH[20]:
-  🔴 GOD   redeploy/models.py = 996L, 33 classes, 29m, max CC=19
   🔴 GOD   redeploy/audit.py = 609L, 6 classes, 32m, max CC=14
-  🔴 GOD   SUMR.md = 2719L, 50 classes, 139m, max CC=0.0
-  🔴 GOD   SUMD.md = 2658L, 50 classes, 780m, max CC=0.0
+  🔴 GOD   SUMR.md = 2762L, 50 classes, 139m, max CC=0.0
+  🔴 GOD   SUMD.md = 2750L, 50 classes, 815m, max CC=0.0
+  🔴 GOD   redeploy/models.py = 1033L, 34 classes, 29m, max CC=19
   🟡 CC    run CC=17 (limit:15)
   🟡 CC    verify_expectations CC=25 (limit:15)
-  🟡 CC    apply_to_spec CC=19 (limit:15)
   🟡 CC    update_registry CC=17 (limit:15)
   🟡 CC    _parse_probe_output CC=16 (limit:15)
   🟡 CC    _collect_hosts CC=18 (limit:15)
@@ -1480,19 +1505,20 @@ HEALTH[20]:
   🟡 CC    fix_cmd CC=17 (limit:15)
   🟡 CC    _print_blueprint CC=20 (limit:15)
   🟡 CC    probe CC=26 (limit:15)
+  🟡 CC    import_cmd CC=21 (limit:15)
+  🟡 CC    _print_import_spec CC=15 (limit:15)
+  🟡 CC    _spec_to_migration_yaml CC=22 (limit:15)
   🟡 CC    device_map_cmd CC=20 (limit:15)
-  🟡 CC    prompt_cmd CC=15 (limit:15)
   🟡 CC    push CC=15 (limit:15)
-  🟡 CC    audit CC=18 (limit:15)
 
 REFACTOR[5]:
-  1. split redeploy/models.py  (god module)
-  2. split redeploy/audit.py  (god module)
-  3. split SUMR.md  (god module)
-  4. split SUMD.md  (god module)
+  1. split redeploy/audit.py  (god module)
+  2. split SUMR.md  (god module)
+  3. split SUMD.md  (god module)
+  4. split redeploy/models.py  (god module)
   5. split 16 high-CC methods  (CC>15)
 
-PIPELINES[426]:
+PIPELINES[441]:
   [1] Src [to_dict]: to_dict
       PURITY: 100% pure
   [2] Src [record]: record → list
@@ -1505,192 +1531,17 @@ PIPELINES[426]:
       PURITY: 100% pure
 
 LAYERS:
-  redeploy/                       CC̄=5.0    ←in:84  →out:6
-  │ !! models                     996L  33C   29m  CC=19     ←17
-  │ !! discovery                  789L  2C   26m  CC=17     ←5
-  │ !! planner                    620L  1C   21m  CC=10     ←4
-  │ !! handlers                   616L  0C   20m  CC=16     ←2
-  │ !! audit                      609L  6C   32m  CC=14     ←1
-  │ !! commands                   594L  0C    8m  CC=26     ←0
-  │ !! plan_apply                 505L  0C   11m  CC=13     ←0
-  │ hardware                   464L  0C   11m  CC=13     ←0
-  │ templates                  419L  6C   13m  CC=9      ←0
-  │ !! workflow                   418L  3C   12m  CC=18     ←0
-  │ !! docker_compose             418L  1C   11m  CC=37     ←0
-  │ !! heal                       414L  1C   10m  CC=17     ←0
-  │ patterns                   407L  4C   11m  CC=5      ←1
-  │ !! loader                     403L  3C   12m  CC=25     ←5
-  │ !! fleet                      396L  6C   23m  CC=25     ←1
-  │ display                    389L  0C   25m  CC=9      ←6
-  │ !! helpers                    349L  0C   10m  CC=25     ←2
-  │ !! bump_fix                   348L  0C   12m  CC=17     ←0
-  │ !! blueprint                  333L  0C    8m  CC=20     ←0
-  │ mcp_server                 314L  0C   14m  CC=5      ←2
-  │ observe                    313L  3C   14m  CC=12     ←0
-  │ ssh                        301L  4C   17m  CC=7      ←0
-  │ !! device_map                 299L  0C    5m  CC=20     ←0
-  │ steps                      294L  0C    7m  CC=7      ←0
-  │ !! config_hints               289L  1C   15m  CC=26     ←0
-  │ !! compose                    287L  1C   13m  CC=21     ←0
-  │ bump                       284L  0C    6m  CC=13     ←3
-  │ hardware_diagnostic        282L  1C   11m  CC=14     ←0
-  │ parser                     280L  1C    9m  CC=14     ←3
-  │ probes                     277L  0C    9m  CC=13     ←1
-  │ builtins                   275L  0C    1m  CC=1      ←0
-  │ base                       275L  7C   13m  CC=7      ←1
-  │ executor                   268L  1C   13m  CC=14     ←1
-  │ scanner                    262L  0C   18m  CC=13     ←1
-  │ parser                     261L  2C    8m  CC=8      ←0
-  │ !! import_                    256L  0C    4m  CC=22     ←0
-  │ exec_                      251L  0C    6m  CC=10     ←0
-  │ schema                     242L  0C    5m  CC=14     ←2
-  │ !! prompt_cmd                 238L  0C    4m  CC=15     ←0
-  │ !! devices                    226L  0C    4m  CC=22     ←0
-  │ !! state_apply                222L  4C    9m  CC=18     ←2
-  │ !! commits                    218L  2C    3m  CC=18     ←2
-  │ templates.yaml             215L  0C    0m  CC=0.0    ←0
-  │ docker_steps               211L  2C    6m  CC=7      ←0
-  │ op3_bridge                 207L  0C    5m  CC=10     ←2
-  │ !! runner                     205L  1C    5m  CC=15     ←0
-  │ changelog                  204L  1C   15m  CC=7      ←1
-  │ fixes                      203L  0C    6m  CC=7      ←1
-  │ parse                      190L  0C   10m  CC=12     ←0
-  │ !! docker_compose             190L  0C    2m  CC=20     ←1
-  │ __init__                   180L  2C   10m  CC=7      ←8
-  │ core                       179L  0C    7m  CC=10     ←6
-  │ !! migration                  179L  0C    1m  CC=19     ←1
-  │ compiler                   177L  1C    6m  CC=11     ←2
-  │ !! device_map_renderers       170L  0C    7m  CC=22     ←1
-  │ manifest                   169L  8C   10m  CC=6      ←2
-  │ notify                     168L  0C    7m  CC=6      ←0
-  │ process_control_template.yaml   164L  0C    0m  CC=0.0    ←0
-  │ transaction                162L  2C    6m  CC=12     ←0
-  │ state                      161L  1C   13m  CC=5      ←2
-  │ release                    153L  0C    6m  CC=7      ←2
-  │ __init__                   149L  0C    0m  CC=0.0    ←0
-  │ __init__                   148L  0C    4m  CC=8      ←1
-  │ !! compose                    146L  0C    6m  CC=21     ←1
-  │ !! probe                      144L  0C    1m  CC=26     ←0
-  │ git_integration            142L  2C   13m  CC=4      ←0
-  │ !! extractor                  140L  0C    1m  CC=22     ←1
-  │ monorepo                   139L  0C    5m  CC=11     ←1
-  │ decorators                 137L  4C    8m  CC=3      ←0
-  │ export                     126L  0C    6m  CC=9      ←0
-  │ !! audit                      126L  0C    1m  CC=18     ←0
-  │ process_control            123L  0C    3m  CC=11     ←0
-  │ __init__                   122L  0C    3m  CC=5      ←0
-  │ !! browser_reload             120L  0C    3m  CC=16     ←0
-  │ state                      118L  0C    4m  CC=7      ←0
-  │ detect                     118L  0C    1m  CC=10     ←0
-  │ diff                       118L  1C    3m  CC=8      ←1
-  │ init                       111L  0C    1m  CC=10     ←0
-  │ !! push                       110L  0C    1m  CC=15     ←0
-  │ progress                   107L  1C   11m  CC=2      ←0
-  │ registry                   107L  0C    4m  CC=14     ←0
-  │ git_transaction            105L  2C    5m  CC=9      ←0
-  │ detector                   104L  1C    4m  CC=9      ←2
-  │ patterns                   104L  0C    1m  CC=8      ←0
-  │ toml_                      104L  1C    3m  CC=10     ←0
-  │ systemd_reload              98L  0C    2m  CC=12     ←0
-  │ target                      97L  0C    1m  CC=10     ←1
-  │ yaml_                       94L  1C    3m  CC=10     ←0
-  │ verify                      92L  1C    7m  CC=8      ←0
-  │ json_                       90L  1C    3m  CC=9      ←0
-  │ config_txt                  88L  1C    2m  CC=14     ←1
-  │ workflow                    87L  0C    3m  CC=10     ←0
-  │ autostart                   84L  1C    3m  CC=6      ←1
-  │ hardware                    83L  0C    2m  CC=4      ←0
-  │ compositors                 80L  1C    1m  CC=2      ←0
-  │ plugin                      79L  0C    1m  CC=13     ←0
-  │ browsers                    78L  1C    1m  CC=5      ←0
-  │ __init__                    77L  0C    0m  CC=0.0    ←0
-  │ __init__                    76L  1C    4m  CC=4      ←34
-  │ inspect                     73L  0C    2m  CC=4      ←0
-  │ applier                     72L  0C    3m  CC=4      ←3
-  │ output_profiles             68L  1C    2m  CC=5      ←0
-  │ regex                       65L  1C    2m  CC=5      ←0
-  │ __init__                    65L  1C    5m  CC=2      ←3
-  │ __init__                    59L  0C    0m  CC=0.0    ←0
-  │ hardware_rules              56L  0C    3m  CC=3      ←0
-  │ status                      55L  0C    1m  CC=12     ←0
-  │ mcp_cmd                     54L  0C    1m  CC=1      ←0
-  │ __init__                    52L  0C    0m  CC=0.0    ←0
-  │ panels                      51L  1C    5m  CC=2      ←2
-  │ base                        49L  1C    5m  CC=3      ←0
-  │ kiosk                       49L  0C    0m  CC=0.0    ←0
-  │ waveshare                   48L  0C    0m  CC=0.0    ←0
-  │ spec_loader                 47L  2C    1m  CC=4      ←0
-  │ diagnose                    47L  0C    1m  CC=5      ←0
-  │ data_sync                   45L  0C    2m  CC=7      ←0
-  │ hardware                    45L  0C    1m  CC=13     ←1
-  │ exceptions                  44L  6C    4m  CC=1      ←0
-  │ rollback                    44L  0C    1m  CC=8      ←1
-  │ __init__                    44L  0C    0m  CC=0.0    ←0
-  │ infra                       43L  0C    2m  CC=8      ←1
-  │ query                       42L  0C    1m  CC=5      ←3
-  │ hyperpixel                  41L  0C    0m  CC=0.0    ←0
-  │ context                     39L  1C    3m  CC=1      ←0
-  │ migration                   34L  0C    1m  CC=9      ←1
-  │ diff                        33L  0C    1m  CC=1      ←0
-  │ raspi_config                32L  0C    1m  CC=3      ←1
-  │ __init__                    30L  0C    0m  CC=0.0    ←0
-  │ models                      26L  2C    0m  CC=0.0    ←0
-  │ plain                       24L  1C    2m  CC=2      ←0
-  │ __init__                    24L  0C    0m  CC=0.0    ←0
-  │ __init__                    18L  0C    0m  CC=0.0    ←0
-  │ official                    18L  0C    0m  CC=0.0    ←0
-  │ loader                      17L  0C    1m  CC=3      ←1
-  │ __init__                    15L  0C    0m  CC=0.0    ←0
-  │ exceptions                  12L  1C    1m  CC=1      ←0
-  │ __init__                    11L  0C    0m  CC=0.0    ←0
-  │ __init__                     8L  0C    0m  CC=0.0    ←0
-  │ __init__                     8L  0C    0m  CC=0.0    ←0
-  │ __init__                     6L  0C    0m  CC=0.0    ←0
-  │ __init__                     6L  0C    0m  CC=0.0    ←0
-  │ __init__                     5L  0C    0m  CC=0.0    ←0
-  │ remote                       4L  0C    0m  CC=0.0    ←0
-  │ __init__                     4L  0C    0m  CC=0.0    ←0
-  │ __init__                     4L  0C    0m  CC=0.0    ←0
-  │ __init__                     2L  0C    0m  CC=0.0    ←0
-  │ __init__                     1L  0C    0m  CC=0.0    ←0
-  │ __init__                     1L  0C    0m  CC=0.0    ←0
-  │ __init__                     1L  0C    0m  CC=0.0    ←0
-  │ __init__                     0L  0C    0m  CC=0.0    ←0
-  │
-  ./                              CC̄=0.0    ←in:0  →out:0
-  │ !! SUMR.md                   2719L  50C  139m  CC=0.0    ←0
-  │ !! SUMD.md                   2658L  50C  780m  CC=0.0    ←0
-  │ !! CHANGELOG.md              1003L  0C    1m  CC=0.0    ←0
-  │ !! README.md                  966L  0C    1m  CC=0.0    ←0
-  │ !! goal.yaml                  512L  0C    0m  CC=0.0    ←0
-  │ REFACTORING.md             399L  6C    9m  CC=0.0    ←0
-  │ TODO.md                    198L  1C   11m  CC=0.0    ←0
-  │ DOQL-INTEGRATION.md        197L  0C    3m  CC=0.0    ←8
-  │ sumd.json                  156L  0C    0m  CC=0.0    ←0
-  │ pyproject.toml              73L  0C    0m  CC=0.0    ←0
-  │ REPAIR_LOG.md               37L  0C    0m  CC=0.0    ←0
-  │ project.sh                  35L  0C    0m  CC=0.0    ←0
-  │ pyqual.yaml                 32L  0C    0m  CC=0.0    ←0
-  │ tree.sh                      1L  0C    0m  CC=0.0    ←0
-  │ Makefile                     0L  0C    0m  CC=0.0    ←0
-  │
-  docs/                           CC̄=0.0    ←in:3  →out:0
-  │ !! README.md                 2401L  0C    1m  CC=0.0    ←0
-  │ dsl-migration.md           478L  0C   13m  CC=0.0    ←0
-  │ fleet.md                   366L  0C    1m  CC=0.0    ←0
-  │ patterns.md                304L  1C    4m  CC=0.0    ←0
-  │ observe.md                 302L  0C    0m  CC=0.0    ←0
-  │ markpact-implementation-plan.md   284L  0C    1m  CC=0.0    ←3
-  │ README.md                  202L  1C    2m  CC=0.0    ←0
-  │ markpact-audit.md           81L  0C    0m  CC=0.0    ←0
-  │
-  examples/                       CC̄=0.0    ←in:0  →out:0
+  examples/                       CC̄=6.2    ←in:0  →out:0
   │ migration.md               312L  0C    3m  CC=0.0    ←0
   │ migration.md               255L  0C    2m  CC=0.0    ←0
   │ rpi5-waveshare-kiosk.md    196L  0C    0m  CC=0.0    ←0
   │ migration.md               145L  0C    2m  CC=0.0    ←0
   │ migration.md               138L  0C    0m  CC=0.0    ←0
+  │ !! gitops_ci                  137L  2C    5m  CC=16     ←0
+  │ argocd_flux                129L  2C    4m  CC=13     ←0
   │ fleet.yaml                 128L  0C    0m  CC=0.0    ←0
+  │ !! helm_kustomize             113L  2C    5m  CC=17     ←0
+  │ helm_ansible                94L  2C    4m  CC=11     ←0
   │ migration-rpi5.yaml         85L  0C    0m  CC=0.0    ←0
   │ README.md                   81L  0C    0m  CC=0.0    ←0
   │ migration.yaml              72L  0C    0m  CC=0.0    ←0
@@ -1745,17 +1596,197 @@ LAYERS:
   │ redeploy.yaml                4L  0C    0m  CC=0.0    ←0
   │ redeploy.yaml                3L  0C    0m  CC=0.0    ←0
   │
+  redeploy/                       CC̄=5.0    ←in:85  →out:9  !! split
+  │ !! models                    1033L  34C   29m  CC=19     ←17
+  │ !! discovery                  789L  2C   26m  CC=17     ←5
+  │ !! planner                    621L  1C   21m  CC=10     ←4
+  │ !! handlers                   616L  0C   20m  CC=16     ←2
+  │ !! audit                      609L  6C   32m  CC=14     ←1
+  │ !! commands                   594L  0C    8m  CC=26     ←0
+  │ !! plan_apply                 505L  0C   11m  CC=13     ←0
+  │ hardware                   464L  0C   11m  CC=13     ←0
+  │ templates                  419L  6C   13m  CC=9      ←0
+  │ !! workflow                   418L  3C   12m  CC=18     ←0
+  │ !! docker_compose             418L  1C   11m  CC=37     ←0
+  │ !! heal                       414L  1C   10m  CC=17     ←0
+  │ patterns                   407L  4C   11m  CC=5      ←1
+  │ !! loader                     403L  3C   12m  CC=25     ←5
+  │ !! fleet                      396L  6C   23m  CC=25     ←1
+  │ display                    389L  0C   25m  CC=9      ←6
+  │ !! import_                    357L  0C    8m  CC=22     ←0
+  │ executor                   354L  1C   14m  CC=14     ←1
+  │ !! helpers                    349L  0C   10m  CC=25     ←2
+  │ !! bump_fix                   348L  0C   12m  CC=17     ←0
+  │ !! blueprint                  333L  0C    8m  CC=20     ←0
+  │ mcp_server                 314L  0C   14m  CC=5      ←2
+  │ observe                    313L  3C   14m  CC=12     ←0
+  │ schema                     309L  0C    6m  CC=14     ←0
+  │ ssh                        301L  4C   17m  CC=7      ←0
+  │ !! device_map                 299L  0C    5m  CC=20     ←0
+  │ steps                      294L  0C    7m  CC=7      ←0
+  │ !! config_hints               289L  1C   15m  CC=26     ←0
+  │ !! compose                    287L  1C   13m  CC=21     ←0
+  │ bump                       284L  0C    6m  CC=13     ←3
+  │ hardware_diagnostic        282L  1C   11m  CC=14     ←0
+  │ parser                     280L  1C    9m  CC=14     ←3
+  │ probes                     277L  0C    9m  CC=13     ←1
+  │ builtins                   275L  0C    1m  CC=1      ←0
+  │ base                       275L  7C   13m  CC=7      ←1
+  │ !! prompt_cmd                 264L  0C    4m  CC=15     ←0
+  │ scanner                    262L  0C   18m  CC=13     ←1
+  │ parser                     261L  2C    8m  CC=8      ←0
+  │ exec_                      251L  0C    6m  CC=10     ←0
+  │ !! devices                    226L  0C    4m  CC=22     ←0
+  │ !! state_apply                222L  4C    9m  CC=18     ←2
+  │ !! commits                    218L  2C    3m  CC=18     ←2
+  │ templates.yaml             215L  0C    0m  CC=0.0    ←0
+  │ docker_steps               211L  2C    6m  CC=7      ←0
+  │ op3_bridge                 207L  0C    5m  CC=10     ←3
+  │ !! runner                     205L  1C    5m  CC=15     ←0
+  │ changelog                  204L  1C   15m  CC=7      ←1
+  │ fixes                      203L  0C    6m  CC=7      ←1
+  │ parse                      190L  0C   10m  CC=12     ←0
+  │ !! docker_compose             190L  0C    2m  CC=20     ←1
+  │ __init__                   180L  2C   10m  CC=7      ←8
+  │ core                       179L  0C    7m  CC=10     ←6
+  │ !! migration                  179L  0C    1m  CC=19     ←1
+  │ compiler                   177L  1C    6m  CC=11     ←2
+  │ !! device_map_renderers       170L  0C    7m  CC=22     ←1
+  │ manifest                   169L  8C   10m  CC=6      ←2
+  │ notify                     168L  0C    7m  CC=6      ←0
+  │ process_control_template.yaml   164L  0C    0m  CC=0.0    ←0
+  │ transaction                162L  2C    6m  CC=12     ←0
+  │ state                      161L  1C   13m  CC=5      ←2
+  │ release                    153L  0C    6m  CC=7      ←2
+  │ __init__                   149L  0C    0m  CC=0.0    ←0
+  │ __init__                   148L  0C    4m  CC=8      ←1
+  │ !! compose                    146L  0C    6m  CC=21     ←1
+  │ !! probe                      144L  0C    1m  CC=26     ←0
+  │ git_integration            142L  2C   13m  CC=4      ←0
+  │ !! extractor                  140L  0C    1m  CC=22     ←1
+  │ monorepo                   139L  0C    5m  CC=11     ←1
+  │ detect                     137L  0C    1m  CC=11     ←0
+  │ decorators                 137L  4C    8m  CC=3      ←0
+  │ export                     126L  0C    6m  CC=9      ←0
+  │ !! audit                      126L  0C    1m  CC=18     ←0
+  │ process_control            123L  0C    3m  CC=11     ←0
+  │ __init__                   122L  0C    3m  CC=5      ←0
+  │ !! browser_reload             120L  0C    3m  CC=16     ←0
+  │ state                      118L  0C    4m  CC=7      ←0
+  │ diff                       118L  1C    3m  CC=8      ←1
+  │ init                       111L  0C    1m  CC=10     ←0
+  │ !! push                       110L  0C    1m  CC=15     ←0
+  │ progress                   107L  1C   11m  CC=2      ←0
+  │ registry                   107L  0C    4m  CC=14     ←1
+  │ git_transaction            105L  2C    5m  CC=9      ←0
+  │ detector                   104L  1C    4m  CC=9      ←2
+  │ patterns                   104L  0C    1m  CC=8      ←0
+  │ toml_                      104L  1C    3m  CC=10     ←0
+  │ systemd_reload              98L  0C    2m  CC=12     ←0
+  │ target                      97L  0C    1m  CC=10     ←1
+  │ yaml_                       94L  1C    3m  CC=10     ←0
+  │ verify                      92L  1C    7m  CC=8      ←0
+  │ json_                       90L  1C    3m  CC=9      ←0
+  │ config_txt                  88L  1C    2m  CC=14     ←1
+  │ workflow                    87L  0C    3m  CC=10     ←0
+  │ autostart                   84L  1C    3m  CC=6      ←1
+  │ hardware                    83L  0C    2m  CC=4      ←0
+  │ compositors                 80L  1C    1m  CC=2      ←0
+  │ plugin                      79L  0C    1m  CC=13     ←0
+  │ browsers                    78L  1C    1m  CC=5      ←0
+  │ __init__                    77L  0C    0m  CC=0.0    ←0
+  │ __init__                    76L  1C    4m  CC=4      ←35
+  │ inspect                     73L  0C    2m  CC=4      ←0
+  │ applier                     72L  0C    3m  CC=4      ←3
+  │ output_profiles             68L  1C    2m  CC=5      ←0
+  │ regex                       65L  1C    2m  CC=5      ←0
+  │ __init__                    65L  1C    5m  CC=2      ←3
+  │ __init__                    59L  0C    0m  CC=0.0    ←0
+  │ hardware_rules              56L  0C    3m  CC=3      ←0
+  │ status                      55L  0C    1m  CC=12     ←0
+  │ mcp_cmd                     54L  0C    1m  CC=1      ←0
+  │ __init__                    52L  0C    0m  CC=0.0    ←0
+  │ panels                      51L  1C    5m  CC=2      ←2
+  │ base                        49L  1C    5m  CC=3      ←0
+  │ kiosk                       49L  0C    0m  CC=0.0    ←0
+  │ waveshare                   48L  0C    0m  CC=0.0    ←0
+  │ spec_loader                 47L  2C    1m  CC=4      ←0
+  │ diagnose                    47L  0C    1m  CC=5      ←0
+  │ data_sync                   45L  0C    2m  CC=7      ←0
+  │ hardware                    45L  0C    1m  CC=13     ←1
+  │ exceptions                  44L  6C    4m  CC=1      ←0
+  │ rollback                    44L  0C    1m  CC=8      ←1
+  │ __init__                    44L  0C    0m  CC=0.0    ←0
+  │ infra                       43L  0C    2m  CC=8      ←1
+  │ query                       42L  0C    1m  CC=5      ←3
+  │ hyperpixel                  41L  0C    0m  CC=0.0    ←0
+  │ context                     39L  1C    3m  CC=1      ←0
+  │ migration                   34L  0C    1m  CC=9      ←1
+  │ diff                        33L  0C    1m  CC=1      ←0
+  │ raspi_config                32L  0C    1m  CC=3      ←1
+  │ __init__                    30L  0C    0m  CC=0.0    ←0
+  │ models                      26L  2C    0m  CC=0.0    ←0
+  │ plain                       24L  1C    2m  CC=2      ←0
+  │ __init__                    24L  0C    0m  CC=0.0    ←0
+  │ __init__                    18L  0C    0m  CC=0.0    ←0
+  │ official                    18L  0C    0m  CC=0.0    ←0
+  │ loader                      17L  0C    1m  CC=3      ←1
+  │ __init__                    15L  0C    0m  CC=0.0    ←0
+  │ exceptions                  12L  1C    1m  CC=1      ←0
+  │ __init__                    11L  0C    0m  CC=0.0    ←0
+  │ __init__                     8L  0C    0m  CC=0.0    ←0
+  │ __init__                     8L  0C    0m  CC=0.0    ←0
+  │ __init__                     6L  0C    0m  CC=0.0    ←0
+  │ __init__                     6L  0C    0m  CC=0.0    ←0
+  │ __init__                     5L  0C    0m  CC=0.0    ←0
+  │ remote                       4L  0C    0m  CC=0.0    ←0
+  │ __init__                     4L  0C    0m  CC=0.0    ←0
+  │ __init__                     4L  0C    0m  CC=0.0    ←0
+  │ __init__                     2L  0C    0m  CC=0.0    ←0
+  │ __init__                     1L  0C    0m  CC=0.0    ←0
+  │ __init__                     1L  0C    0m  CC=0.0    ←0
+  │ __init__                     1L  0C    0m  CC=0.0    ←0
+  │ __init__                     0L  0C    0m  CC=0.0    ←0
+  │
+  ./                              CC̄=0.0    ←in:0  →out:0
+  │ !! SUMR.md                   2762L  50C  139m  CC=0.0    ←0
+  │ !! SUMD.md                   2750L  50C  815m  CC=0.0    ←0
+  │ !! CHANGELOG.md              1038L  0C    1m  CC=0.0    ←0
+  │ !! README.md                 1003L  0C    1m  CC=0.0    ←0
+  │ !! goal.yaml                  512L  0C    0m  CC=0.0    ←0
+  │ REFACTORING.md             399L  6C    9m  CC=0.0    ←0
+  │ TODO.md                    198L  1C   11m  CC=0.0    ←0
+  │ DOQL-INTEGRATION.md        197L  0C    3m  CC=0.0    ←8
+  │ sumd.json                  156L  0C    0m  CC=0.0    ←0
+  │ pyproject.toml              73L  0C    0m  CC=0.0    ←0
+  │ REPAIR_LOG.md               37L  0C    0m  CC=0.0    ←0
+  │ project.sh                  35L  0C    0m  CC=0.0    ←0
+  │ pyqual.yaml                 32L  0C    0m  CC=0.0    ←0
+  │ tree.sh                      1L  0C    0m  CC=0.0    ←0
+  │ Makefile                     0L  0C    0m  CC=0.0    ←0
+  │
+  docs/                           CC̄=0.0    ←in:3  →out:0
+  │ !! README.md                 2451L  0C    1m  CC=0.0    ←0
+  │ dsl-migration.md           478L  0C   13m  CC=0.0    ←0
+  │ fleet.md                   366L  0C    1m  CC=0.0    ←0
+  │ patterns.md                304L  1C    4m  CC=0.0    ←0
+  │ observe.md                 302L  0C    0m  CC=0.0    ←0
+  │ markpact-implementation-plan.md   284L  0C    1m  CC=0.0    ←3
+  │ README.md                  202L  1C    2m  CC=0.0    ←0
+  │ markpact-audit.md           81L  0C    0m  CC=0.0    ←0
+  │ op3-migration.md            44L  0C    0m  CC=0.0    ←0
+  │
   project/                        CC̄=0.0    ←in:0  →out:0
-  │ !! calls.yaml                5893L  0C    0m  CC=0.0    ←0
-  │ !! map.toon.yaml             1616L  0C  674m  CC=0.0    ←2
-  │ !! context.md                 736L  0C    0m  CC=0.0    ←0
+  │ !! calls.yaml                6030L  0C    0m  CC=0.0    ←0
+  │ !! map.toon.yaml             1697L  0C  709m  CC=0.0    ←3
+  │ !! context.md                 723L  0C    0m  CC=0.0    ←0
   │ !! validation.toon.yaml       683L  0C    0m  CC=0.0    ←0
-  │ !! calls.toon.yaml            502L  0C    0m  CC=0.0    ←0
-  │ analysis.toon.yaml         401L  0C    0m  CC=0.0    ←0
+  │ !! calls.toon.yaml            513L  0C    0m  CC=0.0    ←0
+  │ analysis.toon.yaml         412L  0C    0m  CC=0.0    ←0
   │ README.md                  339L  0C    0m  CC=0.0    ←0
   │ README.md                  329L  0C    0m  CC=0.0    ←0
+  │ duplication.toon.yaml       84L  0C    0m  CC=0.0    ←0
   │ evolution.toon.yaml         82L  0C    0m  CC=0.0    ←0
-  │ duplication.toon.yaml       74L  0C    0m  CC=0.0    ←0
   │ project.toon.yaml           60L  0C    0m  CC=0.0    ←0
   │ context.md                  51L  0C    0m  CC=0.0    ←0
   │ prompt.txt                  47L  0C    0m  CC=0.0    ←0
@@ -1776,11 +1807,13 @@ LAYERS:
   │ test-local-6bb4cec7.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-c05a99a2.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-ec3c5638.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-ec6ccce4.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-eac354f9.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-ed7da478.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-46c5e2ce.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-abe8802f.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-831fd1ab.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-2859ad55.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-e1009318.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-563ceb24.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-036bc2a0.yaml    10L  0C    0m  CC=0.0    ←0
@@ -1814,9 +1847,11 @@ LAYERS:
   │ test-local-a70e54ce.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-ad30ec23.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-a929f336.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-4cea1066.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-5a1d7483.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-e069dd9f.yaml    10L  0C    0m  CC=0.0    ←0
   │ test-local-36935faf.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-1d287d51.yaml    10L  0C    0m  CC=0.0    ←0
   │
   scripts/                        CC̄=0.0    ←in:0  →out:0
   │ quality_gate                48L  0C    0m  CC=0.0    ←0
@@ -1830,35 +1865,37 @@ LAYERS:
      redeploy/blueprint/generators/__init__.py  0L
 
 COUPLING:
-                                  redeploy.cli               redeploy    redeploy.dsl_python       DOQL-INTEGRATION       redeploy.version         redeploy.apply        redeploy.detect           redeploy.dsl           redeploy.iac      redeploy.markpact          redeploy.plan     redeploy.blueprint      redeploy.hardware       redeploy.plugins  redeploy.config_apply
-           redeploy.cli                     ──                     52                     ←1                      4                     21                     10                      2                      7                      1                      3                      5                      3                      2                                             3  !! fan-out
-               redeploy                    ←52                     ──                     ←3                                            ←1                     ←2                     ←6                      1                     ←7                      2                      1                     ←2                     ←1                     ←5                         hub
-    redeploy.dsl_python                      1                      3                     ──                     21                      1                                                                                                                                                                                                                                        !! fan-out
-       DOQL-INTEGRATION                     ←4                                           ←21                     ──                                                                                                                                                                                                                                                               hub
-       redeploy.version                    ←21                      1                     ←1                                            ──                                                                                                                                                                                                                                        hub
-         redeploy.apply                    ←10                      2                                                                                          ──                                                                                           2                                                                    3                                            ←1  hub
-        redeploy.detect                     ←2                      6                                                                                                                 ──                                                                                                                                                                                        
-           redeploy.dsl                     ←7                      1                                                                                                                                        ──                                                                                                                                                                   hub
-           redeploy.iac                     ←1                      7                                                                                                                                                               ──                      1                                                                                                                     !! fan-out
-      redeploy.markpact                     ←3                      1                                                                                          ←2                                                                   ←1                     ──                                                                                                                     hub
-          redeploy.plan                     ←5                      2                                                                                                                                                                                                             ──                                                                                              hub
-     redeploy.blueprint                     ←3                      2                                                                                                                                                                                                                                    ──                                                                     
-      redeploy.hardware                     ←2                      1                                                                                          ←3                                                                                                                                                               ──                                                hub
-       redeploy.plugins                                             5                                                                                                                                                                                                                                                                                  ──                       
-  redeploy.config_apply                     ←3                                                                                                                  1                                                                                                                                                                                                             ──
+                              redeploy.cli             redeploy  redeploy.dsl_python     DOQL-INTEGRATION     redeploy.version       redeploy.apply         redeploy.iac      redeploy.detect         redeploy.dsl    redeploy.markpact        redeploy.plan          project.map   redeploy.blueprint    redeploy.hardware     redeploy.plugins
+         redeploy.cli                   ──                   51                   ←1                    4                   21                   10                    2                    2                    7                    3                    5                    1                    3                    2                       !! fan-out
+             redeploy                  ←51                   ──                   ←3                                        ←1                   ←2                   ←7                   ←6                    1                    2                    1                    3                   ←2                   ←1                   ←5  hub
+  redeploy.dsl_python                    1                    3                   ──                   21                    1                                                                                                                                                                                                                    !! fan-out
+     DOQL-INTEGRATION                   ←4                                       ←21                   ──                                                                                                                                                                                                                                         hub
+     redeploy.version                  ←21                    1                   ←1                                        ──                                                                                                                                                                                                                    hub
+       redeploy.apply                  ←10                    2                                                                                  ──                                                                                   2                                         2                                         3                       hub
+         redeploy.iac                   ←2                    7                                                                                                       ──                                                              1                                                                                                           !! fan-out
+      redeploy.detect                   ←2                    6                                                                                                                            ──                                                                                                                                                   
+         redeploy.dsl                   ←7                    1                                                                                                                                                 ──                                                                                                                                hub
+    redeploy.markpact                   ←3                    1                                                                                  ←2                   ←1                                                             ──                                                                                                           hub
+        redeploy.plan                   ←5                    3                                                                                                                                                                                           ──                                                                                      hub
+          project.map                   ←1                   ←3                                                                                  ←2                                                                                                                            ──                                                                 hub
+   redeploy.blueprint                   ←3                    2                                                                                                                                                                                                                                     ──                                          
+    redeploy.hardware                   ←2                    1                                                                                  ←3                                                                                                                                                                      ──                       hub
+     redeploy.plugins                                         5                                                                                                                                                                                                                                                                               ──
   CYCLES: none
   HUB: redeploy.plan/ (fan-in=6)
-  HUB: redeploy.hardware/ (fan-in=5)
-  HUB: DOQL-INTEGRATION/ (fan-in=25)
-  HUB: redeploy.version/ (fan-in=22)
+  HUB: project.map/ (fan-in=6)
   HUB: redeploy.markpact/ (fan-in=8)
+  HUB: redeploy.hardware/ (fan-in=5)
   HUB: redeploy.apply/ (fan-in=11)
+  HUB: redeploy.version/ (fan-in=22)
+  HUB: redeploy/ (fan-in=85)
+  HUB: DOQL-INTEGRATION/ (fan-in=25)
   HUB: redeploy.dsl/ (fan-in=8)
-  HUB: redeploy/ (fan-in=84)
-  SMELL: redeploy.cli/ fan-out=115 → split needed
-  SMELL: redeploy.dsl_python/ fan-out=26 → split needed
+  SMELL: redeploy.cli/ fan-out=116 → split needed
   SMELL: redeploy.iac/ fan-out=8 → split needed
   SMELL: redeploy.apply/ fan-out=9 → split needed
+  SMELL: redeploy/ fan-out=9 → split needed
+  SMELL: redeploy.dsl_python/ fan-out=26 → split needed
 
 EXTERNAL:
   validation: run `vallm batch .` → validation.toon
@@ -1868,25 +1905,26 @@ EXTERNAL:
 ### Duplication (`project/duplication.toon.yaml`)
 
 ```toon markpact:analysis path=project/duplication.toon.yaml
-# redup/duplication | 5 groups | 147f 24696L | 2026-04-21
+# redup/duplication | 6 groups | 151f 25569L | 2026-04-21
 
 SUMMARY:
-  files_scanned: 147
-  total_lines:   24696
-  dup_groups:    5
-  dup_fragments: 10
-  saved_lines:   68
-  scan_ms:       4400
+  files_scanned: 151
+  total_lines:   25569
+  dup_groups:    6
+  dup_fragments: 12
+  saved_lines:   78
+  scan_ms:       5619
 
-HOTSPOTS[6] (files with most duplication):
-  redeploy/cli/commands/version/helpers.py  dup=38L  groups=2  frags=2  (0.2%)
-  redeploy/cli/commands/version/release.py  dup=38L  groups=2  frags=2  (0.2%)
+HOTSPOTS[7] (files with most duplication):
+  redeploy/cli/commands/version/helpers.py  dup=38L  groups=2  frags=2  (0.1%)
+  redeploy/cli/commands/version/release.py  dup=38L  groups=2  frags=2  (0.1%)
   redeploy/hardware/fixes.py  dup=26L  groups=1  frags=2  (0.1%)
+  examples/redeploy_iac_parsers/argocd_flux.py  dup=20L  groups=1  frags=2  (0.1%)
   redeploy/apply/handlers.py  dup=16L  groups=1  frags=2  (0.1%)
   redeploy/cli/commands/plan_apply.py  dup=10L  groups=1  frags=1  (0.0%)
   redeploy/cli/commands/bump_fix.py  dup=9L  groups=1  frags=1  (0.0%)
 
-DUPLICATES[5] (ranked by impact):
+DUPLICATES[6] (ranked by impact):
   [bb546964bbb3b9b9]   EXAC  _resolve_package_release_git_config  L=22 N=2 saved=22 sim=1.00
       redeploy/cli/commands/version/helpers.py:60-81  (_resolve_package_release_git_config)
       redeploy/cli/commands/version/release.py:114-135  (_resolve_package_release_git_config)
@@ -1896,6 +1934,9 @@ DUPLICATES[5] (ranked by impact):
   [834af96e195aeafb]   STRU  fix_enable_i2c  L=13 N=2 saved=13 sim=1.00
       redeploy/hardware/fixes.py:137-149  (fix_enable_i2c)
       redeploy/hardware/fixes.py:152-164  (fix_enable_spi)
+  [6378b1bc4c001c05]   STRU  can_parse  L=10 N=2 saved=10 sim=1.00
+      examples/redeploy_iac_parsers/argocd_flux.py:27-36  (can_parse)
+      examples/redeploy_iac_parsers/argocd_flux.py:81-90  (can_parse)
   [af902116d9805742]   EXAC  _load_dotenv  L=9 N=2 saved=9 sim=1.00
       redeploy/cli/commands/bump_fix.py:163-171  (_load_dotenv)
       redeploy/cli/commands/plan_apply.py:480-489  (_load_dotenv)
@@ -1903,7 +1944,7 @@ DUPLICATES[5] (ranked by impact):
       redeploy/apply/handlers.py:74-81  (run_docker_build)
       redeploy/apply/handlers.py:84-91  (run_podman_build)
 
-REFACTOR[5] (ranked by priority):
+REFACTOR[6] (ranked by priority):
   [1] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
       WHY: 2 occurrences of 22-line block across 2 files — saves 22 lines
       FILES: redeploy/cli/commands/version/helpers.py, redeploy/cli/commands/version/release.py
@@ -1913,54 +1954,60 @@ REFACTOR[5] (ranked by priority):
   [3] ○ extract_function   → redeploy/hardware/utils/fix_enable_i2c.py
       WHY: 2 occurrences of 13-line block across 1 files — saves 13 lines
       FILES: redeploy/hardware/fixes.py
-  [4] ○ extract_function   → redeploy/cli/commands/utils/_load_dotenv.py
+  [4] ○ extract_function   → examples/redeploy_iac_parsers/utils/can_parse.py
+      WHY: 2 occurrences of 10-line block across 1 files — saves 10 lines
+      FILES: examples/redeploy_iac_parsers/argocd_flux.py
+  [5] ○ extract_function   → redeploy/cli/commands/utils/_load_dotenv.py
       WHY: 2 occurrences of 9-line block across 2 files — saves 9 lines
       FILES: redeploy/cli/commands/bump_fix.py, redeploy/cli/commands/plan_apply.py
-  [5] ○ extract_function   → redeploy/apply/utils/run_docker_build.py
+  [6] ○ extract_function   → redeploy/apply/utils/run_docker_build.py
       WHY: 2 occurrences of 8-line block across 1 files — saves 8 lines
       FILES: redeploy/apply/handlers.py
 
-QUICK_WINS[5] (low risk, high savings — do first):
+QUICK_WINS[6] (low risk, high savings — do first):
   [1] extract_function   saved=22L  → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
       FILES: helpers.py, release.py
   [2] extract_function   saved=16L  → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
       FILES: helpers.py, release.py
   [3] extract_function   saved=13L  → redeploy/hardware/utils/fix_enable_i2c.py
       FILES: fixes.py
-  [4] extract_function   saved=9L  → redeploy/cli/commands/utils/_load_dotenv.py
+  [4] extract_function   saved=10L  → examples/redeploy_iac_parsers/utils/can_parse.py
+      FILES: argocd_flux.py
+  [5] extract_function   saved=9L  → redeploy/cli/commands/utils/_load_dotenv.py
       FILES: bump_fix.py, plan_apply.py
-  [5] extract_function   saved=8L  → redeploy/apply/utils/run_docker_build.py
+  [6] extract_function   saved=8L  → redeploy/apply/utils/run_docker_build.py
       FILES: handlers.py
 
-EFFORT_ESTIMATE (total ≈ 2.3h):
+EFFORT_ESTIMATE (total ≈ 2.6h):
   medium _resolve_package_release_git_config saved=22L  ~44min
   medium _resolve_package_release_changelog_config saved=16L  ~32min
   easy   fix_enable_i2c                      saved=13L  ~26min
+  easy   can_parse                           saved=10L  ~20min
   easy   _load_dotenv                        saved=9L  ~18min
   easy   run_docker_build                    saved=8L  ~16min
 
 METRICS-TARGET:
-  dup_groups:  5 → 0
-  saved_lines: 68 lines recoverable
+  dup_groups:  6 → 0
+  saved_lines: 78 lines recoverable
 ```
 
 ### Evolution / Churn (`project/evolution.toon.yaml`)
 
 ```toon markpact:analysis path=project/evolution.toon.yaml
-# code2llm/evolution | 2452 func | 134f | 2026-04-21
+# code2llm/evolution | 2528 func | 134f | 2026-04-21
 
 NEXT[10] (ranked by impact):
   [1] !! SPLIT           redeploy/models.py
-      WHY: 996L, 33 classes, max CC=19
-      EFFORT: ~4h  IMPACT: 18924
+      WHY: 1033L, 34 classes, max CC=19
+      EFFORT: ~4h  IMPACT: 19627
 
   [2] !! SPLIT           redeploy/discovery.py
       WHY: 789L, 2 classes, max CC=17
       EFFORT: ~4h  IMPACT: 13413
 
   [3] !! SPLIT           redeploy/plan/planner.py
-      WHY: 620L, 1 classes, max CC=10
-      EFFORT: ~4h  IMPACT: 6200
+      WHY: 621L, 1 classes, max CC=10
+      EFFORT: ~4h  IMPACT: 6210
 
   [4] !! SPLIT-FUNC      DockerComposeParser._parse_service  CC=37  fan=23
       WHY: CC=37 exceeds 15
@@ -1982,13 +2029,13 @@ NEXT[10] (ranked by impact):
       WHY: CC=26 exceeds 15
       EFFORT: ~1h  IMPACT: 546
 
-  [9] !! SPLIT-FUNC      ConfigHintsParser._parse_k8s_yaml  CC=26  fan=20
+  [9] !  SPLIT-FUNC      import_cmd  CC=21  fan=26
+      WHY: CC=21 exceeds 15
+      EFFORT: ~1h  IMPACT: 546
+
+  [10] !! SPLIT-FUNC      ConfigHintsParser._parse_k8s_yaml  CC=26  fan=20
       WHY: CC=26 exceeds 15
       EFFORT: ~1h  IMPACT: 520
-
-  [10] !  SPLIT-FUNC      fix_cmd  CC=17  fan=30
-      WHY: CC=17 exceeds 15
-      EFFORT: ~1h  IMPACT: 510
 
 
 RISKS[3]:
@@ -1997,7 +2044,7 @@ RISKS[3]:
   ⚠ Splitting redeploy/plan/planner.py may break 21 import paths
 
 METRICS-TARGET:
-  CC̄:          1.7 → ≤1.2
+  CC̄:          1.6 → ≤1.1
   max-CC:      37 → ≤18
   god-modules: 7 → 0
   high-CC(≥15): 38 → ≤19
@@ -2028,7 +2075,7 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=1.6 → now CC̄=1.7
+  prev CC̄=1.7 → now CC̄=1.6
 ```
 
 ### Validation (`project/validation.toon.yaml`)

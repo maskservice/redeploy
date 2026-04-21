@@ -1,6 +1,7 @@
 """import command — Parse IaC/CI-CD file and produce migration.yaml scaffold."""
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from rich.table import Table
 
 
 @click.command(name="import")
-@click.argument("source", type=click.Path(exists=True))
+@click.argument("source", required=False, type=click.Path())
 @click.option(
     "-o", "--output", default=None, type=click.Path(),
     help="Output migration.yaml path (default: <source-stem>.migration.yaml)"
@@ -36,7 +37,36 @@ from rich.table import Table
     "--parser", default=None,
     help="Force specific parser (e.g. docker_compose). Default: auto-detect"
 )
-def import_cmd(source, output, target_host, target_strategy, dry_run, out_format, parser):
+@click.option(
+    "--plugin-template",
+    type=click.Choice(["helm-ansible", "helm-kustomize", "argocd-flux", "gitops-ci"]),
+    default=None,
+    help="Copy a ready-made parser plugin template into the project instead of parsing SOURCE.",
+)
+@click.option(
+    "--plugin-dir",
+    default="redeploy_iac_parsers",
+    type=click.Path(),
+    show_default=True,
+    help="Destination directory for --plugin-template.",
+)
+@click.option(
+    "--list-plugin-templates",
+    is_flag=True,
+    help="List built-in parser plugin templates and exit.",
+)
+def import_cmd(
+    source,
+    output,
+    target_host,
+    target_strategy,
+    dry_run,
+    out_format,
+    parser,
+    plugin_template,
+    plugin_dir,
+    list_plugin_templates,
+):
     """Parse an IaC/CI-CD file and produce a migration.yaml scaffold.
 
         Auto-detects format from filename. Built-in parsers cover:
@@ -55,12 +85,34 @@ def import_cmd(source, output, target_host, target_strategy, dry_run, out_format
         redeploy import docker-compose.yml --target-host root@vps.example.com
         redeploy import . --dry-run               # parse whole directory
         redeploy import docker-compose.yml --format summary
+        redeploy import --plugin-template helm-kustomize
     """
     import json as _json
     from ...iac import parse_file, parse_dir, parser_registry
 
     console = Console()
+
+    if list_plugin_templates:
+        _print_plugin_templates(console)
+        return
+
+    if plugin_template:
+        _copy_plugin_template(
+            console,
+            plugin_template=plugin_template,
+            plugin_dir=Path(plugin_dir),
+            dry_run=dry_run,
+        )
+        return
+
+    if not source:
+        console.print("[red]✗ SOURCE is required unless --plugin-template is used[/red]")
+        sys.exit(1)
+
     src_path = Path(source)
+    if not src_path.exists():
+        console.print(f"[red]✗ source does not exist: {source}[/red]")
+        sys.exit(1)
 
     # Parse
     if parser:
@@ -188,6 +240,55 @@ def _default_output(src: Path, spec) -> Path:
     if stem == src.stem:
         stem = f"{src.stem}.migration"
     return src.parent / f"{stem}.yaml"
+
+
+def _plugin_templates() -> dict[str, str]:
+    return {
+        "helm-ansible": "helm_ansible.py",
+        "helm-kustomize": "helm_kustomize.py",
+        "argocd-flux": "argocd_flux.py",
+        "gitops-ci": "gitops_ci.py",
+    }
+
+
+def _examples_plugin_dir() -> Path:
+    return Path(__file__).resolve().parents[3] / "examples" / "redeploy_iac_parsers"
+
+
+def _print_plugin_templates(console: Console) -> None:
+    console.print("[bold]Available parser plugin templates[/bold]")
+    for name, filename in _plugin_templates().items():
+        console.print(f"  - [cyan]{name}[/cyan]  ({filename})")
+
+
+def _copy_plugin_template(
+    console: Console,
+    *,
+    plugin_template: str,
+    plugin_dir: Path,
+    dry_run: bool,
+) -> Path:
+    templates = _plugin_templates()
+    filename = templates[plugin_template]
+    src = _examples_plugin_dir() / filename
+    dst = plugin_dir / filename
+
+    if not src.exists():
+        console.print(f"[red]✗ built-in plugin template not found: {src}[/red]")
+        sys.exit(1)
+
+    console.print(f"[bold]plugin template[/bold]  {plugin_template}")
+    console.print(f"  source:      {src}")
+    console.print(f"  destination: {dst}")
+
+    if dry_run:
+        console.print("\n[dim][DRY RUN] No file written.[/dim]")
+        return dst
+
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dst)
+    console.print(f"\n  [green]✓[/green] copied → [bold]{dst}[/bold]")
+    return dst
 
 
 def _spec_to_migration_yaml(

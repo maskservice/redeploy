@@ -81,12 +81,23 @@ def test_schema_has_command_catalogue():
     assert "commands" in schema
     assert "run" in schema["commands"]
     assert "fix" in schema["commands"]
+    assert "import" in schema["commands"]
 
 
 def test_schema_has_version_and_cwd():
     schema = build_c2004_schema()
     assert "version" in schema
     assert "cwd" in schema
+
+
+def test_schema_has_iac_metadata():
+    schema = build_c2004_schema()
+    assert "iac" in schema
+    assert "parsers" in schema["iac"]
+    assert "plugin_templates" in schema["iac"]
+    assert "supported_file_hints" in schema["iac"]
+    assert "helm-kustomize" in schema["iac"]["plugin_templates"]
+    assert "gitops-ci" in schema["iac"]["plugin_templates"]
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +192,30 @@ def test_prompt_list_specs():
 
 
 @NEEDS_LLM
+def test_prompt_plugin_template_list():
+    """Template list prompts should route to import --list-plugin-templates."""
+    result = call_llm("jakie plugin templates parserów są dostępne?")
+    argv = result["argv"]
+    assert argv[0] == "redeploy"
+    assert argv[1] == "import", f"Expected import command: {argv}"
+    assert "--list-plugin-templates" in argv, f"Expected template listing: {argv}"
+    assert result.get("confirm") is False
+
+
+@NEEDS_LLM
+def test_prompt_plugin_template_generation():
+    """Support-extension prompts should route to a matching plugin template when available."""
+    result = call_llm("dodaj obsługę helm i kustomize przez plugin")
+    argv = result["argv"]
+    assert argv[0] == "redeploy"
+    assert argv[1] == "import", f"Expected import command: {argv}"
+    assert "--plugin-template" in argv, f"Expected plugin-template flow: {argv}"
+    joined = " ".join(argv)
+    assert "helm-kustomize" in joined or "helm" in joined, f"Expected helm-kustomize template: {argv}"
+    assert result.get("confirm") is True
+
+
+@NEEDS_LLM
 def test_prompt_response_has_required_fields():
     """Every LLM response must contain required keys."""
     result = call_llm("pokaż status deploymentu")
@@ -267,3 +302,61 @@ def test_prompt_cli_dry_run_no_confirm(tmp_path):
     assert "redeploy" in proc.stdout.lower() or "migration" in proc.stdout.lower(), (
         f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for _parse_llm_response (no LLM required)
+# ---------------------------------------------------------------------------
+
+def test_parse_llm_response_escapes_control_characters():
+    """_parse_llm_response must escape control characters instead of removing them."""
+    from redeploy.cli.commands.prompt_cmd import _parse_llm_response
+    
+    # Simulate LLM response with control character embedded in string value
+    # This is what caused the original test failure
+    response_with_control = '''{
+  "thought": "User asks which migration specs are available. The workspace contains a list of specs with names and\u000bversions.",
+  "argv": ["redeploy", "plan", "--help"],
+  "confirm": false,
+  "human_summary": "Wyświetlam listę aktualnych zadań deploymentowych w systemie."
+}'''
+    
+    result = _parse_llm_response(response_with_control)
+    assert result["argv"][0] == "redeploy"
+    assert result["confirm"] is False
+    # The control character should be escaped in the output
+    assert "\\u000b" in result["thought"] or "\u000b" in result["thought"]
+
+
+def test_parse_llm_response_handles_markdown_fences():
+    """_parse_llm_response must strip ```json ... ``` fences."""
+    from redeploy.cli.commands.prompt_cmd import _parse_llm_response
+    
+    response_with_fences = '''```json
+{
+  "thought": "test",
+  "argv": ["redeploy", "run", "spec.md"],
+  "confirm": true,
+  "human_summary": "Deploy to spec"
+}
+```'''
+    
+    result = _parse_llm_response(response_with_fences)
+    assert result["argv"][0] == "redeploy"
+    assert result["confirm"] is True
+
+
+def test_parse_llm_response_preserves_newlines():
+    """_parse_llm_response must preserve escaped \\n, \\r, \\t in JSON strings."""
+    from redeploy.cli.commands.prompt_cmd import _parse_llm_response
+    
+    # LLM returns JSON with escaped sequences (not raw control characters in strings)
+    response_with_whitespace = r'''{
+  "thought": "Line 1\nLine 2\rLine 3\tTabbed",
+  "argv": ["redeploy", "status"],
+  "confirm": false,
+  "human_summary": "Status check"
+}'''
+    
+    result = _parse_llm_response(response_with_whitespace)
+    assert "Line 1\nLine 2\rLine 3\tTabbed" in result["thought"]
