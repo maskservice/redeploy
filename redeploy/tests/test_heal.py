@@ -60,11 +60,11 @@ def test_heal_runner_stops_on_repeating_hint_pattern(monkeypatch, tmp_path):
         ask_calls.append(True)
         return "```yaml\n- id: sync_env\n  action: ssh_cmd\n  description: \"manual\"\n```"
 
-    monkeypatch.setattr("redeploy.heal.parse_failed_step", lambda *_a, **_k: ("sync_env", "boom"))
-    monkeypatch.setattr("redeploy.heal.collect_diagnostics", lambda *_a, **_k: "ERROR: same")
-    monkeypatch.setattr("redeploy.heal.ask_llm", _fake_ask)
-    monkeypatch.setattr("redeploy.heal.apply_fix_to_spec", lambda *_a, **_k: False)
-    monkeypatch.setattr("redeploy.heal.write_repair_log", lambda *_a, **_k: None)
+    monkeypatch.setattr("redeploy.heal.runner.parse_failed_step", lambda *_a, **_k: ("sync_env", "boom"))
+    monkeypatch.setattr("redeploy.heal.runner.collect_diagnostics", lambda *_a, **_k: "ERROR: same")
+    monkeypatch.setattr("redeploy.heal.runner.ask_llm", _fake_ask)
+    monkeypatch.setattr("redeploy.heal.runner.apply_fix_to_spec", lambda *_a, **_k: True)
+    monkeypatch.setattr("redeploy.heal.runner.write_repair_log", lambda *_a, **_k: None)
     monkeypatch.setattr(HealRunner, "_make_executor", _fake_make_executor)
     monkeypatch.setattr(HealRunner, "_reload_migration", lambda *_a, **_k: None)
 

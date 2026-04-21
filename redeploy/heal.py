@@ -1,17 +1,10 @@
 """
-redeploy.heal -- Self-healing runner with LiteLLM auto-repair.
+redeploy.heal — Self-healing runner with LiteLLM auto-repair.
 
-Integrates into `redeploy run` via --heal / --fix flags.
-
-Usage (via CLI):
-    redeploy run spec.md                     # heal enabled by default
-    redeploy run spec.md --heal off          # disable self-healing
-    redeploy run spec.md --fix "brak ikon SVG w menu"
-    redeploy run spec.md --fix "brak ikon" --max-heal-retries 5
-
-Programmatic:
-    from redeploy.heal import HealRunner
-    ok = HealRunner(spec_path, host, fix_hint="brak SVG").run()
+.. deprecated::
+   Implementation moved to ``redeploy/heal/`` package (R1 refactor).
+   ``from redeploy.heal import HealRunner`` continues to work because
+   Python prefers the package over this module.
 """
 from __future__ import annotations
 
@@ -361,6 +354,83 @@ class HealRunner:
         planner = Planner.from_spec(spec)
         self.migration = planner.run()
 
+    def _run_executor_attempt(self, executor) -> bool:
+        """Run executor once and print summary."""
+        ok = executor.run()
+        self.console.print(f"\n{executor.summary()}")
+        return ok
+
+    def _collect_diag_with_hint(self, failed_step: str) -> str:
+        self.console.print("  [dim]collecting SSH diagnostics...[/dim]")
+        diag = collect_diagnostics(self.host, failed_step)
+        if self.fix_hint:
+            return f"User-reported issue: {self.fix_hint}\n\n{diag}"
+        return diag
+
+    @staticmethod
+    def _extract_diag_hint(diag: str) -> str:
+        return next(
+            (
+                l.strip()
+                for l in diag.splitlines()
+                if any(k in l.lower() for k in ["error", "fail", "no such", "cannot", "warn"])
+            ),
+            diag.splitlines()[0] if diag else "",
+        )
+
+    def _ask_and_apply_fix(self, failed_step: str, step_output: str, diag: str) -> tuple[bool, str, str]:
+        """Ask LLM for a fix and attempt patching spec.
+
+        Returns
+        -------
+        tuple[bool, str, str]
+            fixed, summary, llm_response
+        """
+        self.console.print("  [dim]asking LLM for fix...[/dim]")
+        spec_text = self.spec_path.read_text()
+        llm_response = ask_llm(failed_step, step_output, diag, spec_text, self.fix_hint)
+
+        fixed = False
+        summary = "manual"
+        if llm_response and not llm_response.startswith("# LLM error"):
+            self.console.print(
+                "  [dim]LLM proposal:[/dim]\n"
+                + "\n".join(f"    {l}" for l in llm_response.splitlines()[:12])
+            )
+            fixed = apply_fix_to_spec(self.spec_path, failed_step, llm_response)
+            if fixed:
+                desc_m = re.search(r'description:\s*"([^"]+)"', llm_response)
+                summary = desc_m.group(1) if desc_m else llm_response[:60].replace("\n", " ")
+                self.console.print(f"  [green]patched spec:[/green] `{failed_step}`")
+                self._reload_migration()
+            else:
+                self.console.print("  [yellow]LLM fix not applicable[/yellow]")
+        else:
+            self.console.print(f"  [yellow]{llm_response or 'LLM unavailable'}[/yellow]")
+
+        return fixed, summary, llm_response
+
+    def _record_repair(self, failed_step: str, attempt: int, summary: str, diag_hint: str, fixed: bool) -> None:
+        self.repairs.append(
+            {
+                "step": failed_step,
+                "attempt": attempt,
+                "summary": summary,
+                "diag_hint": diag_hint,
+                "fixed": fixed,
+            }
+        )
+        write_repair_log(self.spec_path, self.version, self.repairs)
+
+    def _is_repeating_loop(self, failed_step: str, summary: str, diag_hint: str) -> bool:
+        loop_hint = f"{summary} | {diag_hint}".strip()
+        return self._loop_detector.observe(failed_step, loop_hint)
+
+    def _retry_after_heal(self):
+        executor = self._make_executor(resume=True)
+        ok = self._run_executor_attempt(executor)
+        return ok, executor
+
     def run(self) -> bool:
         if self.fix_hint:
             self.console.print(
@@ -369,8 +439,7 @@ class HealRunner:
 
         # First attempt
         executor = self._make_executor(resume=False)
-        ok = executor.run()
-        self.console.print(f"\n{executor.summary()}")
+        ok = self._run_executor_attempt(executor)
 
         if ok:
             write_repair_log(self.spec_path, self.version, self.repairs)
@@ -389,54 +458,12 @@ class HealRunner:
                 f"step [cyan]`{failed_step}`[/cyan] failed"
             )
 
-            # Diagnostics
-            self.console.print(f"  [dim]collecting SSH diagnostics...[/dim]")
-            diag = collect_diagnostics(self.host, failed_step)
+            diag = self._collect_diag_with_hint(failed_step)
+            diag_hint = self._extract_diag_hint(diag)
+            fixed, summary, _ = self._ask_and_apply_fix(failed_step, step_output, diag)
+            self._record_repair(failed_step, attempt, summary, diag_hint, fixed)
 
-            # Prepend fix_hint to diag context
-            if self.fix_hint:
-                diag = f"User-reported issue: {self.fix_hint}\n\n{diag}"
-
-            diag_hint = next(
-                (l.strip() for l in diag.splitlines()
-                 if any(k in l.lower() for k in ["error", "fail", "no such", "cannot", "warn"])),
-                diag.splitlines()[0] if diag else "",
-            )
-
-            # Ask LLM
-            self.console.print(f"  [dim]asking LLM for fix...[/dim]")
-            spec_text = self.spec_path.read_text()
-            llm_response = ask_llm(failed_step, step_output, diag, spec_text, self.fix_hint)
-
-            fixed = False
-            summary = "manual"
-            if llm_response and not llm_response.startswith("# LLM error"):
-                self.console.print(
-                    f"  [dim]LLM proposal:[/dim]\n"
-                    + "\n".join(f"    {l}" for l in llm_response.splitlines()[:12])
-                )
-                fixed = apply_fix_to_spec(self.spec_path, failed_step, llm_response)
-                if fixed:
-                    desc_m = re.search(r'description:\s*"([^"]+)"', llm_response)
-                    summary = desc_m.group(1) if desc_m else llm_response[:60].replace("\n", " ")
-                    self.console.print(f"  [green]patched spec:[/green] `{failed_step}`")
-                    self._reload_migration()
-                else:
-                    self.console.print(f"  [yellow]LLM fix not applicable[/yellow]")
-            else:
-                self.console.print(f"  [yellow]{llm_response or 'LLM unavailable'}[/yellow]")
-
-            self.repairs.append({
-                "step": failed_step,
-                "attempt": attempt,
-                "summary": summary,
-                "diag_hint": diag_hint,
-                "fixed": fixed,
-            })
-            write_repair_log(self.spec_path, self.version, self.repairs)
-
-            loop_hint = f"{summary} | {diag_hint}".strip()
-            if self._loop_detector.observe(failed_step, loop_hint):
+            if self._is_repeating_loop(failed_step, summary, diag_hint):
                 self.console.print(
                     "[yellow]heal: detected repeating non-converging hint pattern; "
                     "stopping auto-retry to avoid loop[/yellow]"
@@ -444,10 +471,10 @@ class HealRunner:
                 break
 
             # Retry
-            executor = self._make_executor(resume=True)
-            ok = executor.run()
-            self.console.print(f"\n{executor.summary()}")
+            ok, executor = self._retry_after_heal()
             if ok:
+                if failed_step:
+                    self._loop_detector.reset(failed_step)
                 write_repair_log(self.spec_path, self.version, self.repairs)
                 return True
 
