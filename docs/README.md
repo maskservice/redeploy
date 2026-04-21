@@ -67,6 +67,32 @@ config = Code2DocsConfig(project_name="mylib", verbose=True)
 docs = generate_docs("./my-project", config=config)
 ```
 
+## Deploy hooks (spec note)
+
+Migration specs now use generic top-level `hooks:` instead of ad-hoc
+`post_deploy`/`pre_deploy` fields.
+
+Example:
+
+```yaml
+hooks:
+    - id: before_sync_env_note
+        phase: before_step
+        when: "step.id == 'sync_env'"
+        action: local_cmd
+        command: "echo '[hook] preparing sync_env'"
+        on_failure: continue
+
+    - id: refresh_cache
+        phase: after_apply
+        action: local_cmd
+        command: "curl -fsS -X POST http://localhost:8100/api/v3/cache/clear || true"
+        on_failure: warn
+```
+
+Legacy `post_deploy`/`pre_deploy` is still accepted and auto-converted to
+`hooks` while maintaining backward compatibility.
+
 
 
 

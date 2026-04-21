@@ -275,6 +275,10 @@ class HealLoopDetector:
         recent = history[-self.max_identical_hints :]
         return all(item == recent[0] for item in recent)
 
+    def reset(self, step_id: str) -> None:
+        """Forget hint history for a specific step after successful convergence."""
+        self._history.pop(step_id, None)
+
 
 class HealRunner:
     """
