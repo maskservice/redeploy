@@ -252,20 +252,35 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
     help="Override the path of the checkpoint file."
 )
 @click.option("--no-state", is_flag=True, help="Disable checkpoint persistence for this run.")
+@click.option(
+    "--heal/--no-heal", default=True,
+    help="Self-healing: on failure, collect diagnostics and ask LLM to fix the spec, then retry (default: on)."
+)
+@click.option(
+    "--fix", "fix_hint", default=None, metavar="TEXT",
+    help='Report a known problem to guide the LLM, e.g. --fix "brak ikon SVG w menu"'
+)
+@click.option(
+    "--max-heal-retries", default=3, show_default=True,
+    help="Maximum number of LLM self-healing attempts."
+)
 @click.pass_context
 def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
-        env_name, progress_yaml, resume, from_step, state_file, no_state):
+        env_name, progress_yaml, resume, from_step, state_file, no_state,
+        heal, fix_hint, max_heal_retries):
     """Execute migration from a single YAML spec (source + target in one file).
 
     SPEC defaults to migration.yaml (or value from redeploy.yaml manifest).
 
     \b
     Example:
-        redeploy run                        # uses redeploy.yaml + migration.yaml
-        redeploy run --env prod             # use prod environment from redeploy.yaml
-        redeploy run --env rpi5 --detect    # deploy to rpi5 env with live probe
+        redeploy run                              # uses redeploy.yaml + migration.yaml
+        redeploy run --env prod                   # use prod environment from redeploy.yaml
+        redeploy run --env rpi5 --detect          # deploy to rpi5 env with live probe
         redeploy run migration.yaml --dry-run
         redeploy run migration.yaml --detect --plan-out plan.yaml
+        redeploy run migration.yaml --no-heal     # disable self-healing
+        redeploy run migration.yaml --fix "brak ikon SVG w menu"  # hint for LLM
     """
     from ...models import ProjectManifest
     from ...plan import Planner
@@ -312,15 +327,41 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
 
     # Apply
     load_user_plugins()
-    ok = _run_apply(
-        console, migration, dry_run, output,
-        progress_yaml=progress_yaml,
-        resume=resume,
-        from_step=from_step,
-        state_file=state_file,
-        no_state=no_state,
-        spec_path=str(resolved_spec)
-    )
+
+    # Self-healing mode
+    if heal and not dry_run:
+        _load_dotenv()
+        from ...heal import HealRunner
+        _print_heal_banner(console, fix_hint)
+        # Detect project version for repair log
+        version = _detect_project_version(resolved_spec)
+        runner = HealRunner(
+            migration=migration,
+            spec_path=resolved_spec,
+            host=migration.host,
+            fix_hint=fix_hint or "",
+            max_retries=max_heal_retries,
+            dry_run=dry_run,
+            console=console,
+            version=version,
+            progress_yaml=progress_yaml,
+            resume=resume,
+            from_step=from_step,
+            state_file=state_file,
+            no_state=no_state,
+        )
+        ok = runner.run()
+    else:
+        ok = _run_apply(
+            console, migration, dry_run, output,
+            progress_yaml=progress_yaml,
+            resume=resume,
+            from_step=from_step,
+            state_file=state_file,
+            no_state=no_state,
+            spec_path=str(resolved_spec)
+        )
+
     if not ok:
         sys.exit(1)
 
@@ -434,3 +475,31 @@ def _run_apply(
         executor.save_results(Path(output))
 
     return ok
+
+
+def _load_dotenv() -> None:
+    """Load .env from project dir or home .redeploy dir if present."""
+    try:
+        from dotenv import load_dotenv
+        for candidate in [Path(".env"), Path.home() / ".redeploy" / ".env"]:
+            if candidate.exists():
+                load_dotenv(candidate, override=False)
+                break
+    except ImportError:
+        pass
+
+
+def _detect_project_version(spec_path: str) -> str:
+    """Try to read VERSION file adjacent to spec, or return empty string."""
+    for p in [Path(spec_path).parent / "VERSION",
+              Path(spec_path).parent.parent / "VERSION",
+              Path("VERSION")]:
+        if p.exists():
+            return p.read_text().strip()
+    return ""
+
+
+def _print_heal_banner(console, fix_hint: str | None) -> None:
+    console.print("\n[bold green]heal[/bold green] mode: [dim]on[/dim]")
+    if fix_hint:
+        console.print(f"[cyan]user hint:[/cyan] {fix_hint}")

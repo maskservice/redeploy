@@ -57,36 +57,28 @@ def _probe_hardware(host, ssh_key, console):
 
 
 def _probe_hardware_op3(host: str, ssh_key: str | None, console):
-    """Probe hardware via op3 scanner (new path)."""
-    from opstree.probes.context import SSHContext
-    from opstree.layers.builtin import PhysicalLayer, OsLayer
-    from opstree.layers.tree import LayerTree
-    from opstree.scanner.linear import LinearScanner
-    from opstree.probes.builtin.physical_rpi import RpiPhysicalDisplayProbe
-    from opstree.probes.builtin.os_linux import OsKernelProbe, OsConfigProbe
-    from opstree.probes.registry import ProbeRegistry
-    from ...integrations.op3_bridge import snapshot_to_hardware_info
+    """Probe hardware via op3 scanner (new path).
 
-    ctx = SSHContext(target=host, ssh_key_path=ssh_key)
+    Delegates all the layer/probe plumbing to
+    :mod:`redeploy.integrations.op3_bridge`, which in turn calls
+    :func:`opstree.build_scanner` (0.1.8+). That upstream helper handles
+    transitive dependency resolution (e.g. ``os.kernel`` requires
+    ``physical.compute``) and guarantees probe-registry isolation so
+    repeated calls in the same process don't accumulate state.
+    """
+    from ...integrations.op3_bridge import (
+        make_scanner,
+        make_ssh_context,
+        snapshot_to_hardware_info,
+    )
 
-    tree = LayerTree()
-    tree.register(PhysicalLayer.display)
-    tree.register(OsLayer.kernel)
-    tree.register(OsLayer.config)
-
-    registry = ProbeRegistry()
-    registry.register(RpiPhysicalDisplayProbe())
-    registry.register(OsKernelProbe())
-    registry.register(OsConfigProbe())
-
-    scanner = LinearScanner(tree)
-    scanner.probe_registry = registry
+    ctx = make_ssh_context(target=host, ssh_key=ssh_key)
+    scanner = make_scanner(["physical.display", "os.kernel", "os.config"])
 
     with console.status(f"[cyan]Probing hardware on {host} via op3…[/cyan]"):
         snapshot = scanner.scan(host, ctx.execute)
 
-    hw = snapshot_to_hardware_info(snapshot)
-    return hw
+    return snapshot_to_hardware_info(snapshot)
 
 
 def _format_output(hw, output_fmt):

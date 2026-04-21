@@ -86,85 +86,130 @@ class DetectionTemplate:
 
 # ── Context builder ───────────────────────────────────────────────────────────
 
-def build_context(
-    state: Any,                        # InfraState
-    probe: Optional[Any] = None,       # ProbeResult (from auto_probe)
-    manifest: Optional[Any] = None,    # ProjectManifest
-) -> dict:
-    """Flatten InfraState + ProbeResult into a flat dict for condition evaluation."""
-    rt = state.runtime
-    svcs = state.services
+# ── Fact extractors ──────────────────────────────────────────────────────────
 
-    all_svc_names = (
+FactFn = Callable[[Any, Optional[Any], Optional[Any], dict], Any]
+
+
+@dataclass(frozen=True)
+class FactExtractor:
+    """Extract a single key/value pair into the context dict.
+
+    The callable receives ``(state, probe, manifest, ctx)`` where *ctx* is the
+    partially-built dictionary (earlier extractors are already present).
+    """
+
+    key: str
+    fn: FactFn
+
+    def __call__(
+        self,
+        state: Any,
+        probe: Optional[Any],
+        manifest: Optional[Any],
+        ctx: dict,
+    ) -> None:
+        ctx[self.key] = self.fn(state, probe, manifest, ctx)
+
+
+def _all_services(state: Any, probe: Optional[Any]) -> list[str]:
+    svcs = state.services
+    names = (
         [s.name for s in svcs.get("docker", [])]
         + [s.name for s in svcs.get("k3s", [])]
         + [s.name for s in svcs.get("systemd", [])]
         + [s.name for s in svcs.get("podman", [])]
         + (probe.running_services if probe else [])
     )
-    all_svc_lower = [s.lower() for s in all_svc_names]
+    return [n.lower() for n in names]
 
-    ctx: dict = {
-        # runtime presence
-        "has_docker":   bool(rt.docker),
-        "has_k3s":      bool(rt.k3s),
-        "has_podman":   bool(rt.podman),
-        "has_systemd":  bool(rt.systemd),
-        "docker_active": bool(svcs.get("docker")),
-        "k3s_active":   bool(svcs.get("k3s")),
-        "systemd_active": bool(svcs.get("systemd")),
 
-        # arch / OS
-        "arch":         rt.arch or (probe.arch if probe else ""),
-        "is_arm":       (rt.arch or "").startswith(("aarch64", "arm")),
-        "is_x86":       (rt.arch or "").startswith(("x86_64", "amd64")),
-        "os_info":      rt.os or (probe.os_info if probe else ""),
-        "is_debian":    "debian" in (rt.os or "").lower(),
-        "is_ubuntu":    "ubuntu" in (rt.os or "").lower(),
-        "is_raspberry": "raspberr" in (rt.os or (probe.os_info if probe else "")).lower()
-                        or (rt.arch or "").startswith("aarch64"),
+# Ordered list of extractors.  Dependent extractors must appear *after* the
+# facts they read from *ctx*.
+EXTRACTORS: list[FactExtractor] = [
+    # runtime presence
+    FactExtractor("has_docker", lambda s, p, m, c: bool(s.runtime.docker)),
+    FactExtractor("has_k3s", lambda s, p, m, c: bool(s.runtime.k3s)),
+    FactExtractor("has_podman", lambda s, p, m, c: bool(s.runtime.podman)),
+    FactExtractor("has_systemd", lambda s, p, m, c: bool(s.runtime.systemd)),
+    FactExtractor("docker_active", lambda s, p, m, c: bool(s.services.get("docker"))),
+    FactExtractor("k3s_active", lambda s, p, m, c: bool(s.services.get("k3s"))),
+    FactExtractor("systemd_active", lambda s, p, m, c: bool(s.services.get("systemd"))),
 
-        # services
-        "all_services": all_svc_lower,
-        "has_nginx":    any("nginx" in s for s in all_svc_lower),
-        "has_chromium": bool(rt.chromium)
-                        or (probe.has_chromium if probe else False)
-                        or any("chromium" in s for s in all_svc_lower),
-        "has_kiosk_svc": any("kiosk" in s for s in all_svc_lower),
-        "has_app_svc":  any(state.app.lower() in s for s in all_svc_lower),
+    # arch / OS
+    FactExtractor("arch", lambda s, p, m, c: s.runtime.arch or (p.arch if p else "")),
+    FactExtractor("is_arm", lambda s, p, m, c: (s.runtime.arch or "").startswith(("aarch64", "arm"))),
+    FactExtractor("is_x86", lambda s, p, m, c: (s.runtime.arch or "").startswith(("x86_64", "amd64"))),
+    FactExtractor("os_info", lambda s, p, m, c: s.runtime.os or (p.os_info if p else "")),
+    FactExtractor("is_debian", lambda s, p, m, c: "debian" in (s.runtime.os or "").lower()),
+    FactExtractor("is_ubuntu", lambda s, p, m, c: "ubuntu" in (s.runtime.os or "").lower()),
+    FactExtractor(
+        "is_raspberry",
+        lambda s, p, m, c: (
+            "raspberr" in (s.runtime.os or (p.os_info if p else "")).lower()
+            or (s.runtime.arch or "").startswith("aarch64")
+        ),
+    ),
 
-        # ports
-        "ports":        list(state.ports.keys()),
-        "port_80":      80 in state.ports,
-        "port_443":     443 in state.ports,
-        "port_8000":    8000 in state.ports,
-        "port_8080":    8080 in state.ports,
-        "port_8100":    8100 in state.ports,
+    # services (depends on nothing in ctx)
+    FactExtractor("all_services", lambda s, p, m, c: _all_services(s, p)),
+    FactExtractor("has_nginx", lambda s, p, m, c: any("nginx" in svc for svc in c["all_services"])),
+    FactExtractor(
+        "has_chromium",
+        lambda s, p, m, c: (
+            bool(s.runtime.chromium)
+            or (p.has_chromium if p else False)
+            or any("chromium" in svc for svc in c["all_services"])
+        ),
+    ),
+    FactExtractor("has_kiosk_svc", lambda s, p, m, c: any("kiosk" in svc for svc in c["all_services"])),
+    FactExtractor("has_app_svc", lambda s, p, m, c: any(s.app.lower() in svc for svc in c["all_services"])),
 
-        # health
-        "has_health":   any(h.healthy for h in state.health),
-        "has_version":  bool(state.current_version),
-        "version":      state.current_version or "",
+    # ports
+    FactExtractor("ports", lambda s, p, m, c: list(s.ports.keys())),
+    FactExtractor("port_80", lambda s, p, m, c: 80 in s.ports),
+    FactExtractor("port_443", lambda s, p, m, c: 443 in s.ports),
+    FactExtractor("port_8000", lambda s, p, m, c: 8000 in s.ports),
+    FactExtractor("port_8080", lambda s, p, m, c: 8080 in s.ports),
+    FactExtractor("port_8100", lambda s, p, m, c: 8100 in s.ports),
 
-        # conflicts
-        "has_conflicts":    bool(state.conflicts),
-        "dual_runtime":     any(c.type == "dual_runtime" for c in state.conflicts),
-        "port_steal":       any(c.type == "port_steal" for c in state.conflicts),
+    # health
+    FactExtractor("has_health", lambda s, p, m, c: any(h.healthy for h in s.health)),
+    FactExtractor("has_version", lambda s, p, m, c: bool(s.current_version)),
+    FactExtractor("version", lambda s, p, m, c: s.current_version or ""),
 
-        # probe extras
-        "probe_strategy":   probe.strategy if probe else "",
-        "probe_app":        probe.app if probe else "",
+    # conflicts
+    FactExtractor("has_conflicts", lambda s, p, m, c: bool(s.conflicts)),
+    FactExtractor("dual_runtime", lambda s, p, m, c: any(c.type == "dual_runtime" for c in s.conflicts)),
+    FactExtractor("port_steal", lambda s, p, m, c: any(c.type == "port_steal" for c in s.conflicts)),
 
-        # host
-        "host":             state.host,
-        "is_local":         state.host in ("local", "localhost", "127.0.0.1"),
-        "ssh_user":         (probe.ssh_user if probe else "")
-                            or state.host.split("@")[0] if "@" in state.host else "",
+    # probe extras
+    FactExtractor("probe_strategy", lambda s, p, m, c: p.strategy if p else ""),
+    FactExtractor("probe_app", lambda s, p, m, c: p.app if p else ""),
 
-        # manifest envs
-        "manifest_envs":    list(manifest.environments.keys()) if manifest else [],
-        "app":              state.app,
-    }
+    # host
+    FactExtractor("host", lambda s, p, m, c: s.host),
+    FactExtractor("is_local", lambda s, p, m, c: s.host in ("local", "localhost", "127.0.0.1")),
+    FactExtractor(
+        "ssh_user",
+        lambda s, p, m, c: (p.ssh_user if p else "") or (s.host.split("@")[0] if "@" in s.host else ""),
+    ),
+
+    # manifest envs
+    FactExtractor("manifest_envs", lambda s, p, m, c: list(m.environments.keys()) if m else []),
+    FactExtractor("app", lambda s, p, m, c: s.app),
+]
+
+
+def build_context(
+    state: Any,                        # InfraState
+    probe: Optional[Any] = None,       # ProbeResult (from auto_probe)
+    manifest: Optional[Any] = None,    # ProjectManifest
+) -> dict:
+    """Flatten InfraState + ProbeResult into a flat dict for condition evaluation."""
+    ctx: dict = {}
+    for extractor in EXTRACTORS:
+        extractor(state, probe, manifest, ctx)
     return ctx
 
 
