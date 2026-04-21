@@ -48,6 +48,9 @@ from .commands.workflow import workflow_cmd
 from .commands.exec_ import exec_cmd, exec_multi_cmd
 from .commands.plan_apply import plan, apply, migrate, run
 from .commands.state import state_cmd
+from .commands.hardware import hardware
+from .commands.device_map import device_map_cmd
+from .commands.blueprint import blueprint_cmd
 from .commands.init import init
 from .commands.status import status
 
@@ -64,6 +67,9 @@ cli.add_command(exec_cmd)
 cli.add_command(exec_multi_cmd)
 cli.add_command(export_cmd)
 cli.add_command(import_cmd)
+cli.add_command(hardware)
+cli.add_command(device_map_cmd, name="device-map")
+cli.add_command(blueprint_cmd, name="blueprint")
 cli.add_command(init)
 cli.add_command(inspect)
 cli.add_command(patterns)

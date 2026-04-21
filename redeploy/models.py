@@ -642,6 +642,9 @@ class KnownDevice(BaseModel):
     last_ssh_ok: Optional[datetime] = None
     source: str = "manual"              # manual | arp | mdns | known_hosts | probe
 
+    # Hardware snapshot (optional — filled by `redeploy device-map`)
+    hardware: Optional["HardwareInfo"] = None
+
     # Deploy history
     deploys: list[DeployRecord] = Field(default_factory=list)
 
@@ -659,6 +662,233 @@ class KnownDevice(BaseModel):
         self.deploys.append(record)
         # Keep last 50 deploy records per device
         self.deploys = self.deploys[-50:]
+
+
+# ── DeviceMap (full device snapshot: identity + infra + hardware) ──────────────
+
+_DEFAULT_DEVICE_MAP_DIR = Path.home() / ".config" / "redeploy" / "device-maps"
+
+
+class DeviceMap(BaseModel):
+    """Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
+
+    Standardized format analogous to source/target/InfraState — can be saved
+    as YAML and later loaded for diff, audit or reporting.
+
+    File is stored at::
+
+        ~/.config/redeploy/device-maps/<device-id>.yaml
+
+    Generate with::
+
+        redeploy device-map pi@192.168.188.109
+        redeploy device-map pi@192.168.188.109 --save
+        redeploy device-map pi@192.168.188.109 --save --out ./rpi5.device-map.yaml
+    """
+
+    # Identity
+    id: str                                  # e.g. "pi@192.168.188.109"
+    host: str                                # SSH target
+    name: str = ""                           # optional human label
+    tags: list[str] = Field(default_factory=list)
+
+    # Timestamps
+    scanned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Sub-maps
+    hardware: Optional[HardwareInfo] = None
+    infra: Optional[InfraState] = None
+
+    # Diagnostics summary (merged from hardware + infra)
+    issues: list[dict] = Field(default_factory=list)
+
+    @property
+    def has_errors(self) -> bool:
+        return any(i.get("severity") in ("error", "critical") for i in self.issues)
+
+    @property
+    def display_summary(self) -> str:
+        """Human-readable one-liner for the display state."""
+        if not self.hardware:
+            return "no hardware data"
+        hw = self.hardware
+        dsi = next((o for o in hw.drm_outputs if "DSI" in o.name), None)
+        if dsi:
+            mode = dsi.modes[0] if dsi.modes else "?"
+            bl = hw.backlights[0].brightness if hw.backlights else "?"
+            return f"DSI {dsi.connector} {dsi.status} {mode} backlight={bl}"
+        return "no DSI"
+
+    def to_yaml(self) -> str:
+        import yaml
+        return yaml.dump(
+            self.model_dump(mode="json"),
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+        )
+
+    def save(self, path: Optional[Path] = None) -> Path:
+        p = path or _DEFAULT_DEVICE_MAP_DIR / f"{self.id.replace('/', '_').replace('@', '_at_')}.yaml"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(self.to_yaml())
+        return p
+
+    @classmethod
+    def load(cls, path: Path) -> "DeviceMap":
+        import yaml
+        raw = yaml.safe_load(path.read_text())
+        return cls(**raw)
+
+    @classmethod
+    def load_for(cls, device_id: str) -> Optional["DeviceMap"]:
+        """Load saved DeviceMap for a device id, or None if not found."""
+        p = _DEFAULT_DEVICE_MAP_DIR / f"{device_id.replace('/', '_').replace('@', '_at_')}.yaml"
+        if p.exists():
+            return cls.load(p)
+        return None
+
+    @classmethod
+    def list_saved(cls) -> list[Path]:
+        if not _DEFAULT_DEVICE_MAP_DIR.exists():
+            return []
+        return sorted(_DEFAULT_DEVICE_MAP_DIR.glob("*.yaml"))
+
+
+# ── DeviceBlueprint ────────────────────────────────────────────────────────────
+
+_DEFAULT_BLUEPRINT_DIR = Path.home() / ".config" / "redeploy" / "blueprints"
+
+
+class ServicePort(BaseModel):
+    """A single port mapping for a container service."""
+    host: int
+    container: int
+    protocol: str = "tcp"
+
+
+class VolumeMount(BaseModel):
+    host: str
+    container: str
+    read_only: bool = False
+
+
+class ServiceSpec(BaseModel):
+    """Complete specification of a single containerised service."""
+    name: str
+    image: str                                          # full image ref incl. tag
+    platform: str = ""                                  # e.g. "linux/arm64", "linux/amd64"
+    ports: list[ServicePort] = Field(default_factory=list)
+    volumes: list[VolumeMount] = Field(default_factory=list)
+    env: dict[str, str] = Field(default_factory=dict)
+    command: Optional[str] = None
+    healthcheck: Optional[str] = None                   # curl / wget one-liner
+    depends_on: list[str] = Field(default_factory=list)
+    labels: dict[str, str] = Field(default_factory=dict)
+    restart: str = "unless-stopped"
+    network_mode: Optional[str] = None
+    privileged: bool = False
+
+    # Source of truth — where this spec was extracted from
+    source_ref: Optional[str] = None                    # "migration.yaml#deploy-backend"
+
+
+class HardwareRequirements(BaseModel):
+    """Hardware capabilities required to run the blueprint."""
+    arch: str = "linux/arm64"                           # target CPU arch
+    min_ram_mb: int = 0
+    min_disk_gb: int = 0
+    display_type: Optional[str] = None                  # "DSI" | "HDMI" | None
+    display_resolution: Optional[str] = None            # "1280x800"
+    i2c_required: bool = False
+    gpio_required: bool = False
+    features: list[str] = Field(default_factory=list)   # ["wayland", "kiosk", "gpu"]
+
+
+class BlueprintSource(BaseModel):
+    """Where the blueprint was extracted from — audit trail."""
+    device_id: Optional[str] = None                     # "pi@192.168.188.109"
+    device_name: Optional[str] = None
+    migration_file: Optional[str] = None                # migration.yaml path used
+    markpact_files: list[str] = Field(default_factory=list)
+    compose_files: list[str] = Field(default_factory=list)
+    extracted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class DeviceBlueprint(BaseModel):
+    """Self-contained, portable deployment recipe.
+
+    A DeviceBlueprint captures everything needed to reproduce a deployment on
+    any target device — physical *or* virtual.  It is extracted either from a
+    running device (via DeviceMap + InfraState) or compiled from definition
+    files (migration.yaml, markpact markdown, docker-compose).
+
+    Targets:
+
+    * **physical**  — ``redeploy blueprint deploy rpi5.blueprint.yaml pi@host``
+      generates a migration.yaml tailored to the new host.
+    * **digital twin** — ``redeploy blueprint twin rpi5.blueprint.yaml``
+      generates a ``docker-compose.twin.yml`` that runs the full stack locally
+      (amd64), mocking hardware dependencies.
+
+    Stored at::
+
+        ~/.config/redeploy/blueprints/<name>.blueprint.yaml
+    """
+
+    # Identity
+    name: str                                           # e.g. "c2004-kiosk"
+    version: str = "0.0.0"
+    description: str = ""
+    tags: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Service definitions
+    services: list[ServiceSpec] = Field(default_factory=list)
+
+    # Hardware profile of the *original* device
+    hardware: HardwareRequirements = Field(default_factory=HardwareRequirements)
+
+    # Extra infra metadata
+    app_url: Optional[str] = None                       # main endpoint, e.g. "http://host:8100"
+    deploy_strategy: str = "podman_quadlet"             # podman_quadlet | docker_compose | systemd
+    env_file: Optional[str] = None                      # .env file template (relative)
+    notes: str = ""
+
+    # Audit trail
+    source: BlueprintSource = Field(default_factory=BlueprintSource)
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+
+    def service(self, name: str) -> Optional[ServiceSpec]:
+        return next((s for s in self.services if s.name == name), None)
+
+    def to_yaml(self) -> str:
+        import yaml
+        return yaml.dump(
+            self.model_dump(mode="json"),
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+        )
+
+    def save(self, path: Optional[Path] = None) -> Path:
+        p = path or _DEFAULT_BLUEPRINT_DIR / f"{self.name}.blueprint.yaml"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(self.to_yaml())
+        return p
+
+    @classmethod
+    def load(cls, path: Path) -> "DeviceBlueprint":
+        import yaml
+        raw = yaml.safe_load(path.read_text())
+        return cls(**raw)
+
+    @classmethod
+    def list_saved(cls) -> list[Path]:
+        if not _DEFAULT_BLUEPRINT_DIR.exists():
+            return []
+        return sorted(_DEFAULT_BLUEPRINT_DIR.glob("*.blueprint.yaml"))
 
 
 class DeviceRegistry(BaseModel):
