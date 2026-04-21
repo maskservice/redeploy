@@ -145,12 +145,24 @@ class HealRunner:
                 "  [dim]LLM proposal:[/dim]\n"
                 + "\n".join(f"    {l}" for l in llm_response.splitlines()[:12])
             )
+            before_patch = self.spec_path.read_text()
             fixed = apply_fix_to_spec(self.spec_path, failed_step, llm_response)
             if fixed:
                 desc_m = re.search(r'description:\s*"([^"]+)"', llm_response)
                 summary = desc_m.group(1) if desc_m else llm_response[:60].replace("\n", " ")
                 self.console.print(f"  [green]patched spec:[/green] `{failed_step}`")
-                self._reload_migration()
+                try:
+                    self._reload_migration()
+                except Exception as exc:
+                    # LLM patch changed the file but produced an invalid spec.
+                    # Restore previous content and continue heal flow safely.
+                    self.spec_path.write_text(before_patch)
+                    fixed = False
+                    summary = f"invalid patch: {exc.__class__.__name__}"
+                    self.console.print(
+                        "  [yellow]LLM fix invalid for current runtime; "
+                        "reverted spec patch[/yellow]"
+                    )
             else:
                 self.console.print("  [yellow]LLM fix not applicable[/yellow]")
         else:

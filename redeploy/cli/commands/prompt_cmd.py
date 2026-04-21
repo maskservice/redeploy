@@ -113,7 +113,10 @@ def _call_llm(schema: dict, user_prompt: str) -> str:
         kwargs["api_key"] = api_key
 
     resp = litellm.completion(**kwargs)
-    return resp.choices[0].message.content.strip()
+    content = resp.choices[0].message.content
+    if content is None:
+        raise ValueError("LLM returned None content")
+    return content.strip()
 
 
 def _parse_llm_response(raw: str) -> dict:

@@ -81,3 +81,46 @@ def test_heal_runner_stops_on_repeating_hint_pattern(monkeypatch, tmp_path):
     assert runner.run() is False
     assert len(ask_calls) == 2
     assert make_executor_calls == [False, True]
+
+
+def test_heal_runner_reverts_invalid_llm_patch_without_crash(monkeypatch, tmp_path):
+    from redeploy.heal import HealRunner
+
+    spec_path = tmp_path / "spec.md"
+    original = "steps:\n  - id: start_services\n    action: ssh_cmd\n"
+    spec_path.write_text(original)
+
+    class _FakeExecutor:
+        def run(self):
+            return False
+
+        def summary(self):
+            return "Step failed: [start_services] exit=1: boom"
+
+    monkeypatch.setattr("redeploy.heal.runner.parse_failed_step", lambda *_a, **_k: ("start_services", "boom"))
+    monkeypatch.setattr("redeploy.heal.runner.collect_diagnostics", lambda *_a, **_k: "ERROR: same")
+    monkeypatch.setattr(
+        "redeploy.heal.runner.ask_llm",
+        lambda *_a, **_k: "```yaml\n- id: start_services\n  action: local_cmd\n  description: \"broken\"\n```",
+    )
+
+    def _fake_apply_fix(path, *_args, **_kwargs):
+        path.write_text("steps:\n  - id: start_services\n    action: local_cmd\n")
+        return True
+
+    monkeypatch.setattr("redeploy.heal.runner.apply_fix_to_spec", _fake_apply_fix)
+    monkeypatch.setattr("redeploy.heal.runner.write_repair_log", lambda *_a, **_k: None)
+    monkeypatch.setattr(HealRunner, "_make_executor", lambda *_a, **_k: _FakeExecutor())
+    monkeypatch.setattr(HealRunner, "_reload_migration", lambda *_a, **_k: (_ for _ in ()).throw(ValueError("invalid action")))
+
+    runner = HealRunner(
+        migration=object(),
+        spec_path=spec_path,
+        host="pi@test",
+        max_retries=1,
+        dry_run=True,
+        version="0.0.0",
+    )
+
+    assert runner.run() is False
+    assert spec_path.read_text() == original
