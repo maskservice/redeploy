@@ -265,7 +265,7 @@ advanced:
   file_validation:
     max_file_size_mb: 10
     block_large_files: true
-    detect_api_tokens: true
+    detect_api_tokens: false
     auto_manage_gitignore: true
     auto_add_dot_folders: true
     auto_handle_large_files: true

@@ -53,7 +53,7 @@ def blueprint_cmd():
 @click.option("--save", is_flag=True, help="Save to ~/.config/redeploy/blueprints/")
 @click.option("--out", "out_path", default=None, type=click.Path(),
               help="Save to specific file instead")
-@click.option("--format", "fmt", default="yaml", type=click.Choice(["rich", "yaml", "json"]))
+@click.option("--format", "fmt", default="yaml", type=click.Choice(["yaml", "json"]))
 @click.option("--tag", "tags", multiple=True)
 def capture(host, name, compose_files, migration_file, device_map_file,
             live, save, out_path, fmt, tags):
@@ -83,12 +83,78 @@ def capture(host, name, compose_files, migration_file, device_map_file,
             host=host,
         )
 
-    _print_blueprint(console, bp, fmt)
+    if fmt == "json":
+        import json as _json
+        click.echo(_json.dumps(bp.model_dump(mode="json"), indent=2))
+    else:
+        click.echo(bp.to_yaml())
 
     if save or out_path:
         path = Path(out_path) if out_path else None
         saved = bp.save(path)
         console.print(f"\n[green]✓ saved:[/green] {saved}")
+
+
+def _apply_blueprint_config(bp, config_path):
+    """Apply blueprint settings from YAML config file to the remote host.
+
+    Reads blueprint YAML/JSON and applies hardware settings (transforms, backlight, etc.).
+    """
+    import yaml
+    import json as _json
+
+    from ...remote import Remote
+
+    with open(config_path) as f:
+        raw = f.read()
+
+    try:
+        cfg = yaml.safe_load(raw)
+    except Exception:
+        cfg = _json.loads(raw)
+
+    host = cfg.get("host") or getattr(bp, "host", None)
+    if not host:
+        print("[red]✗ No 'host' field in config file[/red]")
+        return
+
+    print(f"[cyan]→ Applying blueprint config from {config_path} to {host}[/cyan]")
+
+    p = Remote(host)
+
+    # Apply hardware settings (reuse logic from device-map)
+    hardware = cfg.get("hardware", {})
+    applied = 0
+
+    for output in hardware.get("drm_outputs", []):
+        connector = output.get("connector", "")
+        transform = output.get("transform", "normal")
+        if not connector or not ("DSI" in connector or "HDMI" in connector):
+            continue
+
+        if transform != "normal":
+            wlr_cmd = (
+                f"WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) "
+                f"wlr-randr --output {connector} --transform {transform} 2>&1"
+            )
+            r = p.run(wlr_cmd)
+            if r.ok:
+                print(f"[green]  ✓ {connector}: transform={transform}[/green]")
+                applied += 1
+
+    for bl in hardware.get("backlights", []):
+        name = bl.get("name", "")
+        brightness = bl.get("brightness")
+        if name and brightness is not None:
+            r = p.run(f"echo {brightness} | sudo tee /sys/class/backlight/{name}/brightness > /dev/null")
+            if r.ok:
+                print(f"[green]  ✓ backlight {name}: brightness={brightness}[/green]")
+                applied += 1
+
+    if applied > 0:
+        print(f"[bold green]✓ Blueprint config applied from {config_path}[/bold green]")
+    else:
+        print("[yellow]Nothing to apply[/yellow]")
 
 
 # ── twin ──────────────────────────────────────────────────────────────────────
@@ -180,13 +246,30 @@ def deploy(blueprint_file, target_host, out_path, remote_dir, no_transfer,
 
 @blueprint_cmd.command("show")
 @click.argument("blueprint_file", type=click.Path(exists=True))
-@click.option("--format", "fmt", default="yaml", type=click.Choice(["rich", "yaml", "json"]))
-def show(blueprint_file, fmt):
-    """Display a saved DeviceBlueprint."""
+@click.option("--format", "fmt", default="yaml", type=click.Choice(["yaml", "json"]))
+@click.option("--apply-config", "apply_config", default=None,
+              type=click.Path(exists=True, dir_okay=False),
+              help="Apply blueprint settings from YAML config file to the remote host")
+def show(blueprint_file, fmt, apply_config):
+    """Display a saved DeviceBlueprint.
+
+    \b
+    Config-file workflow (scan → edit → apply):
+        redeploy blueprint capture pi@192.168.188.109 > blueprint.yaml
+        # edit blueprint.yaml: set hardware.drm_outputs[0].transform: '270'
+        redeploy blueprint show blueprint.yaml --apply-config blueprint.yaml
+    """
     from ...models import DeviceBlueprint
 
     bp = DeviceBlueprint.load(Path(blueprint_file))
-    _print_blueprint(Console(), bp, fmt)
+    if fmt == "json":
+        import json as _json
+        click.echo(_json.dumps(bp.model_dump(mode="json"), indent=2))
+    else:
+        click.echo(bp.to_yaml())
+
+    if apply_config:
+        _apply_blueprint_config(bp, apply_config)
 
 
 # ── list ──────────────────────────────────────────────────────────────────────

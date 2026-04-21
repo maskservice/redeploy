@@ -10,10 +10,6 @@ from rich.console import Console
 
 @click.command("export")
 @click.option(
-    "--format", "fmt", default="yaml", type=click.Choice(["css", "yaml"]),
-    help="Output format (css or yaml)"
-)
-@click.option(
     "-o", "--output", default=None, type=click.Path(),
     help="Output file (default: print to stdout)"
 )
@@ -21,19 +17,23 @@ from rich.console import Console
     "--file", "src_file", default=None, type=click.Path(),
     help="Source file to convert (auto-detected if omitted)"
 )
+@click.option(
+    "--format", "fmt", default="yaml", type=click.Choice(["yaml", "css"]),
+    help="Output format (default: yaml)"
+)
 @click.pass_context
-def export_cmd(ctx, fmt, output, src_file):
+def export_cmd(ctx, output, src_file, fmt):
     """Convert between redeploy.css and redeploy.yaml formats.
 
-    Reads the nearest redeploy.css or redeploy.yaml and exports to the
-    requested format. Useful for migration, sharing, and LLM inspection.
+    Reads the nearest redeploy.css or redeploy.yaml and exports to YAML.
+    Useful for migration, sharing, and LLM inspection.
 
     \b
     Examples:
+        redeploy export                          # auto-detect source → yaml (stdout)
+        redeploy export -o redeploy.yaml        # auto-detect source → yaml (file)
+        redeploy export --file redeploy.css     # css → yaml
         redeploy export --format css            # yaml → css (stdout)
-        redeploy export --format css -o redeploy.css
-        redeploy export --format yaml -o redeploy.yaml
-        redeploy export --format yaml --file redeploy.css
     """
     console = Console(stderr=True)
 

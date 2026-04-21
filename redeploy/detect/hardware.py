@@ -85,12 +85,21 @@ def probe_drm_outputs(p: RemoteProbe) -> list[DrmOutput]:
 
         status_r = p.run(f"cat /sys/class/drm/{entry}/status 2>/dev/null")
         enabled_r = p.run(f"cat /sys/class/drm/{entry}/enabled 2>/dev/null")
+        edid_r = p.run(f"wc -c < /sys/class/drm/{entry}/edid 2>/dev/null")
+        dpms_r = p.run(f"cat /sys/class/drm/{entry}/dpms 2>/dev/null")
+        try:
+            edid_bytes = int(edid_r.out.strip()) if edid_r.ok else 0
+        except ValueError:
+            edid_bytes = 0
 
         outputs.append(DrmOutput(
             name=entry,
             connector=connector,
             status=status_r.out.strip() if status_r.ok else "unknown",
             enabled=enabled_r.out.strip() if enabled_r.ok else "unknown",
+            edid_bytes=edid_bytes,
+            power_state=dpms_r.out.strip() if dpms_r.ok and dpms_r.out.strip() else None,
+            sysfs_path=f"/sys/class/drm/{entry}",
         ))
 
     return outputs
@@ -162,6 +171,7 @@ def probe_backlights(p: RemoteProbe) -> list[BacklightInfo]:
             max_brightness=max_brightness,
             bl_power=bl_power,
             display_name=display_name,
+            sysfs_path=f"/sys/class/backlight/{name}",
         ))
 
     return backlights
@@ -205,7 +215,7 @@ def probe_i2c_buses(p: RemoteProbe) -> list[I2CBusInfo]:
                             addr = row_base + i
                             devices.append(f"0x{addr:02x}")
 
-        buses.append(I2CBusInfo(bus=bus_num, devices=devices))
+        buses.append(I2CBusInfo(bus=bus_num, devices=devices, sysfs_path=entry))
 
     return buses
 
@@ -219,6 +229,58 @@ def probe_dsi_dmesg(p: RemoteProbe) -> list[str]:
     if not r.ok:
         return []
     return _lines(r.out)
+
+
+def probe_dsi_dmesg_errors(dmesg_lines: list[str]) -> list[str]:
+    """Filter dmesg lines containing failure/error indicators."""
+    keywords = re.compile(r'fail|error|unable|timeout|ERORR|cannot|denied|\-\d+\]', re.IGNORECASE)
+    return [l for l in dmesg_lines if keywords.search(l)]
+
+
+def probe_kernel_modules(p: RemoteProbe) -> list[str]:
+    """Return names of loaded kernel modules relevant to DRM/DSI display stack.
+
+    Modules checked: vc4, drm, drm_kms_helper, panel_waveshare_dsi,
+    dw_mipi_dsi, drm_display_helper, gpu_sched, v3d, videobuf2_common.
+    """
+    pattern = (
+        r'vc4|v3d|drm|panel_waveshare|dw_mipi_dsi|gpu_sched|videobuf2|rp1'
+    )
+    r = p.run(f"lsmod 2>/dev/null | awk '{{print $1}}' | grep -Ei '{pattern}'")
+    if not r.ok:
+        return []
+    return sorted(set(_lines(r.out)))
+
+
+def probe_wayland_sockets(p: RemoteProbe) -> list[str]:
+    """Return list of Wayland socket names present in /run/user/<uid>/.
+
+    E.g. ["wayland-0", "wayland-1"].
+    """
+    r = p.run("ls /run/user/$(id -u)/ 2>/dev/null | grep '^wayland-'")
+    if not r.ok or not r.out.strip():
+        return []
+    return _lines(r.out)
+
+
+def probe_compositor_processes(p: RemoteProbe) -> dict[str, list[int]]:
+    """Detect running display-stack processes.
+
+    Checks for: labwc, chromium, kanshi, weston, sway, kiosk.
+    Returns mapping {process_name: [pid, ...]}.
+    """
+    processes = ["labwc", "chromium", "kanshi", "weston", "sway"]
+    result: dict[str, list[int]] = {}
+    for proc in processes:
+        r = p.run(f"pgrep -d ',' '{proc}' 2>/dev/null")
+        if r.ok and r.out.strip():
+            try:
+                pids = [int(x) for x in r.out.strip().split(',') if x.strip()]
+                if pids:
+                    result[proc] = pids
+            except ValueError:
+                pass
+    return result
 
 
 # ── diagnostics analyzer ──────────────────────────────────────────────────────
@@ -250,6 +312,10 @@ def probe_hardware(p: RemoteProbe) -> HardwareInfo:
     framebuffers = probe_framebuffers(p)
     i2c_buses = probe_i2c_buses(p)
     dsi_dmesg = probe_dsi_dmesg(p)
+    dsi_dmesg_errors = probe_dsi_dmesg_errors(dsi_dmesg)
+    kernel_modules = probe_kernel_modules(p)
+    wayland_sockets = probe_wayland_sockets(p)
+    compositor_processes = probe_compositor_processes(p)
 
     # Enrich DrmOutputs with wlr-randr data
     for wo in wlr_outputs:
@@ -277,6 +343,10 @@ def probe_hardware(p: RemoteProbe) -> HardwareInfo:
         framebuffers=framebuffers,
         i2c_buses=i2c_buses,
         dsi_dmesg=dsi_dmesg,
+        dsi_dmesg_errors=dsi_dmesg_errors,
+        kernel_modules=kernel_modules,
+        wayland_sockets=wayland_sockets,
+        compositor_processes=compositor_processes,
     )
 
     hw.diagnostics = _analyze(hw)

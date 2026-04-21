@@ -177,6 +177,208 @@ def _print_diagnostics(console, hw, show_fix):
         )
 
 
+def _apply_transform(console, p, hw, transform):
+    """Apply display transform via wlr-randr and persist in kanshi config."""
+    # Find DSI output name (e.g. "DSI-2")
+    dsi = next((o for o in hw.drm_outputs if "DSI" in o.name), None)
+    if not dsi:
+        console.print("[red]✗ No DSI output found on this host[/red]")
+        sys.exit(1)
+
+    output_name = dsi.connector  # e.g. "DSI-2"
+
+    console.print(f"[cyan]→ Setting transform {transform} on {output_name}[/cyan]")
+
+    # 1. Apply immediately via wlr-randr
+    wlr_cmd = (
+        f"WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) "
+        f"wlr-randr --output {output_name} --transform {transform} 2>&1"
+    )
+    r = p.run(wlr_cmd)
+    if r.ok:
+        console.print(f"[green]  ✓ wlr-randr transform applied[/green]")
+    else:
+        console.print(f"[yellow]  ⚠ wlr-randr failed (compositor may not be running): {r.out.strip()}[/yellow]")
+
+    # 2. Persist in kanshi config — update or create transform line
+    kanshi_cfg_path = "~/.config/kanshi/config"
+    # Read current config
+    read_r = p.run(f"cat {kanshi_cfg_path} 2>/dev/null")
+    import re as _re
+
+    if read_r.ok and read_r.out.strip():
+        current = read_r.out
+        output_line_pat = _re.compile(
+            rf'(\s*output\s+{_re.escape(output_name)}\s+enable)(\s+transform\s+\S+)?'
+        )
+        if _re.search(output_line_pat, current):
+            # Replace or add transform on the existing enable line
+            new_cfg = _re.sub(
+                output_line_pat,
+                rf'\1 transform {transform}',
+                current,
+            )
+        else:
+            # Output line without "enable" — just append transform param
+            new_cfg = _re.sub(
+                rf'(\s*output\s+{_re.escape(output_name)}\b)',
+                rf'\1 transform {transform}',
+                current,
+            )
+    else:
+        # No kanshi config — create minimal one
+        new_cfg = (
+            f"profile waveshare-only {{\n"
+            f"    output {output_name} enable transform {transform}\n"
+            f"}}\n"
+        )
+
+    # Write updated config
+    escaped = new_cfg.replace("'", "'\\''")
+    write_r = p.run(f"mkdir -p ~/.config/kanshi && printf '%s' '{escaped}' > {kanshi_cfg_path}")
+    if write_r.ok:
+        console.print(f"[green]  ✓ kanshi config updated ({kanshi_cfg_path})[/green]")
+    else:
+        console.print(f"[red]  ✗ failed to write kanshi config: {write_r.out}[/red]")
+        sys.exit(1)
+
+    # 3. Reload kanshi if running
+    pkill_r = p.run("pkill -SIGUSR1 kanshi 2>/dev/null || pkill kanshi 2>/dev/null; sleep 1; "
+                    "WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) kanshi &")
+    if pkill_r.ok:
+        console.print("[green]  ✓ kanshi reloaded[/green]")
+
+    console.print(
+        f"\n[bold green]✓ Transform {transform} applied to {output_name}[/bold green]\n"
+        f"  [dim]Persistent: {kanshi_cfg_path}[/dim]"
+    )
+
+
+def _apply_config(console, p, config_path):
+    """Apply hardware settings from a YAML/JSON config file to the remote host.
+
+    Reads drm_outputs[].transform entries and applies them via wlr-randr + kanshi.
+    Also reads backlights[].brightness / bl_power for backlight settings.
+    """
+    import yaml
+    import json as _json
+
+    with open(config_path) as f:
+        raw = f.read()
+
+    try:
+        cfg = yaml.safe_load(raw)
+    except Exception:
+        cfg = _json.loads(raw)
+
+    applied = 0
+
+    # ── display transforms ────────────────────────────────────────────────────
+    for output in cfg.get("drm_outputs", []):
+        connector = output.get("connector", "")
+        transform = output.get("transform", "normal")
+        if not connector:
+            continue
+        if "DSI" not in connector and "HDMI" not in connector:
+            continue
+
+        # skip defaults we don't need to touch
+        if transform == "normal" and output.get("enabled") in (None, "enabled"):
+            console.print(f"[dim]  skip {connector}: transform=normal (default)[/dim]")
+            continue
+
+        console.print(f"[cyan]→ {connector}: transform={transform}[/cyan]")
+
+        # Apply via wlr-randr
+        wlr_cmd = (
+            f"WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) "
+            f"wlr-randr --output {connector} --transform {transform} 2>&1"
+        )
+        r = p.run(wlr_cmd)
+        if r.ok:
+            console.print(f"[green]  ✓ wlr-randr applied[/green]")
+        else:
+            console.print(f"[yellow]  ⚠ wlr-randr: {r.out.strip() or 'no output'}[/yellow]")
+
+        applied += 1
+
+    # ── persist all DSI transforms in kanshi ─────────────────────────────────
+    dsi_outputs = [
+        o for o in cfg.get("drm_outputs", [])
+        if "DSI" in o.get("connector", "")
+    ]
+    if dsi_outputs:
+        _update_kanshi_from_cfg(console, p, dsi_outputs)
+
+    # ── backlight ─────────────────────────────────────────────────────────────
+    for bl in cfg.get("backlights", []):
+        name = bl.get("name", "")
+        brightness = bl.get("brightness")
+        bl_power = bl.get("bl_power")
+        if not name:
+            continue
+        if brightness is not None:
+            r = p.run(f"echo {brightness} | sudo tee /sys/class/backlight/{name}/brightness > /dev/null")
+            if r.ok:
+                console.print(f"[green]  ✓ backlight {name}: brightness={brightness}[/green]")
+        if bl_power is not None:
+            r = p.run(f"echo {bl_power} | sudo tee /sys/class/backlight/{name}/bl_power > /dev/null")
+            if r.ok:
+                console.print(f"[green]  ✓ backlight {name}: bl_power={bl_power}[/green]")
+        applied += 1
+
+    if applied == 0:
+        console.print("[yellow]Nothing to apply — no relevant settings found in config[/yellow]")
+    else:
+        console.print(f"\n[bold green]✓ Config applied from {config_path}[/bold green]")
+
+
+def _update_kanshi_from_cfg(console, p, dsi_outputs: list):
+    """Rebuild kanshi profile from drm_outputs list and write to ~/.config/kanshi/config."""
+    import re as _re
+
+    kanshi_cfg_path = "~/.config/kanshi/config"
+    read_r = p.run(f"cat {kanshi_cfg_path} 2>/dev/null")
+    current = read_r.out if read_r.ok else ""
+
+    for output in dsi_outputs:
+        connector = output.get("connector", "")
+        transform = output.get("transform", "normal")
+
+        output_line_pat = _re.compile(
+            rf'(\s*output\s+{_re.escape(connector)}\s+enable)(\s+transform\s+\S+)?'
+        )
+        if _re.search(output_line_pat, current):
+            if transform == "normal":
+                # Remove transform clause
+                current = _re.sub(output_line_pat, r'\1', current)
+            else:
+                current = _re.sub(output_line_pat, rf'\1 transform {transform}', current)
+        elif current.strip():
+            # output line exists but without "enable"
+            current = _re.sub(
+                rf'(\s*output\s+{_re.escape(connector)}\b)',
+                rf'\1 transform {transform}' if transform != "normal" else r'\1',
+                current,
+            )
+        else:
+            # No config at all — create minimal profile
+            current = (
+                f"profile waveshare-only {{\n"
+                f"    output {connector} enable"
+                + (f" transform {transform}" if transform != "normal" else "")
+                + "\n"
+                + "    output HDMI-A-2 disable\n"
+                + "}\n"
+            )
+
+    escaped = current.replace("'", "'\\''")
+    write_r = p.run(f"mkdir -p ~/.config/kanshi && printf '%s' '{escaped}' > {kanshi_cfg_path}")
+    if write_r.ok:
+        console.print(f"[green]  ✓ kanshi config updated ({kanshi_cfg_path})[/green]")
+    p.run("pkill -SIGUSR1 kanshi 2>/dev/null || true")
+
+
 def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
     """Apply fix for a specific component using fix plan generator."""
     from ...hardware.fixes import generate_fix_plan
@@ -225,10 +427,9 @@ def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
 @click.command()
 @click.argument("host", required=False, default=None)
 @click.option(
-    "--format", "output_fmt",
-    default="yaml",
-    type=click.Choice(["rich", "yaml", "json"]),
-    help="Output format",
+    "--format", "output_fmt", default="yaml",
+    type=click.Choice(["yaml", "json"]),
+    help="Output format (default: yaml)"
 )
 @click.option(
     "--fix", "show_fix",
@@ -255,8 +456,22 @@ def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
     is_flag=True,
     help="List available panel definitions and exit",
 )
+@click.option(
+    "--set-transform", "set_transform",
+    default=None,
+    metavar="TRANSFORM",
+    type=click.Choice(["normal", "90", "180", "270", "flipped", "flipped-90", "flipped-180", "flipped-270"]),
+    help="Set display rotation for DSI output (e.g. 270 = -90°). Applies immediately via wlr-randr and saves to kanshi config.",
+)
+@click.option(
+    "--apply-config", "apply_config",
+    default=None,
+    metavar="FILE",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Apply display settings (transform, backlight) from a YAML/JSON hardware config file to the remote host.",
+)
 @click.option("--ssh-key", default=None, type=click.Path(), help="SSH private key path")
-def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_panels, ssh_key):
+def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_panels, ssh_key, set_transform, apply_config):
     """Probe and diagnose hardware on a remote host.
 
     Checks DSI display, DRM connectors, backlight controller, I2C buses,
@@ -267,8 +482,13 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_pan
     Examples:
         redeploy hardware pi@192.168.188.109
         redeploy hardware pi@192.168.188.109 --fix
-        redeploy hardware pi@192.168.188.109 --format yaml
         redeploy hardware --list-panels
+
+    \b
+    Config-file workflow (scan → edit → apply):
+        redeploy hardware pi@192.168.188.109 > hardware.yaml
+        # edit hardware.yaml: set drm_outputs[0].transform: '270'
+        redeploy hardware pi@192.168.188.109 --apply-config hardware.yaml
     """
     console = Console()
 
@@ -293,10 +513,23 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_pan
 
     hw, p = _probe_hardware(host, ssh_key, console)
 
-    if _format_output(hw, output_fmt):
+    # --apply-config: load YAML/JSON file and push settings to device
+    if apply_config is not None:
+        _apply_config(console, p, apply_config)
         return
 
-    # ── rich output ─────────────────────────────────────────────────────────
+    # --set-transform: apply rotation immediately and update kanshi config
+    if set_transform is not None:
+        _apply_transform(console, p, hw, set_transform)
+        return
+
+    if output_fmt == "json":
+        import json as _json
+        click.echo(_json.dumps(hw.model_dump(mode="json"), indent=2))
+    else:
+        import yaml
+        click.echo(yaml.safe_dump(hw.model_dump(mode="json"), sort_keys=False))
+    return
 
     console.print()
     console.print(Panel(

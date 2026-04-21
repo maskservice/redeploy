@@ -158,6 +158,26 @@ ALL_RULES: list[DiagnosticRule] = [
         ),
     ),
     DiagnosticRule(
+        name="dsi_no_edid_panel_missing",
+        component="dsi",
+        severity="error",
+        predicate=lambda hw: (
+            _has_dsi_overlay(hw)
+            and bool(_dsi_outputs(hw))
+            and all(o.edid_bytes == 0 for o in _dsi_outputs(hw))
+        ),
+        message=(
+            "DSI panel not physically connected — EDID is empty (0 bytes). "
+            "Overlay is loaded but no display detected on the cable."
+        ),
+        fix=(
+            "Connect the DSI display FPC cable to DISP1 (22-pin connector) and reboot.\n"
+            "  - Silver contacts face the board\n"
+            "  - ZIF latch must be locked\n"
+            "  - For RPi5: use DISP1 (lower connector), not DISP0 (upper)"
+        ),
+    ),
+    DiagnosticRule(
         name="dsi_connector_not_connected",
         component="dsi",
         severity="error",
@@ -188,6 +208,213 @@ ALL_RULES: list[DiagnosticRule] = [
             "  - 4-pin cable from display board → RPi GPIO header\n"
             "  - Pin 1 (5V), Pin 2 (GND), Pin 3 (SDA=GPIO2), Pin 4 (SCL=GPIO3)\n"
             "  - dtparam=i2c_arm=on must be set in config.txt"
+        ),
+    ),
+    DiagnosticRule(
+        name="dsi_backlight_init_failed",
+        component="backlight",
+        severity="error",
+        predicate=lambda hw: any(
+            "failed to enable backlight" in l for l in hw.dsi_dmesg_errors
+        ),
+        message=lambda hw: (
+            "Backlight controller failed to initialise (dmesg: 'failed to enable backlight'). "
+            "Error code: "
+            + (
+                next(
+                    (
+                        m.group(1)
+                        for l in hw.dsi_dmesg_errors
+                        if "failed to enable backlight" in l
+                        for m in [__import__('re').search(r'backlight: (-\d+)', l)]
+                        if m
+                    ),
+                    "unknown",
+                )
+            )
+            + "\nThis means the I2C backlight chip (usually at 0x45) is not responding."
+        ),
+        fix=(
+            "1. Check 4-pin header cable (display board ↔ RPi GPIO):\n"
+            "     Display pin 1 (5V)  → RPi Pin 2 or 4 (5V)\n"
+            "     Display pin 2 (GND) → RPi Pin 6 (GND)\n"
+            "     Display pin 3 (SDA) → RPi Pin 3 (GPIO2/SDA1)\n"
+            "     Display pin 4 (SCL) → RPi Pin 5 (GPIO3/SCL1)\n"
+            "2. Verify dtparam=i2c_arm=on in /boot/firmware/config.txt\n"
+            "3. Check I2C scan: i2cdetect -y 1  (expect device at 0x45)\n"
+            "4. Error -121 = EREMOTEIO: device not responding on I2C bus"
+        ),
+    ),
+    DiagnosticRule(
+        name="no_drm_kernel_driver",
+        component="driver",
+        severity="error",
+        predicate=lambda hw: bool(hw.kernel_modules) and not any(
+            m in ("vc4", "drm_rp1_dsi", "drm") for m in hw.kernel_modules
+        ),
+        message="DRM/VC4 kernel driver not loaded — display cannot work without it",
+        fix=(
+            "Check if vc4-kms-v3d overlay is in /boot/firmware/config.txt:\n"
+            "  dtoverlay=vc4-kms-v3d\n"
+            "Verify loaded modules: lsmod | grep -E 'vc4|drm'\n"
+            "If missing, add overlay and reboot."
+        ),
+    ),
+    DiagnosticRule(
+        name="dsi_driver_not_loaded",
+        component="driver",
+        severity="error",
+        predicate=lambda hw: (
+            _has_dsi_overlay(hw)
+            and bool(hw.kernel_modules)
+            and not any("dsi" in m.lower() or "waveshare" in m.lower()
+                        for m in hw.kernel_modules)
+        ),
+        message=lambda hw: (
+            "DSI overlay loaded in config.txt but no DSI kernel module found in lsmod. "
+            f"Loaded modules: {', '.join(hw.kernel_modules) or 'none'}"
+        ),
+        fix=(
+            "The DSI driver did not load. Check dmesg for module errors:\n"
+            "  dmesg | grep -i 'dsi\\|waveshare\\|panel'\n"
+            "Possible causes:\n"
+            "  - Wrong overlay name (check /boot/firmware/overlays/README)\n"
+            "  - Module file missing (check /lib/modules/$(uname -r)/)\n"
+            "  - Hardware incompatibility (verify panel variant: 8_0_inch_a vs 8_0_inch_b)"
+        ),
+    ),
+    DiagnosticRule(
+        name="i2c_arm_not_enabled",
+        component="i2c",
+        severity="warning",
+        predicate=lambda hw: (
+            _has_dsi_overlay(hw)
+            and "dtparam=i2c_arm=on" not in hw.config_txt
+            and not hw.i2c_buses           # only warn if I2C bus wasn't probed at all
+        ),
+        message=(
+            "dtparam=i2c_arm=on not found in config.txt — "
+            "I2C bus for backlight controller (0x45) may not be available"
+        ),
+        fix=(
+            "Add to /boot/firmware/config.txt:\n"
+            "  dtparam=i2c_arm=on\n"
+            "Then reboot. Verify: ls /dev/i2c-*"
+        ),
+    ),
+    DiagnosticRule(
+        name="i2c_backlight_bus_empty",
+        component="i2c",
+        severity="warning",
+        predicate=lambda hw: (
+            bool(hw.backlights)
+            and any(
+                b.name.startswith("11-") or b.name.startswith("1-")
+                for b in hw.backlights
+            )
+            and any(
+                b.bus in (1, 11)
+                and len(b.devices) == 0
+                for b in hw.i2c_buses
+            )
+        ),
+        message=lambda hw: (
+            "Backlight sysfs device exists but I2C scan found no devices on the backlight bus. "
+            + "Buses scanned: "
+            + ", ".join(
+                f"i2c-{b.bus} (0 devices)"
+                for b in hw.i2c_buses if b.bus in (1, 11) and not b.devices
+            )
+        ),
+        fix=(
+            "I2C scan returned empty — backlight chip not responding.\n"
+            "Check:\n"
+            "  i2cdetect -y 1    # expect 0x45 (backlight)\n"
+            "  i2cdetect -y 11   # RPi5 DSI I2C bus\n"
+            "Verify 4-pin header cable is firmly seated.\n"
+            "Check sysfs: cat /sys/class/backlight/*/brightness"
+        ),
+    ),
+    DiagnosticRule(
+        name="compositor_not_running",
+        component="compositor",
+        severity="warning",
+        predicate=lambda hw: (
+            _has_dsi_overlay(hw)
+            and bool(hw.compositor_processes) is not None
+            and "labwc" not in hw.compositor_processes
+            and "weston" not in hw.compositor_processes
+            and "sway" not in hw.compositor_processes
+        ),
+        message="No Wayland compositor (labwc/weston/sway) detected — kiosk cannot start",
+        fix=(
+            "Start labwc:\n"
+            "  systemctl --user start labwc\n"
+            "Or manually: WAYLAND_DISPLAY=wayland-0 labwc &\n"
+            "Check autostart: cat ~/.config/labwc/autostart\n"
+            "Check service: systemctl --user status labwc"
+        ),
+    ),
+    DiagnosticRule(
+        name="wayland_socket_missing",
+        component="compositor",
+        severity="warning",
+        predicate=lambda hw: (
+            _has_dsi_overlay(hw)
+            and bool(hw.compositor_processes)  # only warn if we could check
+            and not hw.wayland_sockets
+        ),
+        message=(
+            "Wayland socket not found in /run/user/<uid>/ — "
+            "compositor may have crashed or not started"
+        ),
+        fix=(
+            "Check: ls /run/user/$(id -u)/wayland-*\n"
+            "Check compositor status: systemctl --user status labwc\n"
+            "Check logs: journalctl --user -u labwc -n 50\n"
+            "XDG_RUNTIME_DIR must point to /run/user/$(id -u)"
+        ),
+    ),
+    DiagnosticRule(
+        name="chromium_not_running",
+        component="kiosk",
+        severity="info",
+        predicate=lambda hw: (
+            _has_dsi_overlay(hw)
+            and bool(hw.compositor_processes)
+            and "labwc" in hw.compositor_processes
+            and "chromium" not in hw.compositor_processes
+        ),
+        message="labwc is running but Chromium kiosk is not started",
+        fix=(
+            "Check kiosk autostart: cat ~/.config/labwc/autostart\n"
+            "Check kiosk-launch.sh script\n"
+            "Start manually: bash ~/kiosk-launch.sh &"
+        ),
+    ),
+    DiagnosticRule(
+        name="dpms_off",
+        component="display",
+        severity="warning",
+        predicate=lambda hw: any(
+            "DSI" in o.name and o.power_state == "off"
+            for o in hw.drm_outputs
+        ),
+        message=lambda hw: (
+            "DSI display is in DPMS OFF state — screen powered down by compositor. "
+            "Connector: "
+            + next(
+                (o.sysfs_path or o.name)
+                for o in hw.drm_outputs
+                if "DSI" in o.name and o.power_state == "off"
+            )
+        ),
+        fix=(
+            "Wake the display:\n"
+            "  WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) "
+            "wlr-randr --output DSI-2 --on\n"
+            "Or disable DPMS in compositor config.\n"
+            "Check: cat /sys/class/drm/card1-DSI-2/dpms"
         ),
     ),
     DiagnosticRule(

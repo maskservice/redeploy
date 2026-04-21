@@ -19,11 +19,7 @@ from rich.console import Console
     "--to", "to_src", default=None,
     help="Right side: IaC file/directory or SSH host"
 )
-@click.option(
-    "--format", "out_format", default="json",
-    type=click.Choice(["text", "json"]), show_default=True
-)
-def diff(ci_file, host, from_src, to_src, out_format):
+def diff(ci_file, host, from_src, to_src):
     """Compare IaC file vs live host (drift detection).  [Phase 3 — coming soon]
 
     \b

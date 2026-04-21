@@ -9,8 +9,8 @@ def _hw(**kwargs) -> HardwareInfo:
     return HardwareInfo(**kwargs)
 
 
-def _dsi_output(status="connected") -> DrmOutput:
-    return DrmOutput(name="card1-DSI-2", connector="DSI-2", status=status)
+def _dsi_output(status="connected", edid_bytes: int = 128) -> DrmOutput:
+    return DrmOutput(name="card1-DSI-2", connector="DSI-2", status=status, edid_bytes=edid_bytes)
 
 
 def _backlight(name="11-0045", brightness=200, bl_power=0) -> BacklightInfo:
@@ -137,7 +137,7 @@ def test_backlight_brightness_zero_flagged():
 def test_all_ok_emits_info():
     hw = _hw(
         dsi_overlays=["dtoverlay=vc4-kms-dsi-waveshare-panel,8_0_inch"],
-        drm_outputs=[_dsi_output("connected")],
+        drm_outputs=[_dsi_output("connected", edid_bytes=128)],
         backlights=[_backlight(brightness=200, bl_power=0)],
         wlr_outputs=[{"name": "DSI-2"}],
     )

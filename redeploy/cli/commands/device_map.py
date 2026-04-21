@@ -39,22 +39,21 @@ from rich.table import Table
 @click.option("--tag", "tags", multiple=True, help="Tag(s) to attach (repeatable)")
 @click.option("--save", is_flag=True, help="Persist map to ~/.config/redeploy/device-maps/")
 @click.option("--out", "out_path", default=None, type=click.Path(), help="Save to specific file")
-@click.option(
-    "--format", "output_fmt",
-    default="yaml",
-    type=click.Choice(["rich", "yaml", "json"]),
-    help="Output format",
-)
+@click.option("--format", "output_fmt", default="yaml",
+              type=click.Choice(["yaml", "json"]), help="Output format (default: yaml)")
 @click.option("--no-infra", is_flag=True, help="Skip infra probe (faster — hardware only)")
 @click.option("--list", "list_saved", is_flag=True, help="List saved device maps")
 @click.option("--show", "show_file", default=None, type=click.Path(exists=True),
               help="Load and display a saved device-map file")
 @click.option("--diff", "diff_files", nargs=2, type=click.Path(exists=True),
               help="Diff two saved device-map files")
+@click.option("--apply-config", "apply_config", default=None,
+              type=click.Path(exists=True, dir_okay=False),
+              help="Apply hardware/infra settings from YAML config file to the remote host")
 @click.option("--ssh-key", default=None, type=click.Path(), help="SSH private key path")
 def device_map_cmd(
     host, name, tags, save, out_path, output_fmt,
-    no_infra, list_saved, show_file, diff_files, ssh_key,
+    no_infra, list_saved, show_file, diff_files, ssh_key, apply_config,
 ):
     """Generate a full standardized device snapshot (hardware + infra + diagnostics).
 
@@ -65,9 +64,14 @@ def device_map_cmd(
     Examples:
         redeploy device-map pi@192.168.188.109
         redeploy device-map pi@192.168.188.109 --save --name "kiosk-lab"
-        redeploy device-map pi@192.168.188.109 --format yaml > rpi5.yaml
         redeploy device-map --list
         redeploy device-map --show ~/.config/redeploy/device-maps/pi_at_192.168.188.109.yaml
+
+    \b
+    Config-file workflow (scan → edit → apply):
+        redeploy device-map pi@192.168.188.109 > device-map.yaml
+        # edit device-map.yaml: set hardware.drm_outputs[0].transform: '270'
+        redeploy device-map pi@192.168.188.109 --apply-config device-map.yaml
     """
     from ...models import DeviceMap
 
@@ -81,7 +85,7 @@ def device_map_cmd(
     # ── --show ────────────────────────────────────────────────────────────────
     if show_file:
         dm = DeviceMap.load(Path(show_file))
-        _render(console, dm, output_fmt)
+        click.echo(dm.to_yaml())
         return
 
     # ── --diff ────────────────────────────────────────────────────────────────
@@ -153,14 +157,11 @@ def device_map_cmd(
     )
 
     # ── output ────────────────────────────────────────────────────────────────
-    if output_fmt in ("yaml", "json"):
-        if output_fmt == "yaml":
-            click.echo(dm.to_yaml())
-        else:
-            import json as _json
-            click.echo(_json.dumps(dm.model_dump(mode="json"), indent=2))
+    if output_fmt == "json":
+        import json as _json
+        click.echo(_json.dumps(dm.model_dump(mode="json"), indent=2))
     else:
-        _render(console, dm, "rich")
+        click.echo(dm.to_yaml())
 
     # ── save ──────────────────────────────────────────────────────────────────
     if save or out_path:
@@ -170,6 +171,143 @@ def device_map_cmd(
 
     if dm.has_errors:
         sys.exit(1)
+
+
+def _apply_config_from_file(console, config_path, ssh_key):
+    """Apply hardware/infra settings from YAML/JSON config file to the remote host.
+
+    Reads DeviceMap YAML/JSON and applies:
+    - Display transforms via wlr-randr + kanshi
+    - Backlight settings
+    - Other configurable hardware parameters
+    """
+    import yaml
+    import json as _json
+
+    from ...remote import Remote
+
+    with open(config_path) as f:
+        raw = f.read()
+
+    try:
+        cfg = yaml.safe_load(raw)
+    except Exception:
+        cfg = _json.loads(raw)
+
+    # Extract host from config or prompt
+    host = cfg.get("host")
+    if not host:
+        console.print("[red]✗ No 'host' field in config file[/red]")
+        sys.exit(1)
+
+    console.print(f"[cyan]→ Applying config from {config_path} to {host}[/cyan]")
+
+    # Connect to remote
+    p = Remote(host, ssh_key=ssh_key)
+
+    applied = 0
+
+    # ── display transforms ────────────────────────────────────────────────────
+    hardware = cfg.get("hardware", {})
+    for output in hardware.get("drm_outputs", []):
+        connector = output.get("connector", "")
+        transform = output.get("transform", "normal")
+        if not connector or not ("DSI" in connector or "HDMI" in connector):
+            continue
+
+        if transform == "normal":
+            console.print(f"[dim]  skip {connector}: transform=normal (default)[/dim]")
+            continue
+
+        console.print(f"[cyan]→ {connector}: transform={transform}[/cyan]")
+
+        # Apply via wlr-randr
+        wlr_cmd = (
+            f"WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) "
+            f"wlr-randr --output {connector} --transform {transform} 2>&1"
+        )
+        r = p.run(wlr_cmd)
+        if r.ok:
+            console.print(f"[green]  ✓ wlr-randr applied[/green]")
+            applied += 1
+        else:
+            console.print(f"[yellow]  ⚠ wlr-randr: {r.out.strip() or 'no output'}[/yellow]")
+
+    # ── persist DSI transforms in kanshi ─────────────────────────────────────────
+    dsi_outputs = [
+        o for o in hardware.get("drm_outputs", [])
+        if "DSI" in o.get("connector", "")
+    ]
+    if dsi_outputs:
+        _update_kanshi_from_cfg(console, p, dsi_outputs)
+
+    # ── backlight ─────────────────────────────────────────────────────────────
+    for bl in hardware.get("backlights", []):
+        name = bl.get("name", "")
+        brightness = bl.get("brightness")
+        bl_power = bl.get("bl_power")
+        if not name:
+            continue
+
+        if brightness is not None:
+            r = p.run(f"echo {brightness} | sudo tee /sys/class/backlight/{name}/brightness > /dev/null")
+            if r.ok:
+                console.print(f"[green]  ✓ backlight {name}: brightness={brightness}[/green]")
+                applied += 1
+
+        if bl_power is not None:
+            r = p.run(f"echo {bl_power} | sudo tee /sys/class/backlight/{name}/bl_power > /dev/null")
+            if r.ok:
+                console.print(f"[green]  ✓ backlight {name}: bl_power={bl_power}[/green]")
+                applied += 1
+
+    if applied == 0:
+        console.print("[yellow]Nothing to apply — no relevant settings found in config[/yellow]")
+    else:
+        console.print(f"\n[bold green]✓ Config applied from {config_path}[/bold green]")
+
+
+def _update_kanshi_from_cfg(console, p, dsi_outputs: list):
+    """Rebuild kanshi profile from drm_outputs list and write to ~/.config/kanshi/config."""
+    import re as _re
+
+    kanshi_cfg_path = "~/.config/kanshi/config"
+    read_r = p.run(f"cat {kanshi_cfg_path} 2>/dev/null")
+    current = read_r.out if read_r.ok else ""
+
+    for output in dsi_outputs:
+        connector = output.get("connector", "")
+        transform = output.get("transform", "normal")
+
+        output_line_pat = _re.compile(
+            rf'(\s*output\s+{_re.escape(connector)}\s+enable)(\s+transform\s+\S+)?'
+        )
+        if _re.search(output_line_pat, current):
+            if transform == "normal":
+                current = _re.sub(output_line_pat, r'\1', current)
+            else:
+                current = _re.sub(output_line_pat, rf'\1 transform {transform}', current)
+        elif current.strip():
+            current = _re.sub(
+                rf'(\s*output\s+{_re.escape(connector)}\b)',
+                rf'\1 transform {transform}' if transform != "normal" else r'\1',
+                current,
+            )
+        else:
+            current = (
+                f"profile waveshare-only {{\n"
+                f"    output {connector} enable"
+                + (f" transform {transform}" if transform != "normal" else "")
+                + "\n"
+                + "    output HDMI-A-2 disable\n"
+                + "}\n"
+            )
+
+    escaped = current.replace("'", "'\\''")
+    write_r = p.run(f"mkdir -p ~/.config/kanshi && printf '%s' '{escaped}' > {kanshi_cfg_path}")
+    if write_r.ok:
+        console.print(f"[green]  ✓ kanshi config updated ({kanshi_cfg_path})[/green]")
+    p.run("pkill -SIGUSR1 kanshi 2>/dev/null || true")
 
 
 # ── rendering helpers ─────────────────────────────────────────────────────────
