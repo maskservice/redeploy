@@ -197,26 +197,8 @@ def device_map_cmd(
 
 def _execute_query_device_map(console, dm, query_expr, output_fmt):
     """Execute JMESPath query on DeviceMap model and output result."""
-    import jmespath
-    import json as _json
-
-    data = dm.model_dump(mode="json")
-
-    try:
-        result = jmespath.search(query_expr, data)
-    except jmespath.exceptions.JMESPathError as e:
-        console.print(f"[red]✗ JMESPath error:[/red] {e}")
-        sys.exit(1)
-
-    if result is None:
-        console.print("[dim]No match found for query[/dim]")
-        return
-
-    if output_fmt == "json":
-        click.echo(_json.dumps(result, indent=2, default=str))
-    else:
-        import yaml
-        click.echo(yaml.safe_dump(result, sort_keys=False, default_flow_style=False))
+    from ...cli.query import execute_query
+    execute_query(dm, query_expr, output_fmt, echo=console.print)
 
 
 # ── rendering helpers ─────────────────────────────────────────────────────────

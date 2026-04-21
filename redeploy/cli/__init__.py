@@ -54,6 +54,7 @@ from .commands.device_map import device_map_cmd
 from .commands.blueprint import blueprint_cmd
 from .commands.init import init
 from .commands.status import status
+from .commands.bump_fix import bump_cmd, fix_cmd
 
 # Register commands
 cli.add_command(audit)
@@ -86,6 +87,8 @@ cli.add_command(status)
 cli.add_command(target)
 cli.add_command(version_cmd)
 cli.add_command(workflow_cmd)
+cli.add_command(bump_cmd, name="bump")
+cli.add_command(fix_cmd, name="fix")
 
 
 # Backward compatibility: _resolve_device for tests

@@ -142,7 +142,7 @@ release:
 # ── quality gate (pyqual analyze only — avoids LLM-based stages hanging) ──────
 quality:
 	@echo "🔍 Running quality gate (cc≤15, critical≤80) ..."
-	$(PYTHON) scripts/quality_gate.py
+	$(BIN)/python scripts/quality_gate.py
 
 quality-check: quality
 	@echo "✅ redeploy quality gate passed"

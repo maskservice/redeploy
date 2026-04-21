@@ -97,26 +97,8 @@ def capture(host, name, compose_files, migration_file, device_map_file,
 
 def _execute_query_blueprint(bp, query_expr, output_fmt):
     """Execute JMESPath query on DeviceBlueprint model and output result."""
-    import jmespath
-    import json as _json
-
-    data = bp.model_dump(mode="json")
-
-    try:
-        result = jmespath.search(query_expr, data)
-    except jmespath.exceptions.JMESPathError as e:
-        print(f"[red]✗ JMESPath error:[/red] {e}")
-        sys.exit(1)
-
-    if result is None:
-        print("[dim]No match found for query[/dim]")
-        return
-
-    if output_fmt == "json":
-        click.echo(_json.dumps(result, indent=2, default=str))
-    else:
-        import yaml
-        click.echo(yaml.safe_dump(result, sort_keys=False, default_flow_style=False))
+    from ...cli.query import execute_query
+    execute_query(bp, query_expr, output_fmt, echo=click.echo)
 
 
 # ── twin ──────────────────────────────────────────────────────────────────────

@@ -1,26 +1,13 @@
-"""Step library — pre-defined, reusable named MigrationSteps.
+"""Built-in :class:`MigrationStep` definitions organised by domain.
 
-Usage in a MigrationSpec::
-
-    extra_steps:
-      - id: flush_k3s_iptables   # references a library step by id
-      - id: stop_nginx
-      - id: http_health_check
-        url: https://myapp.example.com/health
-
-Usage from Python::
-
-    from redeploy.steps import StepLibrary
-    steps = StepLibrary.get("flush_k3s_iptables")
+Each constant is a frozen template returned by :func:`_step`; the
+:class:`~redeploy.steps.StepLibrary` registry collects them at import time.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
-from .models import ConflictSeverity, MigrationStep, StepAction
-
-
-# ── helpers ───────────────────────────────────────────────────────────────────
+from ..models import ConflictSeverity, MigrationStep, StepAction
 
 
 def _step(id: str, action: StepAction, description: str, **kw: Any) -> MigrationStep:
@@ -29,7 +16,7 @@ def _step(id: str, action: StepAction, description: str, **kw: Any) -> Migration
 
 # ── k3s / kube ────────────────────────────────────────────────────────────────
 
-_FLUSH_K3S_IPTABLES = _step(
+FLUSH_K3S_IPTABLES = _step(
     id="flush_k3s_iptables",
     action=StepAction.SSH_CMD,
     description="Flush k3s CNI-HOSTPORT-DNAT + KUBE-* chains (stale rules block Docker-proxy on 80/443)",
@@ -44,7 +31,7 @@ _FLUSH_K3S_IPTABLES = _step(
     risk=ConflictSeverity.LOW,
 )
 
-_DELETE_K3S_INGRESSES = _step(
+DELETE_K3S_INGRESSES = _step(
     id="delete_k3s_ingresses",
     action=StepAction.KUBECTL_DELETE,
     description="Delete k3s ingresses to remove iptables DNAT rules",
@@ -52,7 +39,7 @@ _DELETE_K3S_INGRESSES = _step(
     risk=ConflictSeverity.LOW,
 )
 
-_STOP_K3S = _step(
+STOP_K3S = _step(
     id="stop_k3s",
     action=StepAction.SYSTEMCTL_STOP,
     service="k3s",
@@ -62,7 +49,7 @@ _STOP_K3S = _step(
     rollback_command="systemctl start k3s",
 )
 
-_DISABLE_K3S = _step(
+DISABLE_K3S = _step(
     id="disable_k3s",
     action=StepAction.SYSTEMCTL_DISABLE,
     service="k3s",
@@ -71,9 +58,10 @@ _DISABLE_K3S = _step(
     risk=ConflictSeverity.LOW,
 )
 
+
 # ── nginx ─────────────────────────────────────────────────────────────────────
 
-_STOP_NGINX = _step(
+STOP_NGINX = _step(
     id="stop_nginx",
     action=StepAction.SYSTEMCTL_STOP,
     service="nginx",
@@ -83,9 +71,10 @@ _STOP_NGINX = _step(
     rollback_command="systemctl start nginx",
 )
 
+
 # ── traefik ───────────────────────────────────────────────────────────────────
 
-_RESTART_TRAEFIK = _step(
+RESTART_TRAEFIK = _step(
     id="restart_traefik",
     action=StepAction.SSH_CMD,
     description="Restart Traefik container",
@@ -93,9 +82,10 @@ _RESTART_TRAEFIK = _step(
     risk=ConflictSeverity.LOW,
 )
 
+
 # ── docker ────────────────────────────────────────────────────────────────────
 
-_DOCKER_PRUNE = _step(
+DOCKER_PRUNE = _step(
     id="docker_prune",
     action=StepAction.SSH_CMD,
     description="Prune unused Docker images and build cache",
@@ -103,7 +93,7 @@ _DOCKER_PRUNE = _step(
     risk=ConflictSeverity.LOW,
 )
 
-_DOCKER_COMPOSE_DOWN = _step(
+DOCKER_COMPOSE_DOWN = _step(
     id="docker_compose_down",
     action=StepAction.DOCKER_COMPOSE_DOWN,
     description="Stop Docker Compose stack",
@@ -112,9 +102,10 @@ _DOCKER_COMPOSE_DOWN = _step(
     rollback_command="docker compose up -d",
 )
 
+
 # ── waits ─────────────────────────────────────────────────────────────────────
 
-_WAIT_30 = _step(
+WAIT_30 = _step(
     id="wait_startup",
     action=StepAction.WAIT,
     description="Wait 30 s for services to start",
@@ -122,7 +113,7 @@ _WAIT_30 = _step(
     risk=ConflictSeverity.LOW,
 )
 
-_WAIT_60 = _step(
+WAIT_60 = _step(
     id="wait_startup_long",
     action=StepAction.WAIT,
     description="Wait 60 s for services to start (slow build)",
@@ -130,9 +121,10 @@ _WAIT_60 = _step(
     risk=ConflictSeverity.LOW,
 )
 
+
 # ── verify ────────────────────────────────────────────────────────────────────
 
-_HTTP_HEALTH_CHECK = _step(
+HTTP_HEALTH_CHECK = _step(
     id="http_health_check",
     action=StepAction.HTTP_CHECK,
     description="Verify backend health endpoint",
@@ -141,7 +133,7 @@ _HTTP_HEALTH_CHECK = _step(
     risk=ConflictSeverity.LOW,
 )
 
-_VERSION_CHECK = _step(
+VERSION_CHECK = _step(
     id="version_check",
     action=StepAction.VERSION_CHECK,
     description="Verify deployed version",
@@ -150,9 +142,10 @@ _VERSION_CHECK = _step(
     risk=ConflictSeverity.LOW,
 )
 
+
 # ── data / env ────────────────────────────────────────────────────────────────
 
-_SYNC_ENV = _step(
+SYNC_ENV = _step(
     id="sync_env",
     action=StepAction.SCP,
     description="Copy .env file to remote",
@@ -161,9 +154,10 @@ _SYNC_ENV = _step(
     risk=ConflictSeverity.LOW,
 )
 
+
 # ── quadlet / podman ─────────────────────────────────────────────────────────
 
-_PODMAN_DAEMON_RELOAD = _step(
+PODMAN_DAEMON_RELOAD = _step(
     id="podman_daemon_reload",
     action=StepAction.SYSTEMCTL_START,
     description="Reload systemd to pick up Quadlet unit files",
@@ -171,7 +165,7 @@ _PODMAN_DAEMON_RELOAD = _step(
     risk=ConflictSeverity.LOW,
 )
 
-_STOP_PODMAN = _step(
+STOP_PODMAN = _step(
     id="stop_podman",
     action=StepAction.SYSTEMCTL_STOP,
     service="podman",
@@ -181,7 +175,7 @@ _STOP_PODMAN = _step(
     rollback_command="systemctl start podman.service 2>/dev/null || true",
 )
 
-_ENABLE_PODMAN_UNIT = _step(
+ENABLE_PODMAN_UNIT = _step(
     id="enable_podman_unit",
     action=StepAction.SYSTEMCTL_START,
     description="Enable and start a Podman Quadlet unit (set service= to override)",
@@ -189,9 +183,10 @@ _ENABLE_PODMAN_UNIT = _step(
     risk=ConflictSeverity.LOW,
 )
 
+
 # ── systemd generic ───────────────────────────────────────────────────────────
 
-_SYSTEMCTL_RESTART = _step(
+SYSTEMCTL_RESTART = _step(
     id="systemctl_restart",
     action=StepAction.SYSTEMCTL_START,
     description="Restart a systemd service (set command= to override)",
@@ -199,7 +194,7 @@ _SYSTEMCTL_RESTART = _step(
     risk=ConflictSeverity.LOW,
 )
 
-_SYSTEMCTL_DAEMON_RELOAD = _step(
+SYSTEMCTL_DAEMON_RELOAD = _step(
     id="systemctl_daemon_reload",
     action=StepAction.SSH_CMD,
     description="Reload systemd daemon",
@@ -207,9 +202,10 @@ _SYSTEMCTL_DAEMON_RELOAD = _step(
     risk=ConflictSeverity.LOW,
 )
 
+
 # ── git ───────────────────────────────────────────────────────────────────────
 
-_GIT_PULL = _step(
+GIT_PULL = _step(
     id="git_pull",
     action=StepAction.SSH_CMD,
     description="Pull latest code from git (cd to remote_dir first)",
@@ -218,9 +214,10 @@ _GIT_PULL = _step(
     rollback_command="git -C ~/app reset --hard HEAD@{1}",
 )
 
-# ── process control ─────────────────────────────────────────────────────────────
 
-_KILL_PROCESSES_ON_PORTS = _step(
+# ── process control ───────────────────────────────────────────────────────────
+
+KILL_PROCESSES_ON_PORTS = _step(
     id="kill_processes_on_ports",
     action=StepAction.PLUGIN,
     plugin_type="process_control",
@@ -229,7 +226,7 @@ _KILL_PROCESSES_ON_PORTS = _step(
     risk=ConflictSeverity.LOW,
 )
 
-_KILL_DEV_PROCESSES = _step(
+KILL_DEV_PROCESSES = _step(
     id="kill_dev_processes",
     action=StepAction.PLUGIN,
     plugin_type="process_control",
@@ -238,9 +235,10 @@ _KILL_DEV_PROCESSES = _step(
     risk=ConflictSeverity.LOW,
 )
 
+
 # ── hardware diagnostic ─────────────────────────────────────────────────────────
 
-_HARDWARE_DIAGNOSTIC = _step(
+HARDWARE_DIAGNOSTIC = _step(
     id="hardware_diagnostic",
     action=StepAction.PLUGIN,
     plugin_type="hardware_diagnostic",
@@ -249,80 +247,29 @@ _HARDWARE_DIAGNOSTIC = _step(
     risk=ConflictSeverity.LOW,
 )
 
-# ── registry ──────────────────────────────────────────────────────────────────
 
-_LIBRARY: dict[str, MigrationStep] = {
-    s.id: s for s in [
-        _FLUSH_K3S_IPTABLES,
-        _DELETE_K3S_INGRESSES,
-        _STOP_K3S,
-        _DISABLE_K3S,
-        _STOP_NGINX,
-        _RESTART_TRAEFIK,
-        _DOCKER_PRUNE,
-        _DOCKER_COMPOSE_DOWN,
-        _WAIT_30,
-        _WAIT_60,
-        _HTTP_HEALTH_CHECK,
-        _VERSION_CHECK,
-        _SYNC_ENV,
-        _PODMAN_DAEMON_RELOAD,
-        _STOP_PODMAN,
-        _ENABLE_PODMAN_UNIT,
-        _SYSTEMCTL_RESTART,
-        _SYSTEMCTL_DAEMON_RELOAD,
-        _GIT_PULL,
-        _KILL_PROCESSES_ON_PORTS,
-        _KILL_DEV_PROCESSES,
-        _HARDWARE_DIAGNOSTIC,
-    ]
-}
-
-
-class StepLibrary:
-    """Registry of pre-defined named MigrationSteps.
-
-    Steps are returned as copies so callers can override individual fields::
-
-        step = StepLibrary.get("http_health_check")
-        step.url = "https://myapp.example.com/health"
-        step.expect = "1.0.20"
-    """
-
-    @staticmethod
-    def get(step_id: str, **overrides: Any) -> Optional[MigrationStep]:
-        """Return a copy of a named step, optionally with field overrides.
-
-        Returns ``None`` if the step_id is not in the library.
-        """
-        template = _LIBRARY.get(step_id)
-        if template is None:
-            return None
-        data = template.model_dump()
-        data.update(overrides)
-        return MigrationStep(**data)
-
-    @staticmethod
-    def list() -> list[str]:
-        """Return sorted list of available step IDs."""
-        return sorted(_LIBRARY.keys())
-
-    @staticmethod
-    def all() -> dict[str, MigrationStep]:
-        """Return full registry (copies)."""
-        return {k: v.model_copy() for k, v in _LIBRARY.items()}
-
-    @staticmethod
-    def resolve_from_spec(raw: dict[str, Any]) -> MigrationStep:
-        """Resolve a raw dict (from migration YAML extra_steps) to a MigrationStep.
-
-        If ``id`` matches a library entry and no ``action`` is given, use the
-        library template as base and merge the raw dict on top.
-        """
-        step_id = raw.get("id", "")
-        template = _LIBRARY.get(step_id)
-        if template:
-            data = template.model_dump()
-            data.update({k: v for k, v in raw.items() if v is not None})
-            return MigrationStep(**data)
-        return MigrationStep(**raw)
+# Flat list consumed by the registry in ``__init__.py``.
+ALL: list[MigrationStep] = [
+    FLUSH_K3S_IPTABLES,
+    DELETE_K3S_INGRESSES,
+    STOP_K3S,
+    DISABLE_K3S,
+    STOP_NGINX,
+    RESTART_TRAEFIK,
+    DOCKER_PRUNE,
+    DOCKER_COMPOSE_DOWN,
+    WAIT_30,
+    WAIT_60,
+    HTTP_HEALTH_CHECK,
+    VERSION_CHECK,
+    SYNC_ENV,
+    PODMAN_DAEMON_RELOAD,
+    STOP_PODMAN,
+    ENABLE_PODMAN_UNIT,
+    SYSTEMCTL_RESTART,
+    SYSTEMCTL_DAEMON_RELOAD,
+    GIT_PULL,
+    KILL_PROCESSES_ON_PORTS,
+    KILL_DEV_PROCESSES,
+    HARDWARE_DIAGNOSTIC,
+]

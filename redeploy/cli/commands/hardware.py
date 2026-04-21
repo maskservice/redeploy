@@ -281,26 +281,8 @@ def _apply_transform(console, p, hw, transform):
 
 def _execute_query(hw, query_expr, output_fmt):
     """Execute JMESPath query on hardware model and output result."""
-    import jmespath
-    import json as _json
-
-    data = hw.model_dump(mode="json")
-
-    try:
-        result = jmespath.search(query_expr, data)
-    except jmespath.exceptions.JMESPathError as e:
-        click.echo(f"[red]✗ JMESPath error:[/red] {e}", err=True)
-        sys.exit(1)
-
-    if result is None:
-        click.echo("[dim]No match found for query[/dim]")
-        return
-
-    if output_fmt == "json":
-        click.echo(_json.dumps(result, indent=2, default=str))
-    else:
-        import yaml
-        click.echo(yaml.safe_dump(result, sort_keys=False, default_flow_style=False))
+    from ...cli.query import execute_query
+    execute_query(hw, query_expr, output_fmt, echo=lambda msg: click.echo(msg, err=True))
 
 
 def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
