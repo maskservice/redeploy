@@ -126,7 +126,7 @@ def run_detect_for_spec(
     d = Detector(host=spec.source.host, app=spec.source.app, domain=spec.source.domain)
     state = d.run()
     console.print(
-        f"  detected: {state.detected_strategy.value}  "
+        f"  detected: {state.detected_strategy}  "
         f"version={state.current_version or '?'}  "
         f"conflicts={len(state.conflicts)}"
     )

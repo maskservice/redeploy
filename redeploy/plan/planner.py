@@ -25,7 +25,7 @@ class Planner:
 
     def run(self) -> MigrationPlan:
         logger.info(
-            f"Planning migration: {self.state.detected_strategy.value}"
+            f"Planning migration: {self.state.detected_strategy}"
             f" → {self.target.strategy.value}"
         )
 

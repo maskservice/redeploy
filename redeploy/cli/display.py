@@ -36,7 +36,7 @@ def print_infrastructure_summary(console: "Console", state, host: str) -> None:
     t.add_column("key", style="dim")
     t.add_column("value")
     t.add_row("App", state.app)
-    t.add_row("Strategy (detected)", state.detected_strategy.value)
+    t.add_row("Strategy (detected)", state.detected_strategy)
     t.add_row("Version", state.current_version or "unknown")
     t.add_row("Docker", state.runtime.docker or "—")
     t.add_row("k3s", state.runtime.k3s or "—")

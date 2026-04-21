@@ -399,6 +399,40 @@ class DockerComposeParser:
     def _parse_service_command(self, cfg: dict) -> Optional[str]:
         return str(cfg["command"]) if cfg.get("command") else None
 
+    def _build_service_info(
+        self,
+        *,
+        name: str,
+        cfg: dict,
+        image: Optional[str],
+        ports: list[PortInfo],
+        volumes: list[VolumeInfo],
+        env: dict[str, str],
+        env_files: list[str],
+        svc_networks: list[str],
+        depends_on: list[str],
+        healthcheck: Optional[str],
+        build_context: Optional[str],
+        replicas: int,
+        labels: dict[str, str],
+    ) -> ServiceInfo:
+        return ServiceInfo(
+            name=name,
+            image=image,
+            ports=ports,
+            volumes=volumes,
+            env=env,
+            env_files=env_files,
+            networks=svc_networks,
+            depends_on=depends_on,
+            healthcheck=healthcheck,
+            restart=cfg.get("restart"),
+            command=self._parse_service_command(cfg),
+            build_context=build_context,
+            replicas=replicas,
+            labels=labels,
+        )
+
     def _parse_service(self, name: str, cfg: dict,
                        env_context: dict[str, str],
                        spec: ParsedSpec) -> ServiceInfo:
@@ -413,18 +447,17 @@ class DockerComposeParser:
         replicas = self._parse_service_replicas(cfg)
         labels = self._parse_service_labels(cfg)
 
-        return ServiceInfo(
+        return self._build_service_info(
             name=name,
+            cfg=cfg,
             image=image,
             ports=ports,
             volumes=volumes,
             env=env,
             env_files=env_files,
-            networks=svc_networks,
+            svc_networks=svc_networks,
             depends_on=depends_on,
             healthcheck=healthcheck,
-            restart=cfg.get("restart"),
-            command=self._parse_service_command(cfg),
             build_context=build_context,
             replicas=replicas,
             labels=labels,

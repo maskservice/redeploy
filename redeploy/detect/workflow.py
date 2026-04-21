@@ -398,7 +398,7 @@ class DetectionWorkflow:
                 host_res = self._deep_detect(host_res)
                 if host_res.state:
                     logger.info(
-                        f"[workflow]   strategy={host_res.state.detected_strategy.value}  "
+                        f"[workflow]   strategy={host_res.state.detected_strategy}  "
                         f"ports={sorted(host_res.state.ports.keys())}  "
                         f"conflicts={len(host_res.state.conflicts)}"
                     )

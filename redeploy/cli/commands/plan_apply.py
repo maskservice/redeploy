@@ -186,7 +186,7 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
     state = d.run()
     d.save(state, Path(infra_out))
     console.print(
-        f"  Strategy: {state.detected_strategy.value}  "
+        f"  Strategy: {state.detected_strategy}  "
         f"  Version: {state.current_version or '?'}  "
         f"  Conflicts: {len(state.conflicts)}"
     )
@@ -412,7 +412,7 @@ def _perform_live_detect(console, spec):
     )
     state = d.run()
     console.print(
-        f"  detected: {state.detected_strategy.value}  "
+        f"  detected: {state.detected_strategy}  "
         f"version={state.current_version or '?'}  "
         f"conflicts={len(state.conflicts)}"
     )

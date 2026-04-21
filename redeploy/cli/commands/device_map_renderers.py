@@ -147,7 +147,7 @@ def render_rich(console: Console, dm: "DeviceMap") -> None:
         ]
         rt_str = "  ".join(r for r in runtimes if r) or "—"
         console.print(
-            f"\n[bold]Infra[/bold]  strategy=[cyan]{infra.detected_strategy.value}[/cyan]"
+            f"\n[bold]Infra[/bold]  strategy=[cyan]{infra.detected_strategy}[/cyan]"
             f"  version={infra.current_version or '?'}  {rt_str}"
         )
 
