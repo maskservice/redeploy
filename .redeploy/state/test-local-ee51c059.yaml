@@ -1,0 +1,10 @@
+spec_path: /tmp/pytest-of-tom/pytest-469/test_command_ref_missing_secti0/test.md
+host: local
+total_steps: 1
+completed_step_ids: []
+failed_step_id: script_ref_fail
+failed_error: '[script_ref_fail] Could not find bash script for ref ''nonexistent-section''
+  in /tmp/pytest-of-tom/pytest-469/test_command_ref_missing_secti0/test.md (tried
+  markpact:ref and section heading)'
+started_at: '2026-04-21T15:34:45+00:00'
+updated_at: '2026-04-21T15:34:45+00:00'

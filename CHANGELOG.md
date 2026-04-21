@@ -32,6 +32,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Migration specs can now use inline_script for cleaner deployment scripts (no base64 encoding in YAML)
 
+## [0.2.45] - 2026-04-21
+
+### Docs
+- Update README.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update tests/integration/__init__.py
+- Update tests/integration/test_op3_bridge.py
+
+### Other
+- Update .pyqual/pipeline.db
+- Update .redeploy/state/test-local-ee51c059.yaml
+- Update Makefile
+- Update project/analysis.toon.yaml
+- Update redeploy/cli/commands/device_map.py
+- Update redeploy/cli/commands/hardware.py
+- Update redeploy/config_apply/__init__.py
+- Update redeploy/config_apply/applier.py
+- Update redeploy/config_apply/loader.py
+- Update redeploy/integrations/__init__.py
+- ... and 1 more files
+
 ## [0.2.44] - 2026-04-21
 
 ### Docs

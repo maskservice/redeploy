@@ -113,7 +113,8 @@ def device_map_cmd(
 
     # ── --apply-config ─────────────────────────────────────────────────────────
     if apply_config:
-        _apply_config_from_file(console, apply_config, ssh_key)
+        from ...config_apply import apply_config_file
+        apply_config_file(apply_config, ssh_key=ssh_key, console=console)
         return
 
     # ── probe ─────────────────────────────────────────────────────────────────

@@ -139,12 +139,10 @@ release:
 	git push origin v$(VERSION)
 	@echo "✅ Released v$(VERSION)"
 
-# ── quality gate (pyqual + toon) ─────────────────────────────────────────────
+# ── quality gate (pyqual) ────────────────────────────────────────────────────
 quality:
-	@echo "🔍 toon scan ..."
-	toon scan . -f toon -o .toon.yaml || true
-	@echo "🔍 pyqual check (cc≤15, critical≤80) ..."
-	pyqual check --cc-max 15 --critical-max 80
+	@echo "🔍 pyqual run (cc≤15, critical≤80) ..."
+	pyqual run
 
 quality-check: quality
 	@echo "✅ redeploy quality gate passed"
