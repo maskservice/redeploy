@@ -6,7 +6,7 @@ SUMMARY:
   dup_groups:    6
   dup_fragments: 15
   saved_lines:   83
-  scan_ms:       4119
+  scan_ms:       3875
 
 HOTSPOTS[7] (files with most duplication):
   redeploy/version.py  dup=77L  groups=4  frags=4  (0.4%)
