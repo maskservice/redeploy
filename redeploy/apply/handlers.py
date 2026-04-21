@@ -405,14 +405,36 @@ def run_raspi_config(step: MigrationStep, probe: "RemoteProbe") -> None:
 def run_ensure_kanshi_profile(step: MigrationStep, probe: "RemoteProbe") -> None:
     """Idempotently write or replace a named kanshi output profile.
 
-    step.command   — the profile block to write (rendered kanshi syntax)
-    step.config_file — kanshi config path (default: ~/.config/kanshi/config)
+    Declarative mode (preferred)::
+
+        profile_name: waveshare-only
+        outputs_on: [DSI-2]
+        outputs_off: [HDMI-A-2]
+
+    Legacy mode (pre-rendered block)::
+
+        step.command   — the profile block to write (rendered kanshi syntax)
+        step.config_file — kanshi config path (default: ~/.config/kanshi/config)
     """
     from ..hardware.kiosk.output_profiles import OutputProfile
 
-    profile_block = step.command
+    # Declarative mode: build profile from semantic fields
+    if step.profile_name:
+        profile = OutputProfile(
+            name=step.profile_name,
+            enabled=list(step.outputs_on),
+            disabled=list(step.outputs_off),
+        )
+        profile_block = profile.to_kanshi_config()
+    else:
+        profile_block = step.command
+
     if not profile_block:
-        raise StepError(step, "ensure_kanshi_profile requires step.command with profile block")
+        raise StepError(
+            step,
+            "ensure_kanshi_profile requires profile_name+outputs_on/outputs_off "
+            "or step.command with pre-rendered profile block",
+        )
 
     config_path = step.config_file or "~/.config/kanshi/config"
     mkdir_cmd = f"mkdir -p $(dirname {config_path})"
@@ -462,56 +484,116 @@ def run_ensure_kanshi_profile(step: MigrationStep, probe: "RemoteProbe") -> None
 
 
 def run_ensure_autostart_entry(step: MigrationStep, probe: "RemoteProbe") -> None:
-    """Idempotently add or replace a keyed entry in a compositor autostart file.
+    """Idempotently add or replace keyed entries in a compositor autostart file.
 
-    step.config_file — path to autostart file
-    step.config_line — the line to write (the entry body)
-    step.config_section — used as the entry key for idempotent marker
+    Declarative mode (preferred)::
+
+        compositor: labwc
+        entries:
+          - "kanshid &"
+          - "sleep 3"
+          - "bash /home/pi/c2004/scripts/kiosk-launch.sh &"
+
+    Legacy mode (single entry)::
+
+        step.config_file — path to autostart file
+        step.config_line — the line to write (the entry body)
+        step.config_section — used as the entry key for idempotent marker
     """
     from ..hardware.kiosk.autostart import AutostartEntry, ensure_autostart_entry
+    from ..hardware.kiosk.compositors import COMPOSITORS
 
-    if not step.config_file or not step.config_line:
-        raise StepError(step, "ensure_autostart_entry requires config_file and config_line")
+    # Determine autostart path
+    config_file = step.config_file
+    if not config_file and step.compositor:
+        comp = COMPOSITORS.get(step.compositor)
+        if not comp:
+            raise StepError(step, f"Unknown compositor '{step.compositor}'")
+        config_file = comp.autostart_abs()
+    if not config_file:
+        raise StepError(step, "ensure_autostart_entry requires config_file or compositor")
 
-    key = step.config_section or "redeploy"
-    entry = AutostartEntry(key=key, line=step.config_line)
+    # Collect entries to apply
+    entries: list[AutostartEntry] = []
+    if step.entries:
+        for i, line in enumerate(step.entries):
+            key = f"redeploy-{i}-{line.split()[0] if line else 'entry'}"
+            entries.append(AutostartEntry(key=key, line=line))
+    elif step.config_line:
+        key = step.config_section or "redeploy"
+        entries.append(AutostartEntry(key=key, line=step.config_line))
 
-    r = probe.run(f"cat {step.config_file} 2>/dev/null || echo ''", timeout=10)
+    if not entries:
+        raise StepError(step, "ensure_autostart_entry requires entries or config_line")
+
+    r = probe.run(f"cat {config_file} 2>/dev/null || echo ''", timeout=10)
     existing = r.out if r.ok else ""
 
-    new_content, changed = ensure_autostart_entry(existing, entry)
-    if not changed:
+    changed_any = False
+    new_content = existing
+    for entry in entries:
+        new_content, changed = ensure_autostart_entry(new_content, entry)
+        if changed:
+            changed_any = True
+
+    if not changed_any:
         step.status = StepStatus.DONE
-        step.result = f"no-op: entry [{key}] already correct"
+        step.result = f"no-op: {len(entries)} autostart entry(ies) already correct"
         return
 
-    mkdir_cmd = f"mkdir -p $(dirname {step.config_file})"
+    mkdir_cmd = f"mkdir -p $(dirname {config_file})"
     probe.run(mkdir_cmd, timeout=10)
 
     encoded = base64.b64encode(new_content.encode()).decode()
     tmp = f"/tmp/redeploy-autostart-{step.id}.txt"
     write_r = probe.run(
-        f"echo '{encoded}' | base64 -d | tee {tmp} > /dev/null && mv {tmp} {step.config_file}",
+        f"echo '{encoded}' | base64 -d | tee {tmp} > /dev/null && mv {tmp} {config_file}",
         timeout=15,
     )
     if not write_r.ok:
-        raise StepError(step, f"Cannot write {step.config_file}: {write_r.stderr[:200]}")
+        raise StepError(step, f"Cannot write {config_file}: {write_r.stderr[:200]}")
 
     step.status = StepStatus.DONE
-    step.result = f"entry [{key}] written to {step.config_file}"
+    step.result = f"{len(entries)} autostart entry(ies) written to {config_file}"
 
 
 def run_ensure_browser_kiosk_script(step: MigrationStep, probe: "RemoteProbe") -> None:
     """Write a kiosk-launch.sh script to the remote device.
 
-    step.command   — the full script content to write
-    step.dst       — destination path (default: ~/kiosk-launch.sh)
-    """
-    script_content = step.command
-    if not script_content:
-        raise StepError(step, "ensure_browser_kiosk_script requires step.command with script body")
+    Declarative mode (preferred)::
 
-    dst = step.dst or "~/kiosk-launch.sh"
+        browser_profile: chromium_wayland_kiosk
+        url: "http://localhost:8100/connect-id?font=xlarge&theme=dark"
+        kiosk_script_path: /home/pi/c2004/scripts/kiosk-launch.sh
+
+    Legacy mode (pre-rendered script)::
+
+        step.command   — the full script content to write
+        step.dst       — destination path (default: ~/kiosk-launch.sh)
+    """
+    from ..hardware.kiosk.browsers import CHROMIUM_WAYLAND_KIOSK
+
+    # Declarative mode: build script from profile + URL
+    if step.browser_profile:
+        # Registry lookup (extend when more profiles exist)
+        if step.browser_profile == "chromium_wayland_kiosk":
+            profile = CHROMIUM_WAYLAND_KIOSK
+        else:
+            raise StepError(step, f"Unknown browser_profile '{step.browser_profile}'")
+        if not step.url:
+            raise StepError(step, "browser_profile mode requires 'url' field")
+        script_content = profile.build_launch_cmd(step.url)
+    else:
+        script_content = step.command
+
+    if not script_content:
+        raise StepError(
+            step,
+            "ensure_browser_kiosk_script requires browser_profile+url "
+            "or step.command with pre-rendered script body",
+        )
+
+    dst = step.kiosk_script_path or step.dst or "~/kiosk-launch.sh"
 
     r = probe.run(f"cat {dst} 2>/dev/null || echo ''", timeout=10)
     existing = r.out if r.ok else ""

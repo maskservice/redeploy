@@ -4,688 +4,392 @@
 
 - **Project**: /home/tom/github/maskservice/redeploy
 - **Primary Language**: python
-- **Languages**: python: 132, shell: 2
+- **Languages**: python: 15, shell: 2
 - **Analysis Mode**: static
-- **Total Functions**: 759
-- **Total Classes**: 147
-- **Modules**: 134
-- **Entry Points**: 449
+- **Total Functions**: 83
+- **Total Classes**: 24
+- **Modules**: 17
+- **Entry Points**: 73
 
 ## Architecture by Module
 
-### redeploy.audit
-- **Functions**: 32
-- **Classes**: 6
-- **File**: `audit.py`
-
-### redeploy.models
-- **Functions**: 29
-- **Classes**: 33
-- **File**: `models.py`
-
-### redeploy.discovery
-- **Functions**: 26
-- **Classes**: 2
-- **File**: `discovery.py`
-
-### redeploy.cli.display
-- **Functions**: 25
-- **File**: `display.py`
-
-### redeploy.fleet
-- **Functions**: 23
-- **Classes**: 6
-- **File**: `fleet.py`
-
 ### redeploy.plan.planner
-- **Functions**: 21
+- **Functions**: 18
 - **Classes**: 1
 - **File**: `planner.py`
 
-### redeploy.apply.handlers
-- **Functions**: 20
-- **File**: `handlers.py`
-
-### redeploy.cli.commands.version.scanner
-- **Functions**: 18
-- **File**: `scanner.py`
-
 ### redeploy.ssh
-- **Functions**: 17
+- **Functions**: 16
 - **Classes**: 4
 - **File**: `ssh.py`
 
-### redeploy.detect.hardware
-- **Functions**: 15
-- **File**: `hardware.py`
-
-### redeploy.version.changelog
-- **Functions**: 15
-- **Classes**: 1
-- **File**: `changelog.py`
-
-### redeploy.observe
-- **Functions**: 14
-- **Classes**: 3
-- **File**: `observe.py`
-
-### redeploy.cli.commands.hardware
-- **Functions**: 13
-- **File**: `hardware.py`
-
 ### redeploy.apply.executor
-- **Functions**: 13
-- **Classes**: 1
+- **Functions**: 14
+- **Classes**: 2
 - **File**: `executor.py`
 
-### redeploy.version.git_integration
-- **Functions**: 13
-- **Classes**: 2
-- **File**: `git_integration.py`
+### redeploy.detect.probes
+- **Functions**: 9
+- **File**: `probes.py`
 
-### redeploy.iac.parsers.compose
-- **Functions**: 13
+### redeploy.cli
+- **Functions**: 7
+- **File**: `cli.py`
+
+### redeploy.verify
+- **Functions**: 7
 - **Classes**: 1
-- **File**: `compose.py`
+- **File**: `verify.py`
 
-### redeploy.iac.base
-- **Functions**: 13
-- **Classes**: 7
-- **File**: `base.py`
+### redeploy.version
+- **Functions**: 4
+- **File**: `version.py`
 
-### redeploy.apply.state
-- **Functions**: 13
+### redeploy.detect.detector
+- **Functions**: 3
 - **Classes**: 1
-- **File**: `state.py`
+- **File**: `detector.py`
 
-### redeploy.detect.workflow
-- **Functions**: 12
-- **Classes**: 3
-- **File**: `workflow.py`
+### redeploy.models
+- **Functions**: 3
+- **Classes**: 15
+- **File**: `models.py`
 
-### redeploy.dsl.loader
-- **Functions**: 12
-- **Classes**: 3
-- **File**: `loader.py`
+### redeploy.data_sync
+- **Functions**: 2
+- **File**: `data_sync.py`
 
 ## Key Entry Points
 
 Main execution flows into the system:
 
-### redeploy.iac.docker_compose.DockerComposeParser._parse_service
-- **Calls**: cfg.get, redeploy.iac.docker_compose._env_dict, cfg.get, cfg.get, isinstance, cfg.get, isinstance, cfg.get
-
-### redeploy.cli.commands.device_map.device_map_cmd
-> Generate a full standardized device snapshot (hardware + infra + diagnostics).
-
-The DeviceMap is a portable, persisted YAML file that captures the com
-- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.cli.commands.version.commands.version_init
-> Initialize .redeploy/version.yaml manifest.
-- **Calls**: version_cmd.command, click.option, click.option, click.option, click.option, click.option, Console, Path
-
-### redeploy.cli.commands.device_map._render
-- **Calls**: console.print, console.print, console.print, click.echo, click.echo, None.join, Panel, console.print
-
-### redeploy.cli.commands.audit.audit
-> Show deploy audit log from ~/.config/redeploy/audit.jsonl.
-
-
-Examples:
-    redeploy audit
-    redeploy audit --last 50 --failed
-    redeploy audit --
-- **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.cli.commands.probe.probe
-> Autonomously probe one or more hosts — detect SSH credentials, strategy, app.
-
-Tries all available SSH keys (~/.ssh/) and common usernames.
-Detects de
-- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.cli.commands.patterns.patterns
-> List available deploy patterns or show detail for one.
-
-
-Examples:
-    redeploy patterns
-    redeploy patterns blue_green
-    redeploy patterns canar
-- **Calls**: click.command, click.argument, Console, console.print, Table, t.add_column, t.add_column, t.add_column
-
-### redeploy.cli.commands.hardware.hardware
-> Probe and diagnose hardware on a remote host.
-
-Checks DSI display, DRM connectors, backlight controller, I2C buses,
-config.txt overlays and Wayland co
-- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.cli.commands.import_.import_cmd
-> Parse an IaC/CI-CD file and produce a migration.yaml scaffold.
-
-Auto-detects format from filename. Supports docker-compose.yml (Tier 1).
-GitHub Action
-- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.cli.commands.plan_apply.migrate
-> Full pipeline: detect → plan → apply.
-- **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.cli.commands.plan_apply.plan
-> Generate migration-plan.yaml from infra.yaml + target config.
-- **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.cli.commands.plan_apply.run
+### redeploy.cli.run
 > Execute migration from a single YAML spec (source + target in one file).
 
-SPEC defaults to migration.yaml (or value from redeploy.yaml manifest).
+SPEC defaults to migration.yaml.
 
 
-E
-- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
+Example:
+    redeploy run examples/k3s-t
+- **Calls**: cli.command, click.argument, click.option, click.option, click.option, click.option, click.option, Console
 
-### redeploy.cli.commands.exec_.exec_cmd
-> Execute a script from a markdown codeblock by reference.
+### redeploy.cli.detect
+> Probe infrastructure and produce infra.yaml.
+- **Calls**: cli.command, click.option, click.option, click.option, click.option, Console, Path, console.print
 
-REF format: #section-id or ./file.md#section-id or just ref-id (for markpact:ref)
+### redeploy.cli.plan
+> Generate migration-plan.yaml from infra.yaml + target config.
+- **Calls**: cli.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
 
-Extracts 
-- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, Console, console.print
-
-### redeploy.cli.commands.push.push
-> Apply desired-state YAML/JSON file(s) to a remote host.
-
-Reads each FILE, detects its schema (hardware, infra, …) and applies
-only the settings that d
-- **Calls**: click.command, click.argument, click.argument, click.option, click.option, Console, console.print, RemoteProbe
-
-### redeploy.cli.commands.version.commands.version_bump
-> Bump version across all sources atomically.
-
-Examples:
-    redeploy version bump patch
-    redeploy version bump patch --commit --tag --push
-    redep
-- **Calls**: version_cmd.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.cli.commands.plugin.plugin_cmd
-> List or inspect registered redeploy plugins.
-
-
-Examples:
-    redeploy plugin list
-    redeploy plugin info browser_reload
-    redeploy plugin info sy
-- **Calls**: click.command, click.argument, click.argument, Console, redeploy.plugins.load_user_plugins, registry.names, registry.names, console.print
-
-### redeploy.cli.commands.version.commands.version_list
-> List all version sources and their values.
-- **Calls**: version_cmd.command, click.option, click.option, click.option, Console, Path, VersionManifest.load, redeploy.cli.commands.version.helpers._resolve_monorepo_targets
-
-### redeploy.cli.commands.blueprint._print_blueprint
-- **Calls**: console.print, console.print, console.print, console.print, console.print, click.echo, click.echo, None.join
-
-### redeploy.cli.commands.exec_.exec_multi_cmd
-> Execute multiple scripts from markdown codeblocks by reference.
-
-REFS format: comma-separated list of ref ids (markpact:ref or section headings)
-
-
-Ex
-- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, click.option, Console
-
-### redeploy.cli.commands.blueprint.capture
-> Probe HOST and extract a DeviceBlueprint from all available sources.
-- **Calls**: blueprint_cmd.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.iac.parsers.compose.DockerComposeParser._parse_service
-- **Calls**: ServiceInfo, self._parse_build, self._parse_command, int, self._parse_ports, self._parse_volumes, redeploy.steps.StepLibrary.list, self._parse_env
-
-### redeploy.iac.docker_compose.DockerComposeParser.parse
-- **Calls**: ParsedSpec, self._load_merged, self._load_dotenv, set, services_raw.items, spec.runtime_hints.append, spec.add_warning, data.get
-
-### redeploy.cli.commands.devices.scan
-> Discover SSH-accessible devices on the local network.
-
-Sources (passive by default, zero packets unless --ping):
-  known_hosts  — parse ~/.ssh/known_h
-- **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
+### redeploy.cli.migrate
+> Full pipeline: detect → plan → apply.
+- **Calls**: cli.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
 
 ### redeploy.detect.detector.Detector.run
 - **Calls**: logger.info, logger.debug, redeploy.detect.probes.probe_runtime, logger.debug, logger.debug, redeploy.detect.probes.probe_ports, logger.debug, logger.debug
 
-### redeploy.cli.commands.detect.detect
-> Probe infrastructure and produce infra.yaml.
+### redeploy.cli.apply
+> Execute a migration plan.
+- **Calls**: cli.command, click.option, click.option, click.option, click.option, Console, Executor.from_file, console.print
 
-With --workflow: multi-host detection with template scoring.
-Reads hosts from redeploy.yaml / redeploy.c
-- **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
+### redeploy.version.check_version_http
+> Call ``/api/v3/version/check`` on a running service.
 
-### redeploy.dsl_python.runner.PythonMigrationRunner.run_file
-> Run a migration from a Python file.
+Returns ``(ok, summary_line, full_payload)``.
+Compares all service versions (backend/frontend/fi
+- **Calls**: payload.get, payload.get, payload.get, payload.get, None.join, base_url.rstrip, urllib.request.Request, urllib.request.urlopen
 
-Args:
-    file_path: Path to migration.py file
-    function_name: Specific function to run (or None for default)
+### redeploy.ssh.SshClient.rsync
+> rsync *local_path* to ``host:remote_path``.
+- **Calls**: cmd.extend, logger.info, cmd.append, cmd.extend, subprocess.run, SshResult, SshResult, SshResult
 
-- **Calls**: Path, importlib.util.spec_from_file_location, importlib.util.module_from_spec, spec.loader.exec_module, self._find_migrations, getattr, path.exists, FileNotFoundError
+### redeploy.plan.planner.Planner.run
+- **Calls**: logger.info, self._plan_conflict_fixes, self._plan_stop_old_services, self._plan_deploy_new, self._plan_verify, self._assess_risk, self._estimate_downtime, MigrationPlan
 
-### redeploy.cli.commands.init.init
-> Scaffold migration.yaml + redeploy.yaml for this project.
+### redeploy.plan.planner.Planner._plan_docker_full
+- **Calls**: self._compose_cmd, self._add_step, self._add_step, self._add_step, self._add_step, MigrationStep, MigrationStep, MigrationStep
 
-
-Example:
-    redeploy init --host root@1.2.3.4 --app myapp --domain myapp.example.com
-   
-- **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, Console, console.print
+### redeploy.plan.planner.Planner.from_files
+- **Calls**: InfraState, TargetConfig, Planner, infra_path.open, yaml.safe_load, target_path.exists, target_path.open, TargetConfig
 
-### redeploy.cli.commands.version.commands.version_set
-> Set an explicit version across all manifest sources.
-- **Calls**: version_cmd.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
+### redeploy.ssh.SshClient.run
+> Execute *cmd* on the remote host (or locally).
+- **Calls**: logger.debug, self._run_local, subprocess.run, SshResult, self._ssh_opts, logger.debug, SshResult, SshResult
 
-### redeploy.cli.commands.devices.devices
-> List known devices from ~/.config/redeploy/devices.yaml.
+### redeploy.apply.executor.Executor.run
+> Execute all steps. Returns True if all passed.
+- **Calls**: logger.info, logger.info, self._execute_step, self._completed.append, len, logger.error, str, len
 
-
-Example:
-    redeploy devices
-    redeploy devices --tag kiosk
-    redeploy devices --reac
-- **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, Console, DeviceRegistry.load
+### redeploy.plan.planner.Planner._plan_conflict_fixes
+- **Calls**: self._add_step, self._add_step, self._add_step, self._notes.append, MigrationStep, MigrationStep, MigrationStep, self._notes.append
 
-### redeploy.cli.commands.hardware._apply_config
-> Apply hardware settings from a YAML/JSON config file to the remote host.
+### redeploy.plan.planner.Planner._plan_stop_old_services
+- **Calls**: self._add_step, self._compose_cmd, self._add_step, any, self._add_step, MigrationStep, MigrationStep, MigrationStep
 
-Reads drm_outputs[].transform entries and applies them via wlr-randr + kansh
-- **Calls**: cfg.get, cfg.get, open, f.read, yaml.safe_load, output.get, output.get, console.print
+### redeploy.ssh.SshClient._detect_key
+- **Calls**: os.environ.get, Path.home, None.is_file, Path, Path, c.is_file, Path, str
+
+### redeploy.ssh.SshClient.scp
+> Copy single file to remote host.
+- **Calls**: logger.info, self._scp_opts, subprocess.run, SshResult, logger.warning, SshResult, str
+
+### redeploy.data_sync.collect_sqlite_counts
+> Collect row counts for the given SQLite tables under *app_root*.
+
+Returns a flat mapping of ``{table_name: row_count}``. Missing databases or
+tables a
+- **Calls**: local_db.exists, sqlite3.connect, conn.close, str, None.fetchone, int, conn.execute
+
+### redeploy.verify.verify_data_integrity
+> Compare local vs remote SQLite row counts and record results in *ctx*.
+- **Calls**: local_counts.items, isinstance, remote_counts.get, local_n.get, ctx.add_fail, ctx.add_fail, ctx.add_pass
+
+### redeploy.apply.executor.Executor._run_http_check
+> HTTP check via SSH curl on the remote host (avoids local network/firewall issues).
+- **Calls**: range, StepError, StepError, logger.debug, time.sleep, self.probe.run, self.probe.run
+
+### redeploy.ssh.SshClient._run_local
+- **Calls**: subprocess.run, SshResult, SshResult, SshResult, str
+
+### redeploy.cli.cli
+> redeploy — Infrastructure migration toolkit: detect → plan → apply
+- **Calls**: click.group, click.version_option, click.option, redeploy.cli._setup_logging, ctx.ensure_object
+
+### redeploy.verify.VerifyContext.check
+> Run a single remote check command and record the result.
+
+*remote* is any object with ``.run(cmd) -> result`` (SshClient family).
+- **Calls**: remote.run, self.checks.append, logger.debug, r.stdout.strip, self.errors.append
+
+### redeploy.apply.executor.Executor._rollback
+- **Calls**: logger.warning, reversed, logger.info, self.probe.run, logger.warning
+
+### redeploy.plan.planner.Planner._plan_deploy_new
+- **Calls**: self._plan_docker_full, self._plan_podman_quadlet, self._plan_systemd, self._notes.append
+
+### redeploy.plan.planner.Planner._plan_verify
+- **Calls**: self._add_step, self._add_step, MigrationStep, MigrationStep
+
+### redeploy.plan.planner.Planner._append_extra_steps
+> Append manually declared extra_steps from spec after auto-generated ones.
+- **Calls**: MigrationStep, self._add_step, self._notes.append, raw.get
+
+### redeploy.plan.planner.Planner.save
+- **Calls**: plan.model_dump, output.write_text, logger.info, yaml.dump
+
+### redeploy.detect.detector.Detector.save
+- **Calls**: state.model_dump, output.write_text, logger.info, yaml.dump
+
+### redeploy.apply.executor.Executor._execute_step
+- **Calls**: logger.info, dispatch.get, handler, StepError
 
 ## Process Flows
 
 Key execution flows identified:
 
-### Flow 1: _parse_service
+### Flow 1: run
 ```
-_parse_service [redeploy.iac.docker_compose.DockerComposeParser]
-  └─ →> _env_dict
-```
-
-### Flow 2: device_map_cmd
-```
-device_map_cmd [redeploy.cli.commands.device_map]
+run [redeploy.cli]
 ```
 
-### Flow 3: version_init
+### Flow 2: detect
 ```
-version_init [redeploy.cli.commands.version.commands]
-```
-
-### Flow 4: _render
-```
-_render [redeploy.cli.commands.device_map]
+detect [redeploy.cli]
 ```
 
-### Flow 5: audit
+### Flow 3: plan
 ```
-audit [redeploy.cli.commands.audit]
-```
-
-### Flow 6: probe
-```
-probe [redeploy.cli.commands.probe]
+plan [redeploy.cli]
 ```
 
-### Flow 7: patterns
+### Flow 4: migrate
 ```
-patterns [redeploy.cli.commands.patterns]
-```
-
-### Flow 8: hardware
-```
-hardware [redeploy.cli.commands.hardware]
+migrate [redeploy.cli]
 ```
 
-### Flow 9: import_cmd
+### Flow 5: apply
 ```
-import_cmd [redeploy.cli.commands.import_]
+apply [redeploy.cli]
 ```
 
-### Flow 10: migrate
+### Flow 6: check_version_http
 ```
-migrate [redeploy.cli.commands.plan_apply]
+check_version_http [redeploy.version]
+```
+
+### Flow 7: rsync
+```
+rsync [redeploy.ssh.SshClient]
+```
+
+### Flow 8: _plan_docker_full
+```
+_plan_docker_full [redeploy.plan.planner.Planner]
+```
+
+### Flow 9: from_files
+```
+from_files [redeploy.plan.planner.Planner]
+```
+
+### Flow 10: _plan_conflict_fixes
+```
+_plan_conflict_fixes [redeploy.plan.planner.Planner]
 ```
 
 ## Key Classes
 
 ### redeploy.plan.planner.Planner
 > Generate a MigrationPlan from detected infra + desired target.
-- **Methods**: 21
-- **Key Methods**: redeploy.plan.planner.Planner.__init__, redeploy.plan.planner.Planner.run, redeploy.plan.planner.Planner._plan_conflict_fixes, redeploy.plan.planner.Planner._plan_stop_old_services, redeploy.plan.planner.Planner._plan_deploy_new, redeploy.plan.planner.Planner._plan_docker_full, redeploy.plan.planner.Planner._plan_podman_quadlet, redeploy.plan.planner.Planner._plan_kiosk, redeploy.plan.planner.Planner._plan_kiosk_appliance, redeploy.plan.planner.Planner._plan_systemd
-
-### redeploy.observe.AuditEntry
-> Single audit log entry — immutable snapshot of one deployment.
 - **Methods**: 18
-- **Key Methods**: redeploy.observe.AuditEntry.__init__, redeploy.observe.AuditEntry.ts, redeploy.observe.AuditEntry.host, redeploy.observe.AuditEntry.app, redeploy.observe.AuditEntry.from_strategy, redeploy.observe.AuditEntry.to_strategy, redeploy.observe.AuditEntry.ok, redeploy.observe.AuditEntry.elapsed_s, redeploy.observe.AuditEntry.steps_total, redeploy.observe.AuditEntry.steps_ok
-
-### redeploy.apply.executor.Executor
-> Execute MigrationPlan steps on a remote host.
-- **Methods**: 16
-- **Key Methods**: redeploy.apply.executor.Executor.__init__, redeploy.apply.executor.Executor.completed_steps, redeploy.apply.executor.Executor.state, redeploy.apply.executor.Executor.state_path, redeploy.apply.executor.Executor.run, redeploy.apply.executor.Executor._execute_steps_loop, redeploy.apply.executor.Executor._skip_step, redeploy.apply.executor.Executor._handle_step_failure, redeploy.apply.executor.Executor._handle_completion, redeploy.apply.executor.Executor._compute_skip_set
+- **Key Methods**: redeploy.plan.planner.Planner.__init__, redeploy.plan.planner.Planner.run, redeploy.plan.planner.Planner._plan_conflict_fixes, redeploy.plan.planner.Planner._plan_stop_old_services, redeploy.plan.planner.Planner._plan_deploy_new, redeploy.plan.planner.Planner._plan_docker_full, redeploy.plan.planner.Planner._plan_podman_quadlet, redeploy.plan.planner.Planner._plan_systemd, redeploy.plan.planner.Planner._plan_verify, redeploy.plan.planner.Planner._compose_cmd
 
 ### redeploy.ssh.SshClient
 > Execute commands on a remote host via SSH (or locally).
 
 Args:
     host:     ``user@ip`` string, or 
-- **Methods**: 15
-- **Key Methods**: redeploy.ssh.SshClient.__init__, redeploy.ssh.SshClient.key, redeploy.ssh.SshClient.key, redeploy.ssh.SshClient.run, redeploy.ssh.SshClient.rsync, redeploy.ssh.SshClient.scp, redeploy.ssh.SshClient.put_file, redeploy.ssh.SshClient.is_reachable, redeploy.ssh.SshClient.is_ssh_ready, redeploy.ssh.SshClient.ping
-
-### redeploy.fleet.Fleet
-> Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
-
-Provides a single query interf
-- **Methods**: 15
-- **Key Methods**: redeploy.fleet.Fleet.__init__, redeploy.fleet.Fleet.from_file, redeploy.fleet.Fleet.from_registry, redeploy.fleet.Fleet.from_config, redeploy.fleet.Fleet.devices, redeploy.fleet.Fleet.get, redeploy.fleet.Fleet.by_tag, redeploy.fleet.Fleet.by_stage, redeploy.fleet.Fleet.by_strategy, redeploy.fleet.Fleet.prod
-
-### redeploy.version.changelog.ChangelogManager
-> Manage CHANGELOG.md in keep-a-changelog format.
 - **Methods**: 14
-- **Key Methods**: redeploy.version.changelog.ChangelogManager.__init__, redeploy.version.changelog.ChangelogManager.exists, redeploy.version.changelog.ChangelogManager.read, redeploy.version.changelog.ChangelogManager._default_template, redeploy.version.changelog.ChangelogManager.get_unreleased_section, redeploy.version.changelog.ChangelogManager.prepare_release, redeploy.version.changelog.ChangelogManager._format_release_content, redeploy.version.changelog.ChangelogManager._init_categories, redeploy.version.changelog.ChangelogManager._categorize_commits, redeploy.version.changelog.ChangelogManager._format_commit_entry
+- **Key Methods**: redeploy.ssh.SshClient.__init__, redeploy.ssh.SshClient.key, redeploy.ssh.SshClient.key, redeploy.ssh.SshClient.run, redeploy.ssh.SshClient.rsync, redeploy.ssh.SshClient.scp, redeploy.ssh.SshClient.is_reachable, redeploy.ssh.SshClient.is_ssh_ready, redeploy.ssh.SshClient.ping, redeploy.ssh.SshClient._run_local
 
-### redeploy.version.git_integration.GitIntegration
-> Git operations for version management.
+### redeploy.apply.executor.Executor
+> Execute MigrationPlan steps on a remote host.
 - **Methods**: 13
-- **Key Methods**: redeploy.version.git_integration.GitIntegration.__init__, redeploy.version.git_integration.GitIntegration._run, redeploy.version.git_integration.GitIntegration.require_clean, redeploy.version.git_integration.GitIntegration.is_clean, redeploy.version.git_integration.GitIntegration.get_dirty_files, redeploy.version.git_integration.GitIntegration.stage_files, redeploy.version.git_integration.GitIntegration.commit, redeploy.version.git_integration.GitIntegration.tag, redeploy.version.git_integration.GitIntegration.push, redeploy.version.git_integration.GitIntegration.tag_exists
-
-### redeploy.iac.parsers.compose.DockerComposeParser
-> Parser for Docker Compose files (v2 + v3 schema, Compose Spec).
-- **Methods**: 13
-- **Key Methods**: redeploy.iac.parsers.compose.DockerComposeParser.can_parse, redeploy.iac.parsers.compose.DockerComposeParser.parse, redeploy.iac.parsers.compose.DockerComposeParser._parse_service, redeploy.iac.parsers.compose.DockerComposeParser._parse_build, redeploy.iac.parsers.compose.DockerComposeParser._parse_command, redeploy.iac.parsers.compose.DockerComposeParser._parse_ports, redeploy.iac.parsers.compose.DockerComposeParser._parse_port_entry, redeploy.iac.parsers.compose.DockerComposeParser._parse_volumes, redeploy.iac.parsers.compose.DockerComposeParser._parse_volume_entry, redeploy.iac.parsers.compose.DockerComposeParser._parse_env
-
-### redeploy.audit.Auditor
-> Compare a MigrationSpec's expectations against a live target host.
-- **Methods**: 12
-- **Key Methods**: redeploy.audit.Auditor.__init__, redeploy.audit.Auditor.run, redeploy.audit.Auditor._dispatch, redeploy.audit.Auditor._probe_one, redeploy.audit.Auditor._probe_binary, redeploy.audit.Auditor._probe_directory, redeploy.audit.Auditor._probe_file, redeploy.audit.Auditor._probe_local_file, redeploy.audit.Auditor._probe_port_listening, redeploy.audit.Auditor._probe_container_image
+- **Key Methods**: redeploy.apply.executor.Executor.__init__, redeploy.apply.executor.Executor.run, redeploy.apply.executor.Executor._execute_step, redeploy.apply.executor.Executor._run_ssh, redeploy.apply.executor.Executor._run_scp, redeploy.apply.executor.Executor._run_rsync, redeploy.apply.executor.Executor._run_http_check, redeploy.apply.executor.Executor._run_version_check, redeploy.apply.executor.Executor._run_wait, redeploy.apply.executor.Executor._rollback
 
 ### redeploy.verify.VerifyContext
 > Accumulates check results during verification.
 - **Methods**: 11
 - **Key Methods**: redeploy.verify.VerifyContext.check, redeploy.verify.VerifyContext.add_pass, redeploy.verify.VerifyContext.add_fail, redeploy.verify.VerifyContext.add_warn, redeploy.verify.VerifyContext.add_info, redeploy.verify.VerifyContext.passed, redeploy.verify.VerifyContext.failed, redeploy.verify.VerifyContext.warned, redeploy.verify.VerifyContext.total, redeploy.verify.VerifyContext.ok
 
-### redeploy.apply.progress.ProgressEmitter
-> Emits YAML-formatted progress events to a stream (default: stdout).
+### redeploy.ssh.RemoteExecutor
+> Thin wrapper kept for deploy.core compatibility.
 
-Each event is a YAML document (
-- **Methods**: 11
-- **Key Methods**: redeploy.apply.progress.ProgressEmitter.__init__, redeploy.apply.progress.ProgressEmitter._ts, redeploy.apply.progress.ProgressEmitter._elapsed, redeploy.apply.progress.ProgressEmitter._emit, redeploy.apply.progress.ProgressEmitter.start, redeploy.apply.progress.ProgressEmitter.step_start, redeploy.apply.progress.ProgressEmitter.step_done, redeploy.apply.progress.ProgressEmitter.step_fail, redeploy.apply.progress.ProgressEmitter.progress, redeploy.apply.progress.ProgressEmitter.done
+``RemoteExecutor(device)``  →  ``SshClient(host, p
+- **Methods**: 4
+- **Key Methods**: redeploy.ssh.RemoteExecutor.__init__, redeploy.ssh.RemoteExecutor.ssh_target, redeploy.ssh.RemoteExecutor.ssh_opts, redeploy.ssh.RemoteExecutor.scp_opts
+- **Inherits**: SshClient
 
-### redeploy.apply.state.ResumeState
-> Checkpoint for a single MigrationPlan execution.
-- **Methods**: 10
-- **Key Methods**: redeploy.apply.state.ResumeState.load, redeploy.apply.state.ResumeState.load_or_new, redeploy.apply.state.ResumeState.save, redeploy.apply.state.ResumeState.remove, redeploy.apply.state.ResumeState.mark_done, redeploy.apply.state.ResumeState.mark_failed, redeploy.apply.state.ResumeState.reset, redeploy.apply.state.ResumeState.is_done, redeploy.apply.state.ResumeState.completed_count, redeploy.apply.state.ResumeState.remaining
+### redeploy.detect.detector.Detector
+> Probe infrastructure and produce InfraState.
+- **Methods**: 3
+- **Key Methods**: redeploy.detect.detector.Detector.__init__, redeploy.detect.detector.Detector.run, redeploy.detect.detector.Detector.save
+
+### redeploy.ssh.SshResult
+- **Methods**: 3
+- **Key Methods**: redeploy.ssh.SshResult.ok, redeploy.ssh.SshResult.success, redeploy.ssh.SshResult.out
+
+### redeploy.ssh.RemoteProbe
+> Thin wrapper kept for redeploy.detect compatibility.
+
+``RemoteProbe(host)``  →  ``SshClient(host)``
+- **Methods**: 3
+- **Key Methods**: redeploy.ssh.RemoteProbe.__init__, redeploy.ssh.RemoteProbe.is_local, redeploy.ssh.RemoteProbe.is_local
+- **Inherits**: SshClient
+
+### redeploy.models.MigrationSpec
+> Single YAML file describing full migration: from-state → to-state.
+
+Usage:
+    redeploy run --spec m
+- **Methods**: 3
+- **Key Methods**: redeploy.models.MigrationSpec.from_file, redeploy.models.MigrationSpec.to_infra_state, redeploy.models.MigrationSpec.to_target_config
 - **Inherits**: BaseModel
 
-### redeploy.models.DeviceRegistry
-> Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
-- **Methods**: 9
-- **Key Methods**: redeploy.models.DeviceRegistry.get, redeploy.models.DeviceRegistry.upsert, redeploy.models.DeviceRegistry.remove, redeploy.models.DeviceRegistry.by_tag, redeploy.models.DeviceRegistry.by_strategy, redeploy.models.DeviceRegistry.reachable, redeploy.models.DeviceRegistry.default_path, redeploy.models.DeviceRegistry.load, redeploy.models.DeviceRegistry.save
+### redeploy.apply.executor.StepError
+- **Methods**: 1
+- **Key Methods**: redeploy.apply.executor.StepError.__init__
+- **Inherits**: Exception
+
+### redeploy.models.ConflictSeverity
+- **Methods**: 0
+- **Inherits**: str, Enum
+
+### redeploy.models.StepAction
+- **Methods**: 0
+- **Inherits**: str, Enum
+
+### redeploy.models.StepStatus
+- **Methods**: 0
+- **Inherits**: str, Enum
+
+### redeploy.models.DeployStrategy
+- **Methods**: 0
+- **Inherits**: str, Enum
+
+### redeploy.models.ServiceInfo
+- **Methods**: 0
 - **Inherits**: BaseModel
 
-### redeploy.audit.AuditReport
-- **Methods**: 8
-- **Key Methods**: redeploy.audit.AuditReport.add, redeploy.audit.AuditReport.passed, redeploy.audit.AuditReport.failed, redeploy.audit.AuditReport.warned, redeploy.audit.AuditReport.skipped, redeploy.audit.AuditReport.ok, redeploy.audit.AuditReport.summary, redeploy.audit.AuditReport.to_dict
-
-### redeploy.audit._Probe
-> Thin wrapper around SshClient with sensible audit timeouts.
-- **Methods**: 8
-- **Key Methods**: redeploy.audit._Probe.__init__, redeploy.audit._Probe.has_binary, redeploy.audit._Probe.has_path, redeploy.audit._Probe.port_listening, redeploy.audit._Probe.has_image, redeploy.audit._Probe.has_systemd_unit, redeploy.audit._Probe.apt_package, redeploy.audit._Probe.disk_free_gib
-
-### redeploy.version.manifest.VersionManifest
-> Root manifest model for .redeploy/version.yaml.
-- **Methods**: 8
-- **Key Methods**: redeploy.version.manifest.VersionManifest.load, redeploy.version.manifest.VersionManifest.save, redeploy.version.manifest.VersionManifest.format_version, redeploy.version.manifest.VersionManifest.get_source_paths, redeploy.version.manifest.VersionManifest.get_package, redeploy.version.manifest.VersionManifest.list_packages, redeploy.version.manifest.VersionManifest.is_monorepo, redeploy.version.manifest.VersionManifest.get_all_package_versions
+### redeploy.models.PortInfo
+- **Methods**: 0
 - **Inherits**: BaseModel
 
-### redeploy.models.HardwareInfo
-> Hardware state produced by hardware probe.
-- **Methods**: 8
-- **Key Methods**: redeploy.models.HardwareInfo.has_dsi, redeploy.models.HardwareInfo.kms_enabled, redeploy.models.HardwareInfo.dsi_connected, redeploy.models.HardwareInfo.dsi_physically_connected, redeploy.models.HardwareInfo.dsi_enabled, redeploy.models.HardwareInfo.backlight_on, redeploy.models.HardwareInfo.errors, redeploy.models.HardwareInfo.warnings
+### redeploy.models.ConflictInfo
+- **Methods**: 0
 - **Inherits**: BaseModel
 
-### redeploy.observe.DeployAuditLog
-> Persistent audit log — newline-delimited JSON at ``path``.
+### redeploy.models.RuntimeInfo
+- **Methods**: 0
+- **Inherits**: BaseModel
 
-Default path: ``~/.config/redeploy/audit
-- **Methods**: 7
-- **Key Methods**: redeploy.observe.DeployAuditLog.__init__, redeploy.observe.DeployAuditLog.record, redeploy.observe.DeployAuditLog._append, redeploy.observe.DeployAuditLog.load, redeploy.observe.DeployAuditLog.tail, redeploy.observe.DeployAuditLog.filter, redeploy.observe.DeployAuditLog.clear
+### redeploy.models.AppHealthInfo
+- **Methods**: 0
+- **Inherits**: BaseModel
 
-### redeploy.plugins.PluginRegistry
-> Central registry mapping plugin_type strings to handler callables.
-- **Methods**: 7
-- **Key Methods**: redeploy.plugins.PluginRegistry.__init__, redeploy.plugins.PluginRegistry.register, redeploy.plugins.PluginRegistry.__call__, redeploy.plugins.PluginRegistry.get, redeploy.plugins.PluginRegistry.names, redeploy.plugins.PluginRegistry._ensure_builtins, redeploy.plugins.PluginRegistry.load_directory
-
-### redeploy.detect.workflow.HostDetectionResult
-> Full detection result for a single host.
-- **Methods**: 7
-- **Key Methods**: redeploy.detect.workflow.HostDetectionResult.strategy, redeploy.detect.workflow.HostDetectionResult.environment, redeploy.detect.workflow.HostDetectionResult.confidence, redeploy.detect.workflow.HostDetectionResult.template_name, redeploy.detect.workflow.HostDetectionResult.spec_template, redeploy.detect.workflow.HostDetectionResult.env_block, redeploy.detect.workflow.HostDetectionResult.notes
+### redeploy.models.InfraState
+> Full detected state of infrastructure — output of `detect`.
+- **Methods**: 0
+- **Inherits**: BaseModel
 
 ## Data Transformation Functions
 
 Key functions that process and transform data:
 
-### redeploy.detect.hardware.probe_compositor_processes
-> Detect running display-stack processes.
-
-Checks for: labwc, chromium, kanshi, weston, sway, kiosk.
-R
-- **Output to**: p.run, r.out.strip, int, None.split, x.strip
-
-### redeploy.parse.parse_docker_ps
-> Parse 'docker ps --format "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}|{{.State}}"' output.
-- **Output to**: output.split, line.strip, line.split, line.startswith, len
-
-### redeploy.parse.parse_container_line
-> Parse a single NAME|STATUS|IMAGE pipe-delimited container line.
-- **Output to**: line.split, len, len
-
-### redeploy.parse.parse_system_info
-> Parse KEY:VALUE system info lines (HOSTNAME, UPTIME, DISK, MEM, LOAD) into a dict.
-- **Output to**: output.split, line.strip, line.startswith, line.startswith, line.startswith
-
-### redeploy.parse.parse_diagnostics
-> Parse multi-section SSH diagnostics output into structured dict.
-
-Handles sections: ===SYSTEM===, ==
-- **Output to**: output.split, raw_line.strip, line.startswith, redeploy.parse._parse_section_line
-
-### redeploy.parse._parse_section_line
-- **Output to**: redeploy.parse._apply_system_line, redeploy.parse.parse_container_line, None.append, redeploy.parse._apply_git_line, redeploy.parse._apply_health_line
-
-### redeploy.parse.parse_health_info
-> Parse health-check SSH output (HOSTNAME, UPTIME, HEALTH, DISK, LOAD) into a dict.
-- **Output to**: output.split, line.strip, _HEALTH_PREFIXES.items, line.startswith, line.startswith
-
-### redeploy.cli.display._format_workflow_header
-> Format workflow header string.
-- **Output to**: len
-
-### redeploy.discovery._parse_probe_output
-- **Output to**: out.splitlines, line.strip, line.startswith, line.startswith, line.split
-
-### redeploy.discovery._parse_probe_input
-- **Output to**: ip_or_host.split
-
-### redeploy.cli.commands.version.release._format_release_tag
-> Format release tag from git config.
-- **Output to**: git_config.tag_format.format
-
-### redeploy.cli.commands.version.scanner._format_version_scan_source_status
-> Format version scan source status.
-- **Output to**: None.join, parts.append
-
-### redeploy.plugins.builtin.process_control._kill_process
-> Kill a process by PID. Returns True if successful.
-- **Output to**: os.kill, logger.warning
-
-### redeploy.plugins.builtin.process_control.process_control
-> Kill processes on specified ports.
-- **Output to**: redeploy.plugins.register_plugin, ctx.params.get, ctx.params.get, ctx.params.get, ctx.params.get
-
-### redeploy.cli.commands.hardware._format_output
-> Format output as yaml/json, return True if formatted.
-- **Output to**: click.echo, click.echo, yaml.safe_dump, _json.dumps, hw.model_dump
-
-### redeploy.cli.commands.hardware._apply_transform
-> Apply display transform via wlr-randr and persist in kanshi config.
-- **Output to**: next, console.print, p.run, p.run, new_cfg.replace
-
-### redeploy.markpact.parser.parse_markpact_file
-- **Output to**: Path, redeploy.markpact.parser.parse_markpact_text, file_path.read_text
-
-### redeploy.markpact.parser.parse_markpact_text
-- **Output to**: Path, MarkdownIt, parser.parse, MarkpactDocument, redeploy.markpact.parser._parse_markpact_fence_info
-
-### redeploy.markpact.parser._parse_markpact_fence_info
-> Parse fence info, returns (kind, format_name, ref_id) or None.
-
-Supports:
-- ```yaml markpact:steps
--
-- **Output to**: token.startswith, None.split, None.lower, kind_part.startswith, token.lower
-
-### redeploy.markpact.parser.parse_markpact_file_with_refs
-> Parse markpact file and extract all referenced scripts.
-
-Returns:
-    (document, refs) where refs is
-- **Output to**: Path, file_path.read_text, redeploy.markpact.parser.parse_markpact_text, MarkdownIt, parser.parse
-
-### redeploy.apply.handlers._parse_container_statuses
-> Parse docker compose ps output into (name, status) tuples.
-- **Output to**: None.splitlines, line.split, statuses.append, output.strip, line.startswith
-
-### redeploy.version.changelog.ChangelogManager._format_release_content
-> Format release content from unreleased section + commits.
-- **Output to**: unreleased_content.strip, self._init_categories, self._categorize_commits, self._build_release_content
-
-### redeploy.version.changelog.ChangelogManager._format_commit_entry
-> Format a single commit as a changelog entry.
-
-### redeploy.version.diff.format_diff_report
-> Format diff results as human-readable report.
-- **Output to**: None.join, lines.extend, lines.extend, lines.append, lines.append
-
-### redeploy.version.sources.base.BaseAdapter._validate_path
-> Check if path exists. Returns False only if optional=True.
-- **Output to**: path.exists, FileNotFoundError
-
-## Behavioral Patterns
-
-### recursion_probe_hardware
-- **Type**: recursion
-- **Confidence**: 0.90
-- **Functions**: redeploy.detect.detector.Detector.probe_hardware
-
-### recursion__deep_merge
-- **Type**: recursion
-- **Confidence**: 0.90
-- **Functions**: redeploy.markpact.compiler._deep_merge
-
-### recursion__parse_port
-- **Type**: recursion
-- **Confidence**: 0.90
-- **Functions**: redeploy.iac.docker_compose._parse_port
-
-### recursion__deep_merge
-- **Type**: recursion
-- **Confidence**: 0.90
-- **Functions**: redeploy.iac.docker_compose._deep_merge
-
-### recursion_list
-- **Type**: recursion
-- **Confidence**: 0.90
-- **Functions**: redeploy.dsl_python.decorators.MigrationRegistry.list
-
-### state_machine_Executor
-- **Type**: state_machine
-- **Confidence**: 0.70
-- **Functions**: redeploy.apply.executor.Executor.__init__, redeploy.apply.executor.Executor.completed_steps, redeploy.apply.executor.Executor.state, redeploy.apply.executor.Executor.state_path, redeploy.apply.executor.Executor.run
-
-### state_machine_StateHandler
-- **Type**: state_machine
-- **Confidence**: 0.70
-- **Functions**: redeploy.apply.state_apply.StateHandler.accept, redeploy.apply.state_apply.StateHandler.apply
-
-### state_machine_HardwareStateHandler
-- **Type**: state_machine
-- **Confidence**: 0.70
-- **Functions**: redeploy.apply.state_apply.HardwareStateHandler.accept, redeploy.apply.state_apply.HardwareStateHandler.apply
-
-### state_machine_InfraStateHandler
-- **Type**: state_machine
-- **Confidence**: 0.70
-- **Functions**: redeploy.apply.state_apply.InfraStateHandler.accept, redeploy.apply.state_apply.InfraStateHandler.apply
-
-### state_machine_step
-- **Type**: state_machine
-- **Confidence**: 0.70
-- **Functions**: redeploy.dsl_python.decorators.step.__enter__, redeploy.dsl_python.decorators.step.__exit__
-
-### state_machine_ResumeState
-- **Type**: state_machine
-- **Confidence**: 0.70
-- **Functions**: redeploy.apply.state.ResumeState.load, redeploy.apply.state.ResumeState.load_or_new, redeploy.apply.state.ResumeState.save, redeploy.apply.state.ResumeState.remove, redeploy.apply.state.ResumeState.mark_done
-
-### state_machine_HardwareInfo
-- **Type**: state_machine
-- **Confidence**: 0.70
-- **Functions**: redeploy.models.HardwareInfo.has_dsi, redeploy.models.HardwareInfo.kms_enabled, redeploy.models.HardwareInfo.dsi_connected, redeploy.models.HardwareInfo.dsi_physically_connected, redeploy.models.HardwareInfo.dsi_enabled
-
 ## Public API Surface
 
 Functions exposed as public API (no underscore prefix):
 
-- `redeploy.cli.commands.device_map.device_map_cmd` - 59 calls
-- `redeploy.cli.commands.version.commands.version_init` - 56 calls
-- `redeploy.cli.commands.audit.audit` - 51 calls
-- `redeploy.cli.commands.probe.probe` - 50 calls
-- `redeploy.cli.commands.patterns.patterns` - 50 calls
-- `redeploy.cli.commands.hardware.hardware` - 47 calls
-- `redeploy.cli.commands.import_.import_cmd` - 43 calls
-- `redeploy.cli.commands.plan_apply.migrate` - 43 calls
-- `redeploy.cli.commands.plan_apply.plan` - 41 calls
-- `redeploy.cli.commands.plan_apply.run` - 41 calls
-- `redeploy.cli.commands.exec_.exec_cmd` - 40 calls
-- `redeploy.cli.commands.push.push` - 39 calls
-- `redeploy.cli.commands.version.commands.version_bump` - 39 calls
-- `redeploy.cli.commands.plugin.plugin_cmd` - 38 calls
-- `redeploy.cli.commands.version.commands.version_list` - 38 calls
-- `redeploy.detect.templates.build_context` - 37 calls
-- `redeploy.cli.commands.exec_.exec_multi_cmd` - 35 calls
-- `redeploy.cli.commands.blueprint.capture` - 35 calls
-- `redeploy.discovery.auto_probe` - 33 calls
-- `redeploy.iac.docker_compose.DockerComposeParser.parse` - 33 calls
-- `redeploy.cli.commands.target.target` - 31 calls
-- `redeploy.cli.commands.devices.scan` - 31 calls
+- `redeploy.cli.run` - 48 calls
+- `redeploy.cli.detect` - 43 calls
+- `redeploy.cli.plan` - 41 calls
+- `redeploy.cli.migrate` - 41 calls
 - `redeploy.detect.detector.Detector.run` - 30 calls
-- `redeploy.cli.commands.detect.detect` - 30 calls
-- `redeploy.dsl_python.runner.PythonMigrationRunner.run_file` - 30 calls
-- `redeploy.cli.commands.init.init` - 29 calls
-- `redeploy.cli.commands.version.commands.version_set` - 29 calls
-- `redeploy.cli.commands.devices.devices` - 28 calls
-- `redeploy.apply.state_apply.HardwareStateHandler.apply` - 27 calls
-- `redeploy.cli.commands.status.status` - 26 calls
-- `redeploy.plugins.builtin.browser_reload.browser_reload` - 26 calls
-- `redeploy.version.commits.analyze_commits` - 25 calls
-- `redeploy.detect.hardware.probe_hardware` - 24 calls
-- `redeploy.cli.commands.version.commands.version_current` - 24 calls
-- `redeploy.cli.commands.version.commands.version_diff` - 24 calls
-- `redeploy.iac.parsers.compose.DockerComposeParser.parse` - 24 calls
-- `redeploy.cli.commands.export.export_cmd` - 23 calls
-- `redeploy.cli.commands.blueprint.deploy` - 23 calls
-- `redeploy.plugins.builtin.systemd_reload.systemd_reload` - 23 calls
-- `redeploy.dsl.parser.RedeployDSLParser.parse` - 23 calls
+- `redeploy.cli.apply` - 22 calls
+- `redeploy.detect.probes.probe_docker_services` - 17 calls
+- `redeploy.detect.probes.probe_runtime` - 15 calls
+- `redeploy.version.check_version_http` - 14 calls
+- `redeploy.detect.probes.detect_conflicts` - 12 calls
+- `redeploy.ssh.SshClient.rsync` - 11 calls
+- `redeploy.detect.probes.probe_ports` - 11 calls
+- `redeploy.plan.planner.Planner.run` - 10 calls
+- `redeploy.detect.probes.probe_k3s_services` - 10 calls
+- `redeploy.detect.probes.probe_systemd_services` - 10 calls
+- `redeploy.plan.planner.Planner.from_files` - 9 calls
+- `redeploy.ssh.SshClient.run` - 9 calls
+- `redeploy.detect.probes.probe_health` - 9 calls
+- `redeploy.apply.executor.Executor.run` - 9 calls
+- `redeploy.ssh.SshClient.scp` - 7 calls
+- `redeploy.data_sync.collect_sqlite_counts` - 7 calls
+- `redeploy.verify.verify_data_integrity` - 7 calls
+- `redeploy.cli.cli` - 5 calls
+- `redeploy.verify.VerifyContext.check` - 5 calls
+- `redeploy.detect.probes.probe_iptables_dnat` - 5 calls
+- `redeploy.plan.planner.Planner.save` - 4 calls
+- `redeploy.detect.detector.Detector.save` - 4 calls
+- `redeploy.apply.executor.Executor.from_file` - 4 calls
+- `redeploy.apply.executor.Executor.save_results` - 4 calls
+- `redeploy.models.MigrationSpec.from_file` - 4 calls
+- `redeploy.plan.planner.Planner.from_spec` - 3 calls
+- `redeploy.ssh.SshClient.ping` - 3 calls
+- `redeploy.data_sync.rsync_timeout_for_path` - 3 calls
+- `redeploy.version.read_local_version` - 3 calls
+- `redeploy.version.read_remote_version` - 3 calls
+- `redeploy.apply.executor.Executor.summary` - 3 calls
+- `redeploy.verify.VerifyContext.add_fail` - 2 calls
+- `redeploy.models.MigrationSpec.to_infra_state` - 2 calls
+- `redeploy.ssh.SshClient.is_reachable` - 1 calls
+- `redeploy.ssh.SshClient.is_ssh_ready` - 1 calls
 
 ## System Interactions
 
@@ -693,36 +397,36 @@ How components interact:
 
 ```mermaid
 graph TD
-    _parse_service --> get
-    _parse_service --> _env_dict
-    _parse_service --> isinstance
-    device_map_cmd --> command
-    device_map_cmd --> argument
-    device_map_cmd --> option
-    version_init --> command
-    version_init --> option
-    _render --> print
-    _render --> echo
-    audit --> command
-    audit --> option
-    probe --> command
-    probe --> argument
-    probe --> option
-    patterns --> command
-    patterns --> argument
-    patterns --> Console
-    patterns --> print
-    patterns --> Table
-    hardware --> command
-    hardware --> argument
-    hardware --> option
-    import_cmd --> command
-    import_cmd --> argument
-    import_cmd --> option
-    migrate --> command
-    migrate --> option
+    run --> command
+    run --> argument
+    run --> option
+    detect --> command
+    detect --> option
     plan --> command
     plan --> option
+    migrate --> command
+    migrate --> option
+    run --> info
+    run --> debug
+    run --> probe_runtime
+    apply --> command
+    apply --> option
+    check_version_http --> get
+    check_version_http --> join
+    rsync --> extend
+    rsync --> info
+    rsync --> append
+    rsync --> run
+    run --> _plan_conflict_fixes
+    run --> _plan_stop_old_servi
+    run --> _plan_deploy_new
+    run --> _plan_verify
+    _plan_docker_full --> _compose_cmd
+    _plan_docker_full --> _add_step
+    from_files --> InfraState
+    from_files --> TargetConfig
+    from_files --> Planner
+    from_files --> open
 ```
 
 ## Reverse Engineering Guidelines

@@ -65,10 +65,52 @@ def snapshot_to_infra_state(snapshot: "Snapshot") -> "InfraState":
 
 def snapshot_to_hardware_info(snapshot: "Snapshot") -> "HardwareInfo":
     """Convert opstree.Snapshot -> redeploy.HardwareInfo."""
-    from redeploy.models import HardwareInfo
+    from redeploy.models import HardwareInfo, DrmOutput, BacklightInfo
 
     physical = snapshot.layer("physical.display")
-    # TODO: expand mapping as op3 layer schema grows
+    os_kernel = snapshot.layer("os.kernel")
+    os_config = snapshot.layer("os.config")
+
+    if physical is None:
+        return HardwareInfo()
+
+    # Map DRM outputs (op3 field names differ slightly from redeploy)
+    drm_raw = physical.data.get("drm_outputs", [])
+    drm_outputs = []
+    for d in drm_raw:
+        drm_outputs.append(DrmOutput(
+            name=d.get("name", ""),
+            connector=d.get("connector", ""),
+            status=d.get("status", "unknown"),
+            enabled=d.get("enabled", "unknown"),
+            modes=d.get("modes", []),
+            transform=d.get("transform", "normal"),
+            position=d.get("position", "0,0"),
+            scale=d.get("scale", "1.0"),
+            edid_bytes=d.get("edid_bytes", 0),
+            power_state=d.get("dpms"),
+            sysfs_path=f"/sys/class/drm/{d.get('name', '')}",
+        ))
+
+    # Map backlights
+    bl_raw = physical.data.get("backlights", [])
+    backlights = []
+    for b in bl_raw:
+        backlights.append(BacklightInfo(
+            name=b.get("name", ""),
+            brightness=b.get("brightness", 0),
+            max_brightness=b.get("max_brightness", 255),
+            bl_power=b.get("bl_power", 0),
+            display_name=b.get("display_name"),
+            sysfs_path=f"/sys/class/backlight/{b.get('name', '')}",
+        ))
+
     return HardwareInfo(
-        device_model=physical.data.get("model") if physical else None,
+        board=physical.data.get("board_model"),
+        kernel=os_kernel.data.get("version") if os_kernel else None,
+        config_txt=os_config.data.get("config_txt", "") if os_config else "",
+        config_txt_path=os_config.data.get("config_txt_path", "/boot/firmware/config.txt") if os_config else "/boot/firmware/config.txt",
+        drm_outputs=drm_outputs,
+        backlights=backlights,
+        framebuffers=physical.data.get("framebuffers", []),
     )

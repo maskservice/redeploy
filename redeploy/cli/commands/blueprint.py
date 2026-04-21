@@ -95,68 +95,6 @@ def capture(host, name, compose_files, migration_file, device_map_file,
         console.print(f"\n[green]✓ saved:[/green] {saved}")
 
 
-def _apply_blueprint_config(bp, config_path):
-    """Apply blueprint settings from YAML config file to the remote host.
-
-    Reads blueprint YAML/JSON and applies hardware settings (transforms, backlight, etc.).
-    """
-    import yaml
-    import json as _json
-
-    from ...remote import Remote
-
-    with open(config_path) as f:
-        raw = f.read()
-
-    try:
-        cfg = yaml.safe_load(raw)
-    except Exception:
-        cfg = _json.loads(raw)
-
-    host = cfg.get("host") or getattr(bp, "host", None)
-    if not host:
-        print("[red]✗ No 'host' field in config file[/red]")
-        return
-
-    print(f"[cyan]→ Applying blueprint config from {config_path} to {host}[/cyan]")
-
-    p = Remote(host)
-
-    # Apply hardware settings (reuse logic from device-map)
-    hardware = cfg.get("hardware", {})
-    applied = 0
-
-    for output in hardware.get("drm_outputs", []):
-        connector = output.get("connector", "")
-        transform = output.get("transform", "normal")
-        if not connector or not ("DSI" in connector or "HDMI" in connector):
-            continue
-
-        if transform != "normal":
-            wlr_cmd = (
-                f"WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) "
-                f"wlr-randr --output {connector} --transform {transform} 2>&1"
-            )
-            r = p.run(wlr_cmd)
-            if r.ok:
-                print(f"[green]  ✓ {connector}: transform={transform}[/green]")
-                applied += 1
-
-    for bl in hardware.get("backlights", []):
-        name = bl.get("name", "")
-        brightness = bl.get("brightness")
-        if name and brightness is not None:
-            r = p.run(f"echo {brightness} | sudo tee /sys/class/backlight/{name}/brightness > /dev/null")
-            if r.ok:
-                print(f"[green]  ✓ backlight {name}: brightness={brightness}[/green]")
-                applied += 1
-
-    if applied > 0:
-        print(f"[bold green]✓ Blueprint config applied from {config_path}[/bold green]")
-    else:
-        print("[yellow]Nothing to apply[/yellow]")
-
-
 def _execute_query_blueprint(bp, query_expr, output_fmt):
     """Execute JMESPath query on DeviceBlueprint model and output result."""
     import jmespath
@@ -299,7 +237,9 @@ def show(blueprint_file, fmt, apply_config, query_expr):
         click.echo(bp.to_yaml())
 
     if apply_config:
-        _apply_blueprint_config(bp, apply_config)
+        from ...config_apply import apply_config_file
+        from rich.console import Console
+        apply_config_file(apply_config, host=bp.host, console=Console())
 
 
 # ── list ──────────────────────────────────────────────────────────────────────

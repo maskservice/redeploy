@@ -139,10 +139,10 @@ release:
 	git push origin v$(VERSION)
 	@echo "✅ Released v$(VERSION)"
 
-# ── quality gate (pyqual) ────────────────────────────────────────────────────
+# ── quality gate (pyqual analyze only — avoids LLM-based stages hanging) ──────
 quality:
-	@echo "🔍 pyqual run (cc≤15, critical≤80) ..."
-	pyqual run
+	@echo "🔍 Running quality gate (cc≤15, critical≤80) ..."
+	$(PYTHON) scripts/quality_gate.py
 
 quality-check: quality
 	@echo "✅ redeploy quality gate passed"

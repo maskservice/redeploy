@@ -1,10 +1,10 @@
-# redeploy | 172f 35704L | python:169,shell:2,less:1 | 2026-04-21
-# stats: 620 func | 319 cls | 172 mod | CC̄=5.1 | critical:83 | cycles:0
+# redeploy | 182f 35876L | python:179,shell:2,less:1 | 2026-04-21
+# stats: 633 func | 319 cls | 182 mod | CC̄=5.0 | critical:80 | cycles:0
 # alerts[5]: CC _render=38; CC build_context=36; CC extract_blueprint=31; CC probe=26; CC version_init=26
-# hotspots[5]: hardware fan=28; device_map_cmd fan=26; version_init fan=26; audit fan=22; import_cmd fan=22
+# hotspots[5]: hardware fan=31; device_map_cmd fan=27; version_init fan=26; audit fan=22; import_cmd fan=22
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[172]:
+M[182]:
   app.doql.less,60
   project.sh,35
   redeploy/__init__.py,150
@@ -27,15 +27,15 @@ M[172]:
   redeploy/cli/__init__.py,116
   redeploy/cli/commands/__init__.py,45
   redeploy/cli/commands/audit.py,127
-  redeploy/cli/commands/blueprint.py,412
+  redeploy/cli/commands/blueprint.py,352
   redeploy/cli/commands/detect.py,119
-  redeploy/cli/commands/device_map.py,526
+  redeploy/cli/commands/device_map.py,425
   redeploy/cli/commands/devices.py,227
   redeploy/cli/commands/diagnose.py,48
   redeploy/cli/commands/diff.py,34
   redeploy/cli/commands/exec_.py,252
   redeploy/cli/commands/export.py,127
-  redeploy/cli/commands/hardware.py,600
+  redeploy/cli/commands/hardware.py,515
   redeploy/cli/commands/import_.py,251
   redeploy/cli/commands/init.py,112
   redeploy/cli/commands/inspect.py,74
@@ -57,6 +57,9 @@ M[172]:
   redeploy/cli/core.py,180
   redeploy/cli/display.py,390
   redeploy/cli.py,94
+  redeploy/config_apply/__init__.py,16
+  redeploy/config_apply/applier.py,73
+  redeploy/config_apply/loader.py,18
   redeploy/data_sync.py,46
   redeploy/detect/__init__.py,6
   redeploy/detect/builtin/__init__.py,3
@@ -99,11 +102,13 @@ M[172]:
   redeploy/iac/parsers/__init__.py,2
   redeploy/iac/parsers/compose.py,288
   redeploy/iac/registry.py,38
+  redeploy/integrations/__init__.py,2
+  redeploy/integrations/op3_bridge.py,117
   redeploy/markpact/__init__.py,25
   redeploy/markpact/compiler.py,178
   redeploy/markpact/models.py,27
   redeploy/markpact/parser.py,281
-  redeploy/models.py,991
+  redeploy/models.py,1000
   redeploy/observe.py,314
   redeploy/parse.py,191
   redeploy/patterns.py,408
@@ -170,6 +175,11 @@ M[172]:
   redeploy/version/sources/yaml_.py,95
   redeploy/version/transaction.py,163
   redeploy/version.py,24
+  scripts/quality_gate.py,49
+  tests/contract/__init__.py,2
+  tests/contract/test_hardware_op3_parity.py,85
+  tests/integration/__init__.py,2
+  tests/integration/test_op3_bridge.py,45
   tests/test_hardware_config.py,163
   tests/test_hardware_kiosk.py,231
   tests/test_hardware_rules.py,190
@@ -276,10 +286,9 @@ D:
     e: audit
     audit(last;host;app;only_failed;only_ok;log;as_json;show_report;do_clear)
   redeploy/cli/commands/blueprint.py:
-    e: blueprint_cmd,capture,_apply_blueprint_config,_execute_query_blueprint,twin,deploy,show,list_blueprints,_print_blueprint
+    e: blueprint_cmd,capture,_execute_query_blueprint,twin,deploy,show,list_blueprints,_print_blueprint
     blueprint_cmd()
     capture(host;name;compose_files;migration_file;device_map_file;live;save;out_path;fmt;tags)
-    _apply_blueprint_config(bp;config_path)
     _execute_query_blueprint(bp;query_expr;output_fmt)
     twin(blueprint_file;out_path;platform;port_offset;no_mock_display;print_output)
     deploy(blueprint_file;target_host;out_path;remote_dir;no_transfer;strategy;run_migration;print_output)
@@ -290,10 +299,9 @@ D:
     e: detect
     detect(ctx;host;app;domain;output;run_workflow;scan_subnet;no_deep;save_yaml;output_fmt)
   redeploy/cli/commands/device_map.py:
-    e: device_map_cmd,_apply_config_from_file,_update_kanshi_from_cfg,_render,_print_list,_diff
-    device_map_cmd(host;name;tags;save;out_path;output_fmt;no_infra;list_saved;show_file;diff_files;ssh_key;apply_config)
-    _apply_config_from_file(console;config_path;ssh_key)
-    _update_kanshi_from_cfg(console;p;dsi_outputs)
+    e: device_map_cmd,_execute_query_device_map,_render,_print_list,_diff
+    device_map_cmd(host;name;tags;save;out_path;output_fmt;no_infra;list_saved;show_file;diff_files;ssh_key;apply_config;query_expr)
+    _execute_query_device_map(console;dm;query_expr;output_fmt)
     _render(console;dm;fmt)
     _print_list(console)
     _diff(console;a;b)
@@ -326,8 +334,9 @@ D:
     _export_to_css(manifest;templates)
     _export_to_yaml(manifest)
   redeploy/cli/commands/hardware.py:
-    e: _probe_hardware,_format_output,_print_drm_connectors,_print_backlights,_print_dsi_overlays,_print_i2c_buses,_print_diagnostics,_apply_transform,_apply_config,_update_kanshi_from_cfg,_execute_query,_apply_fix,hardware
+    e: _probe_hardware,_probe_hardware_op3,_format_output,_print_drm_connectors,_print_backlights,_print_dsi_overlays,_print_i2c_buses,_print_diagnostics,_apply_transform,_execute_query,_apply_fix,hardware
     _probe_hardware(host;ssh_key;console)
+    _probe_hardware_op3(host;ssh_key;console)
     _format_output(hw;output_fmt)
     _print_drm_connectors(console;hw)
     _print_backlights(console;hw)
@@ -335,8 +344,6 @@ D:
     _print_i2c_buses(console;hw)
     _print_diagnostics(console;hw;show_fix)
     _apply_transform(console;p;hw;transform)
-    _apply_config(console;p;config_path)
-    _update_kanshi_from_cfg(console;p;dsi_outputs)
     _execute_query(hw;query_expr;output_fmt)
     _apply_fix(console;p;hw;apply_fix_component;panel_id)
     hardware(host;output_fmt;show_fix;apply_fix_component;panel_id;list_panels;ssh_key;set_transform;apply_config;query_expr)
@@ -487,6 +494,15 @@ D:
     _print_spec_metadata(console;spec)
     print_import_spec(console;spec)
   redeploy/cli.py:
+  redeploy/config_apply/__init__.py:
+  redeploy/config_apply/applier.py:
+    e: _normalize_hardware,apply_config_dict,apply_config_file
+    _normalize_hardware(data)
+    apply_config_dict(data;probe;console)
+    apply_config_file(path)
+  redeploy/config_apply/loader.py:
+    e: load_config_file
+    load_config_file(path)
   redeploy/data_sync.py:
     e: collect_sqlite_counts,rsync_timeout_for_path
     collect_sqlite_counts(app_root;db_specs)
@@ -719,6 +735,15 @@ D:
     e: parse_file,parse_dir
     parse_file(path)
     parse_dir(root;recursive;skip_errors)
+  redeploy/integrations/__init__.py:
+  redeploy/integrations/op3_bridge.py:
+    e: op3_enabled,op3_available,should_use_op3,make_op3_context_from_ssh_client,snapshot_to_infra_state,snapshot_to_hardware_info
+    op3_enabled()
+    op3_available()
+    should_use_op3()
+    make_op3_context_from_ssh_client(ssh_client)
+    snapshot_to_infra_state(snapshot)
+    snapshot_to_hardware_info(snapshot)
   redeploy/markpact/__init__.py:
   redeploy/markpact/compiler.py:
     e: compile_markpact_document,compile_markpact_document_to_data,_load_block_payload,_normalize_config_payload,_extract_steps,_deep_merge,MarkpactCompileError
@@ -1319,6 +1344,19 @@ D:
     StagingResult:  # Result of staging one source.
     VersionBumpTransaction: __init__(2),prepare(0),_stage_one(1),commit(0),rollback(0),get_summary(0)  # Atomic transaction for bumping version across multiple sourc
   redeploy/version.py:
+  scripts/quality_gate.py:
+  tests/contract/__init__.py:
+  tests/contract/test_hardware_op3_parity.py:
+    e: mock_hw,_make_mock_probe_hardware_op3,_normalize,test_hardware_yaml_parity
+    mock_hw()
+    _make_mock_probe_hardware_op3(hw)
+    _normalize(data)
+    test_hardware_yaml_parity(mock_hw;monkeypatch)
+  tests/integration/__init__.py:
+  tests/integration/test_op3_bridge.py:
+    e: test_op3_importable,test_op3_mock_scan
+    test_op3_importable()
+    test_op3_mock_scan()
   tests/test_hardware_config.py:
     e: test_add_new_line_to_all_section,test_no_op_when_line_already_present,test_replace_existing_dsi_overlay,test_replace_is_idempotent_for_same_line,test_add_to_pi5_section,test_add_to_existing_section,test_no_op_for_existing_line_in_section,test_ensure_lines_multiple,test_ensure_lines_no_change_when_all_present,test_ensure_lines_partial_update,test_all_panels_non_empty,test_waveshare_8_inch_registered,test_overlay_line_dsi1,test_overlay_line_dsi0,test_official_rpi_panel_registered,test_hyperpixel_panels_registered,test_raspi_config_i2c_enable,test_raspi_config_spi_disable,test_raspi_config_invalid_interface,test_raspi_config_invalid_state
     test_add_new_line_to_all_section()

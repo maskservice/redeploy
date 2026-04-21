@@ -360,6 +360,15 @@ class MigrationStep(BaseModel):
     raspi_interface: Optional[str] = None   # i2c, spi, camera, onewire, ssh, vnc, serial
     raspi_state: Optional[str] = None       # enable, disable
 
+    # kiosk / compositor params
+    profile_name: Optional[str] = None           # kanshi profile name
+    outputs_on: list[str] = Field(default_factory=list)
+    outputs_off: list[str] = Field(default_factory=list)
+    compositor: Optional[str] = None           # labwc, weston, sway
+    entries: list[str] = Field(default_factory=list)  # autostart lines
+    kiosk_script_path: Optional[str] = None      # path to kiosk-launch.sh
+    browser_profile: Optional[str] = None        # e.g. chromium_wayland_kiosk
+
     result: Optional[str] = None         # filled after apply
     error: Optional[str] = None
 

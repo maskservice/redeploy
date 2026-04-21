@@ -37,7 +37,7 @@ _SEVERITY_ICON = {
 
 
 def _probe_hardware(host, ssh_key, console):
-    """Probe hardware on remote host."""
+    """Probe hardware on remote host (legacy path)."""
     from ...detect.hardware import probe_hardware
     from ...detect.remote import RemoteProbe
 
@@ -54,6 +54,39 @@ def _probe_hardware(host, ssh_key, console):
             raise
 
     return hw, p
+
+
+def _probe_hardware_op3(host: str, ssh_key: str | None, console):
+    """Probe hardware via op3 scanner (new path)."""
+    from opstree.probes.context import SSHContext
+    from opstree.layers.builtin import PhysicalLayer, OsLayer
+    from opstree.layers.tree import LayerTree
+    from opstree.scanner.linear import LinearScanner
+    from opstree.probes.builtin.physical_rpi import RpiPhysicalDisplayProbe
+    from opstree.probes.builtin.os_linux import OsKernelProbe, OsConfigProbe
+    from opstree.probes.registry import ProbeRegistry
+    from ...integrations.op3_bridge import snapshot_to_hardware_info
+
+    ctx = SSHContext(target=host, ssh_key_path=ssh_key)
+
+    tree = LayerTree()
+    tree.register(PhysicalLayer.display)
+    tree.register(OsLayer.kernel)
+    tree.register(OsLayer.config)
+
+    registry = ProbeRegistry()
+    registry.register(RpiPhysicalDisplayProbe())
+    registry.register(OsKernelProbe())
+    registry.register(OsConfigProbe())
+
+    scanner = LinearScanner(tree)
+    scanner.probe_registry = registry
+
+    with console.status(f"[cyan]Probing hardware on {host} via op3…[/cyan]"):
+        snapshot = scanner.scan(host, ctx.execute)
+
+    hw = snapshot_to_hardware_info(snapshot)
+    return hw
 
 
 def _format_output(hw, output_fmt):
@@ -422,7 +455,13 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_pan
     if not host:
         raise click.UsageError("HOST argument is required unless --list-panels is used.")
 
-    hw, p = _probe_hardware(host, ssh_key, console)
+    # op3 path for read-only operations (parity with legacy output)
+    from ...integrations.op3_bridge import should_use_op3
+    if should_use_op3() and not any((apply_config, set_transform, apply_fix_component)):
+        hw = _probe_hardware_op3(host, ssh_key, console)
+        p = None
+    else:
+        hw, p = _probe_hardware(host, ssh_key, console)
 
     # --apply-config: load YAML/JSON file and push settings to device
     if apply_config is not None:
