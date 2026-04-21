@@ -32,6 +32,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Migration specs can now use inline_script for cleaner deployment scripts (no base64 encoding in YAML)
 
+## [0.2.43] - 2026-04-21
+
+### Docs
+- Update README.md
+- Update SUMD.md
+- Update SUMR.md
+- Update TODO.md
+- Update docs/README.md
+- Update examples/hardware/rpi5-waveshare-kiosk.md
+
+### Test
+- Update tests/test_hardware_kiosk.py
+
+### Other
+- Update .redeploy/state/test-local-6bb4cec7.yaml
+- Update project/duplication.toon.yaml
+- Update project/map.toon.yaml
+- Update redeploy/apply/executor.py
+- Update redeploy/apply/handlers.py
+- Update redeploy/cli/__init__.py
+- Update redeploy/cli/commands/push.py
+- Update redeploy/hardware/kiosk/__init__.py
+- Update redeploy/hardware/kiosk/autostart.py
+- Update redeploy/hardware/kiosk/browsers.py
+- ... and 4 more files
+
 ## [0.2.42] - 2026-04-21
 
 ### Docs

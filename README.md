@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.42-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-20.9h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.43-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-21.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $7.5000 (63 commits)
-- 👤 **Human dev:** ~$2088 (20.9h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $7.5000 (64 commits)
+- 👤 **Human dev:** ~$2099 (21.0h @ $100/h, 30min dedup)
 
 Generated on 2026-04-21 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.42-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.43-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -127,6 +127,72 @@ redeploy device-rm root@10.0.0.5
 ```
 
 Registry is stored at `~/.config/redeploy/devices.yaml` (chmod 600 — safe for SSH key paths).
+
+## Declarative config workflow
+
+redeploy supports a declarative configuration workflow for hardware settings — scan to YAML, edit locally, and apply to device:
+
+```bash
+# 1. Scan hardware state to YAML
+redeploy hardware pi@192.168.188.109 > hardware.yaml
+redeploy device-map pi@192.168.188.109 > device-map.yaml
+
+# 2. Edit YAML locally (e.g., change display rotation)
+# hardware.yaml:
+#   drm_outputs:
+#   - name: card0-DSI-2
+#     connector: DSI-2
+#     transform: '270'  # ← edit this value
+
+# 3. Apply config to remote device
+redeploy hardware pi@192.168.188.109 --apply-config hardware.yaml
+redeploy device-map pi@192.168.188.109 --apply-config device-map.yaml
+```
+
+**What `--apply-config` does:**
+- Applies display transforms via `wlr-randr` (Wayland compositor)
+- Updates kanshi config (`~/.config/kanshi/config`) for persistent display rotation
+- Sets backlight brightness and power state
+- Supports both YAML and JSON config files
+
+**Supported commands:**
+- `redeploy hardware --apply-config FILE`
+- `redeploy device-map --apply-config FILE`
+- `redeploy blueprint show FILE --apply-config FILE`
+
+## JMESPath query support
+
+Extract specific values from YAML/JSON output using JMESPath query language (similar to XPath for XML):
+
+```bash
+# Simple path queries
+redeploy hardware pi@192.168.188.109 --query "drm_outputs[0].transform"
+redeploy hardware pi@192.168.188.109 --query "kernel"
+redeploy device-map pi@192.168.188.109 --query "host"
+
+# Filter queries
+redeploy hardware pi@192.168.188.109 --query "backlights[?name==\`11-0045\`].brightness"
+redeploy hardware pi@192.168.188.109 --query "drm_outputs[?connector==\`DSI-2\`].transform"
+
+# From saved YAML files
+redeploy blueprint show blueprint.yaml --query "hardware.drm_outputs[0].transform"
+redeploy device-map --show device-map.yaml --query "tags"
+
+# JSON output
+redeploy hardware pi@192.168.188.109 --query "tags" --format json
+```
+
+**JMESPath features:**
+- **Simple paths:** `kernel`, `host`, `board`
+- **Array indexing:** `drm_outputs[0].transform`
+- **Filtering:** `[?name==\`11-0045\`]`
+- **Projections:** `backlights[0].[name,brightness]`
+- **Wildcards:** `drm_outputs[*].transform`
+
+**Supported commands:**
+- `redeploy hardware --query EXPR`
+- `redeploy device-map --query EXPR`
+- `redeploy blueprint show FILE --query EXPR`
 
 ## CLI reference
 
@@ -588,6 +654,90 @@ doql `DEPLOY.target` → redeploy `strategy` mapping:
 # Run any example in dry-run mode (no SSH required):
 redeploy run examples/01-vps-version-bump/migration.yaml --plan-only
 redeploy run examples/04-rpi-kiosk/migration.yaml --plan-only
+```
+
+## Hardware diagnostics commands
+
+### `redeploy hardware HOST [options]`
+
+Probe and diagnose hardware on a remote host (DSI display, DRM connectors, backlight, I2C, config.txt, Wayland compositor).
+
+| Option | Description |
+|--------|-------------|
+| `--format [yaml|json]` | Output format (default: yaml) |
+| `--fix` | Print fix commands for all issues found |
+| `--apply-fix COMPONENT` | Run fix for specific component via SSH |
+| `--panel PANEL_ID` | Specify panel ID explicitly |
+| `--list-panels` | List available panel definitions |
+| `--set-transform TRANSFORM` | Set display rotation for DSI output (normal, 90, 180, 270, flipped, etc.) |
+| `--apply-config FILE` | Apply display settings from YAML/JSON config file |
+| `--query EXPR` | Extract specific values using JMESPath query |
+| `--ssh-key PATH` | SSH private key path |
+
+```bash
+redeploy hardware pi@192.168.188.109
+redeploy hardware pi@192.168.188.109 --fix
+redeploy hardware pi@192.168.188.109 --set-transform 270
+redeploy hardware pi@192.168.188.109 --apply-config hardware.yaml
+redeploy hardware pi@192.168.188.109 --query "drm_outputs[0].transform"
+```
+
+### `redeploy device-map HOST [options]`
+
+Generate full device snapshot (hardware + infra + diagnostics).
+
+| Option | Description |
+|--------|-------------|
+| `--name TEXT` | Human-friendly device label |
+| `--tag TEXT` | Tag(s) to attach (repeatable) |
+| `--save` | Persist map to `~/.config/redeploy/device-maps/` |
+| `--out PATH` | Save to specific file |
+| `--format [yaml|json]` | Output format (default: yaml) |
+| `--no-infra` | Skip infra probe (hardware only) |
+| `--list` | List saved device maps |
+| `--show PATH` | Load and display saved device-map file |
+| `--diff PATH...` | Diff two saved device-map files |
+| `--apply-config FILE` | Apply hardware/infra settings from YAML config file |
+| `--query EXPR` | Extract specific values using JMESPath query |
+| `--ssh-key PATH` | SSH private key path |
+
+```bash
+redeploy device-map pi@192.168.188.109 --save --name "kiosk-lab"
+redeploy device-map --list
+redeploy device-map --show ~/.config/redeploy/device-maps/pi_at_192.168.188.109.yaml
+redeploy device-map pi@192.168.188.109 --apply-config device-map.yaml
+redeploy device-map pi@192.168.188.109 --query "hardware.drm_outputs[0].transform"
+```
+
+### `redeploy blueprint [command]`
+
+Manage device blueprints (capture, show, list, twin, migrate).
+
+#### `redeploy blueprint capture HOST [options]`
+
+Capture device state as blueprint.
+
+| Option | Description |
+|--------|-------------|
+| `--format [yaml|json]` | Output format (default: yaml) |
+| `--save` | Persist to `~/.config/redeploy/blueprints/` |
+| `--out PATH` | Save to specific file |
+| `--ssh-key PATH` | SSH private key path |
+
+#### `redeploy blueprint show FILE [options]`
+
+Display saved blueprint.
+
+| Option | Description |
+|--------|-------------|
+| `--format [yaml|json]` | Output format (default: yaml) |
+| `--apply-config FILE` | Apply blueprint settings from YAML config file |
+| `--query EXPR` | Extract specific values using JMESPath query |
+
+```bash
+redeploy blueprint capture pi@192.168.188.109 > blueprint.yaml
+redeploy blueprint show blueprint.yaml --apply-config blueprint.yaml
+redeploy blueprint show blueprint.yaml --query "hardware.drm_outputs[0].transform"
 ```
 
 ## License

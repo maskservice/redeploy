@@ -16,6 +16,7 @@ from .handlers import (
     run_docker_health_wait, run_container_log_tail, run_http_check,
     run_version_check, run_plugin, run_wait, run_inline_script,
     run_ensure_config_line, run_raspi_config,
+    run_ensure_kanshi_profile, run_ensure_autostart_entry, run_ensure_browser_kiosk_script,
 )
 from .progress import ProgressEmitter
 from .rollback import rollback_steps
@@ -230,6 +231,9 @@ class Executor:
             StepAction.INLINE_SCRIPT:       lambda s: run_inline_script(s, self.probe, self.plan),
             StepAction.ENSURE_CONFIG_LINE:  lambda s: run_ensure_config_line(s, self.probe),
             StepAction.RASPI_CONFIG:        lambda s: run_raspi_config(s, self.probe),
+            StepAction.ENSURE_KANSHI_PROFILE:      lambda s: run_ensure_kanshi_profile(s, self.probe),
+            StepAction.ENSURE_AUTOSTART_ENTRY:     lambda s: run_ensure_autostart_entry(s, self.probe),
+            StepAction.ENSURE_BROWSER_KIOSK_SCRIPT: lambda s: run_ensure_browser_kiosk_script(s, self.probe),
         }
 
         handler = dispatch.get(step.action)

@@ -6,15 +6,17 @@ SUMD - Structured Unified Markdown Descriptor for AI-aware project refactorizati
 
 - [Metadata](#metadata)
 - [Architecture](#architecture)
+- [Workflows](#workflows)
 - [Dependencies](#dependencies)
 - [Source Map](#source-map)
+- [Call Graph](#call-graph)
 - [Refactoring Analysis](#refactoring-analysis)
 - [Intent](#intent)
 
 ## Metadata
 
 - **name**: `redeploy`
-- **version**: `0.2.39`
+- **version**: `0.2.42`
 - **python_requires**: `>=3.11`
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
 - **ecosystem**: SUMD + DOQL + testql + taskfile
@@ -107,6 +109,8 @@ environment[name="local"] {
 - `redeploy.verify`
 - `redeploy.version`
 
+## Workflows
+
 ## Dependencies
 
 ### Runtime
@@ -120,6 +124,7 @@ loguru>=0.7
 paramiko>=3.0
 httpx>=0.25
 rich>=13.0
+jmespath>=1.0
 goal>=2.1.0
 costs>=0.1.20
 pfix>=0.1.60
@@ -162,6 +167,7 @@ class HardwareInfo:  # Hardware state produced by hardware probe.
     def has_dsi()  # CC=2
     def kms_enabled()  # CC=3
     def dsi_connected()  # CC=3
+    def dsi_physically_connected()  # CC=3
     def dsi_enabled()  # CC=3
     def backlight_on()  # CC=3
     def errors()  # CC=3
@@ -376,6 +382,84 @@ class DiscoveredHost:
 class ProbeResult:  # Full autonomous probe result for a single host.
 ```
 
+## Call Graph
+
+*12 nodes · 7 edges · 6 modules · CC̄=4.3*
+
+### Hubs (by degree)
+
+| Function | CC | in | out | total |
+|----------|----|----|-----|-------|
+| `run` *(in redeploy.cli)* | 12 ⚠ | 0 | 48 | **48** |
+| `run` *(in redeploy.detect.detector.Detector)* | 9 | 0 | 30 | **30** |
+| `apply` *(in redeploy.cli)* | 9 | 0 | 22 | **22** |
+| `probe_runtime` *(in redeploy.detect.probes)* | 5 | 1 | 15 | **16** |
+| `probe_ports` *(in redeploy.detect.probes)* | 6 | 1 | 11 | **12** |
+| `_detect_key` *(in redeploy.ssh.SshClient)* | 6 | 1 | 8 | **9** |
+| `probe_iptables_dnat` *(in redeploy.detect.probes)* | 7 | 1 | 5 | **6** |
+| `from_file` *(in redeploy.models.MigrationSpec)* | 1 | 1 | 4 | **5** |
+
+```toon markpact:analysis path=project/calls.toon.yaml
+# code2llm call graph | /home/tom/github/maskservice/redeploy
+# nodes: 12 | edges: 7 | modules: 6
+# CC̄=4.3
+
+HUBS[20]:
+  redeploy.cli.run
+    CC=12  in:0  out:48  total:48
+  redeploy.detect.detector.Detector.run
+    CC=9  in:0  out:30  total:30
+  redeploy.cli.apply
+    CC=9  in:0  out:22  total:22
+  redeploy.detect.probes.probe_runtime
+    CC=5  in:1  out:15  total:16
+  redeploy.detect.probes.probe_ports
+    CC=6  in:1  out:11  total:12
+  redeploy.ssh.SshClient._detect_key
+    CC=6  in:1  out:8  total:9
+  redeploy.detect.probes.probe_iptables_dnat
+    CC=7  in:1  out:5  total:6
+  redeploy.models.MigrationSpec.from_file
+    CC=1  in:1  out:4  total:5
+  redeploy.apply.executor.Executor.from_file
+    CC=1  in:1  out:4  total:5
+  redeploy.cli.cli
+    CC=1  in:0  out:5  total:5
+  redeploy.cli._setup_logging
+    CC=2  in:1  out:2  total:3
+  redeploy.ssh.SshClient._detect_ssh_key
+    CC=1  in:0  out:1  total:1
+
+MODULES:
+  redeploy.apply.executor  [1 funcs]
+    from_file  CC=1  out:4
+  redeploy.cli  [4 funcs]
+    _setup_logging  CC=2  out:2
+    apply  CC=9  out:22
+    cli  CC=1  out:5
+    run  CC=12  out:48
+  redeploy.detect.detector  [1 funcs]
+    run  CC=9  out:30
+  redeploy.detect.probes  [3 funcs]
+    probe_iptables_dnat  CC=7  out:5
+    probe_ports  CC=6  out:11
+    probe_runtime  CC=5  out:15
+  redeploy.models  [1 funcs]
+    from_file  CC=1  out:4
+  redeploy.ssh  [2 funcs]
+    _detect_key  CC=6  out:8
+    _detect_ssh_key  CC=1  out:1
+
+EDGES:
+  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_runtime
+  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_ports
+  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_iptables_dnat
+  redeploy.ssh.SshClient._detect_ssh_key → redeploy.ssh.SshClient._detect_key
+  redeploy.cli.cli → redeploy.cli._setup_logging
+  redeploy.cli.apply → redeploy.apply.executor.Executor.from_file
+  redeploy.cli.run → redeploy.models.MigrationSpec.from_file
+```
+
 ## Refactoring Analysis
 
 *Pre-refactoring snapshot — use this section to identify targets. Generated from `project/` toon files.*
@@ -505,23 +589,28 @@ EXTERNAL:
 ### Duplication (`project/duplication.toon.yaml`)
 
 ```toon markpact:analysis path=project/duplication.toon.yaml
-# redup/duplication | 4 groups | 118f 21285L | 2026-04-21
+# redup/duplication | 5 groups | 125f 22907L | 2026-04-21
 
 SUMMARY:
-  files_scanned: 118
-  total_lines:   21285
-  dup_groups:    4
-  dup_fragments: 8
-  saved_lines:   59
-  scan_ms:       4777
+  files_scanned: 125
+  total_lines:   22907
+  dup_groups:    5
+  dup_fragments: 10
+  saved_lines:   100
+  scan_ms:       3902
 
-HOTSPOTS[4] (files with most duplication):
+HOTSPOTS[6] (files with most duplication):
+  redeploy/cli/commands/hardware.py  dup=44L  groups=1  frags=1  (0.2%)
+  redeploy/cli/commands/device_map.py  dup=41L  groups=1  frags=1  (0.2%)
   redeploy/cli/commands/version/helpers.py  dup=38L  groups=2  frags=2  (0.2%)
   redeploy/cli/commands/version/release.py  dup=38L  groups=2  frags=2  (0.2%)
   redeploy/hardware/fixes.py  dup=26L  groups=1  frags=2  (0.1%)
   redeploy/apply/handlers.py  dup=16L  groups=1  frags=2  (0.1%)
 
-DUPLICATES[4] (ranked by impact):
+DUPLICATES[5] (ranked by impact):
+  [567ae5643b5145c4] ! EXAC  _update_kanshi_from_cfg  L=41 N=2 saved=41 sim=1.00
+      redeploy/cli/commands/device_map.py:281-321  (_update_kanshi_from_cfg)
+      redeploy/cli/commands/hardware.py:336-379  (_update_kanshi_from_cfg)
   [bb546964bbb3b9b9]   EXAC  _resolve_package_release_git_config  L=22 N=2 saved=22 sim=1.00
       redeploy/cli/commands/version/helpers.py:60-81  (_resolve_package_release_git_config)
       redeploy/cli/commands/version/release.py:114-135  (_resolve_package_release_git_config)
@@ -535,39 +624,43 @@ DUPLICATES[4] (ranked by impact):
       redeploy/apply/handlers.py:74-81  (run_docker_build)
       redeploy/apply/handlers.py:84-91  (run_podman_build)
 
-REFACTOR[4] (ranked by priority):
-  [1] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
+REFACTOR[5] (ranked by priority):
+  [1] ◐ extract_function   → redeploy/cli/commands/utils/_update_kanshi_from_cfg.py
+      WHY: 2 occurrences of 41-line block across 2 files — saves 41 lines
+      FILES: redeploy/cli/commands/device_map.py, redeploy/cli/commands/hardware.py
+  [2] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
       WHY: 2 occurrences of 22-line block across 2 files — saves 22 lines
       FILES: redeploy/cli/commands/version/helpers.py, redeploy/cli/commands/version/release.py
-  [2] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
+  [3] ○ extract_function   → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
       WHY: 2 occurrences of 16-line block across 2 files — saves 16 lines
       FILES: redeploy/cli/commands/version/helpers.py, redeploy/cli/commands/version/release.py
-  [3] ○ extract_function   → redeploy/hardware/utils/fix_enable_i2c.py
+  [4] ○ extract_function   → redeploy/hardware/utils/fix_enable_i2c.py
       WHY: 2 occurrences of 13-line block across 1 files — saves 13 lines
       FILES: redeploy/hardware/fixes.py
-  [4] ○ extract_function   → redeploy/apply/utils/run_docker_build.py
+  [5] ○ extract_function   → redeploy/apply/utils/run_docker_build.py
       WHY: 2 occurrences of 8-line block across 1 files — saves 8 lines
       FILES: redeploy/apply/handlers.py
 
 QUICK_WINS[4] (low risk, high savings — do first):
-  [1] extract_function   saved=22L  → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
+  [2] extract_function   saved=22L  → redeploy/cli/commands/version/utils/_resolve_package_release_git_config.py
       FILES: helpers.py, release.py
-  [2] extract_function   saved=16L  → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
+  [3] extract_function   saved=16L  → redeploy/cli/commands/version/utils/_resolve_package_release_changelog_config.py
       FILES: helpers.py, release.py
-  [3] extract_function   saved=13L  → redeploy/hardware/utils/fix_enable_i2c.py
+  [4] extract_function   saved=13L  → redeploy/hardware/utils/fix_enable_i2c.py
       FILES: fixes.py
-  [4] extract_function   saved=8L  → redeploy/apply/utils/run_docker_build.py
+  [5] extract_function   saved=8L  → redeploy/apply/utils/run_docker_build.py
       FILES: handlers.py
 
-EFFORT_ESTIMATE (total ≈ 2.0h):
+EFFORT_ESTIMATE (total ≈ 4.0h):
+  hard   _update_kanshi_from_cfg             saved=41L  ~123min
   medium _resolve_package_release_git_config saved=22L  ~44min
   medium _resolve_package_release_changelog_config saved=16L  ~32min
   easy   fix_enable_i2c                      saved=13L  ~26min
   easy   run_docker_build                    saved=8L  ~16min
 
 METRICS-TARGET:
-  dup_groups:  4 → 0
-  saved_lines: 59 lines recoverable
+  dup_groups:  5 → 0
+  saved_lines: 100 lines recoverable
 ```
 
 ### Evolution / Churn (`project/evolution.toon.yaml`)

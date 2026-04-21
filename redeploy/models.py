@@ -41,6 +41,9 @@ class StepAction(str, Enum):
     INLINE_SCRIPT = "inline_script"  # multiline bash script from YAML
     ENSURE_CONFIG_LINE = "ensure_config_line"  # idempotent config.txt editing
     RASPI_CONFIG = "raspi_config"  # raspi-config nonint wrapper
+    ENSURE_KANSHI_PROFILE = "ensure_kanshi_profile"    # write/replace kanshi output profile
+    ENSURE_AUTOSTART_ENTRY = "ensure_autostart_entry"  # idempotent autostart line
+    ENSURE_BROWSER_KIOSK_SCRIPT = "ensure_browser_kiosk_script"  # write kiosk-launch.sh
 
 
 class StepStatus(str, Enum):

@@ -1,20 +1,21 @@
-# redeploy | 164f 33844L | python:161,shell:2,less:1 | 2026-04-21
-# stats: 567 func | 311 cls | 164 mod | CC̄=5.1 | critical:77 | cycles:0
+# redeploy | 172f 35704L | python:169,shell:2,less:1 | 2026-04-21
+# stats: 620 func | 319 cls | 172 mod | CC̄=5.1 | critical:83 | cycles:0
 # alerts[5]: CC _render=38; CC build_context=36; CC extract_blueprint=31; CC probe=26; CC version_init=26
-# hotspots[5]: device_map_cmd fan=26; version_init fan=26; audit fan=22; hardware fan=22; import_cmd fan=22
+# hotspots[5]: hardware fan=28; device_map_cmd fan=26; version_init fan=26; audit fan=22; import_cmd fan=22
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[164]:
+M[172]:
   app.doql.less,60
   project.sh,35
   redeploy/__init__.py,150
   redeploy/apply/__init__.py,50
   redeploy/apply/exceptions.py,13
-  redeploy/apply/executor.py,265
-  redeploy/apply/handlers.py,401
+  redeploy/apply/executor.py,269
+  redeploy/apply/handlers.py,535
   redeploy/apply/progress.py,108
   redeploy/apply/rollback.py,45
   redeploy/apply/state.py,162
+  redeploy/apply/state_apply.py,223
   redeploy/apply/utils/__init__.py,7
   redeploy/apply/utils/run_container_build.py,70
   redeploy/audit.py,610
@@ -23,18 +24,18 @@ M[164]:
   redeploy/blueprint/generators/__init__.py,1
   redeploy/blueprint/generators/docker_compose.py,191
   redeploy/blueprint/generators/migration.py,180
-  redeploy/cli/__init__.py,114
+  redeploy/cli/__init__.py,116
   redeploy/cli/commands/__init__.py,45
   redeploy/cli/commands/audit.py,127
-  redeploy/cli/commands/blueprint.py,299
+  redeploy/cli/commands/blueprint.py,412
   redeploy/cli/commands/detect.py,119
-  redeploy/cli/commands/device_map.py,377
+  redeploy/cli/commands/device_map.py,526
   redeploy/cli/commands/devices.py,227
-  redeploy/cli/commands/diagnose.py,89
-  redeploy/cli/commands/diff.py,38
+  redeploy/cli/commands/diagnose.py,48
+  redeploy/cli/commands/diff.py,34
   redeploy/cli/commands/exec_.py,252
   redeploy/cli/commands/export.py,127
-  redeploy/cli/commands/hardware.py,315
+  redeploy/cli/commands/hardware.py,600
   redeploy/cli/commands/import_.py,251
   redeploy/cli/commands/init.py,112
   redeploy/cli/commands/inspect.py,74
@@ -42,6 +43,7 @@ M[164]:
   redeploy/cli/commands/plan_apply.py,437
   redeploy/cli/commands/plugin.py,80
   redeploy/cli/commands/probe.py,145
+  redeploy/cli/commands/push.py,111
   redeploy/cli/commands/state.py,119
   redeploy/cli/commands/status.py,56
   redeploy/cli/commands/target.py,98
@@ -59,8 +61,8 @@ M[164]:
   redeploy/detect/__init__.py,6
   redeploy/detect/builtin/__init__.py,3
   redeploy/detect/detector.py,105
-  redeploy/detect/hardware.py,284
-  redeploy/detect/hardware_rules.py,263
+  redeploy/detect/hardware.py,354
+  redeploy/detect/hardware_rules.py,490
   redeploy/detect/probes.py,278
   redeploy/detect/remote.py,5
   redeploy/detect/templates.py,375
@@ -84,6 +86,11 @@ M[164]:
   redeploy/hardware/data/official.py,19
   redeploy/hardware/data/waveshare.py,49
   redeploy/hardware/fixes.py,204
+  redeploy/hardware/kiosk/__init__.py,19
+  redeploy/hardware/kiosk/autostart.py,85
+  redeploy/hardware/kiosk/browsers.py,79
+  redeploy/hardware/kiosk/compositors.py,81
+  redeploy/hardware/kiosk/output_profiles.py,69
   redeploy/hardware/panels.py,52
   redeploy/hardware/raspi_config.py,33
   redeploy/iac/__init__.py,48
@@ -96,7 +103,7 @@ M[164]:
   redeploy/markpact/compiler.py,178
   redeploy/markpact/models.py,27
   redeploy/markpact/parser.py,281
-  redeploy/models.py,968
+  redeploy/models.py,991
   redeploy/observe.py,314
   redeploy/parse.py,191
   redeploy/patterns.py,408
@@ -164,6 +171,7 @@ M[164]:
   redeploy/version/transaction.py,163
   redeploy/version.py,24
   tests/test_hardware_config.py,163
+  tests/test_hardware_kiosk.py,231
   tests/test_hardware_rules.py,190
   tests/test_iac.py,512
   tests/test_parse.py,158
@@ -179,7 +187,7 @@ D:
     e: Executor
     Executor: __init__(11),completed_steps(0),state(0),state_path(0),run(0),_execute_steps_loop(1),_skip_step(2),_handle_step_failure(3),_handle_completion(2),_compute_skip_set(0),_write_audit(0),_execute_step(1),_rollback(0),summary(0),from_file(1),save_results(1)  # Execute MigrationPlan steps on a remote host.
   redeploy/apply/handlers.py:
-    e: run_ssh,run_scp,run_rsync,run_docker_build,run_podman_build,run_docker_health_wait,_parse_container_statuses,_all_containers_healthy,run_container_log_tail,run_http_check,run_version_check,run_plugin,run_wait,run_inline_script,_resolve_command_ref,run_ensure_config_line,run_raspi_config
+    e: run_ssh,run_scp,run_rsync,run_docker_build,run_podman_build,run_docker_health_wait,_parse_container_statuses,_all_containers_healthy,run_container_log_tail,run_http_check,run_version_check,run_plugin,run_wait,run_inline_script,_resolve_command_ref,run_ensure_config_line,run_raspi_config,run_ensure_kanshi_profile,run_ensure_autostart_entry,run_ensure_browser_kiosk_script
     run_ssh(step;probe)
     run_scp(step;probe;plan)
     run_rsync(step;probe;plan)
@@ -197,6 +205,9 @@ D:
     _resolve_command_ref(command_ref;step;plan)
     run_ensure_config_line(step;probe)
     run_raspi_config(step;probe)
+    run_ensure_kanshi_profile(step;probe)
+    run_ensure_autostart_entry(step;probe)
+    run_ensure_browser_kiosk_script(step;probe)
   redeploy/apply/progress.py:
     e: ProgressEmitter
     ProgressEmitter: __init__(1),_ts(0),_elapsed(0),_emit(1),start(1),step_start(2),step_done(2),step_fail(3),progress(2),done(1),failed(3)  # Emits YAML-formatted progress events to a stream (default: s
@@ -211,6 +222,15 @@ D:
     state_key(spec_path;host)
     default_state_path(spec_path;host;base_dir)
     filter_resumable(step_ids;state)
+  redeploy/apply/state_apply.py:
+    e: _update_kanshi,detect_handler,apply_state,ApplyResult,StateHandler,HardwareStateHandler,InfraStateHandler
+    ApplyResult: ok(0)
+    StateHandler: accept(1),apply(3)  # Base class for a declarative state applier.
+    HardwareStateHandler: accept(1),apply(3)  # Applies HardwareInfo-shaped YAML: display transforms, backli
+    InfraStateHandler: accept(1),apply(3)  # Placeholder — applies InfraState-shaped YAML (services, port
+    _update_kanshi(dsi_outputs;p;console;applied;errors)
+    detect_handler(data)
+    apply_state(data;p;console)
   redeploy/apply/utils/__init__.py:
   redeploy/apply/utils/run_container_build.py:
     e: run_container_build
@@ -256,20 +276,24 @@ D:
     e: audit
     audit(last;host;app;only_failed;only_ok;log;as_json;show_report;do_clear)
   redeploy/cli/commands/blueprint.py:
-    e: blueprint_cmd,capture,twin,deploy,show,list_blueprints,_print_blueprint
+    e: blueprint_cmd,capture,_apply_blueprint_config,_execute_query_blueprint,twin,deploy,show,list_blueprints,_print_blueprint
     blueprint_cmd()
     capture(host;name;compose_files;migration_file;device_map_file;live;save;out_path;fmt;tags)
+    _apply_blueprint_config(bp;config_path)
+    _execute_query_blueprint(bp;query_expr;output_fmt)
     twin(blueprint_file;out_path;platform;port_offset;no_mock_display;print_output)
     deploy(blueprint_file;target_host;out_path;remote_dir;no_transfer;strategy;run_migration;print_output)
-    show(blueprint_file;fmt)
+    show(blueprint_file;fmt;apply_config;query_expr)
     list_blueprints()
     _print_blueprint(console;bp;fmt)
   redeploy/cli/commands/detect.py:
     e: detect
     detect(ctx;host;app;domain;output;run_workflow;scan_subnet;no_deep;save_yaml;output_fmt)
   redeploy/cli/commands/device_map.py:
-    e: device_map_cmd,_render,_print_list,_diff
-    device_map_cmd(host;name;tags;save;out_path;output_fmt;no_infra;list_saved;show_file;diff_files;ssh_key)
+    e: device_map_cmd,_apply_config_from_file,_update_kanshi_from_cfg,_render,_print_list,_diff
+    device_map_cmd(host;name;tags;save;out_path;output_fmt;no_infra;list_saved;show_file;diff_files;ssh_key;apply_config)
+    _apply_config_from_file(console;config_path;ssh_key)
+    _update_kanshi_from_cfg(console;p;dsi_outputs)
     _render(console;dm;fmt)
     _print_list(console)
     _diff(console;a;b)
@@ -284,7 +308,7 @@ D:
     diagnose(ctx;spec;host;ssh_key;output_fmt;exit_on_fail)
   redeploy/cli/commands/diff.py:
     e: diff
-    diff(ci_file;host;from_src;to_src;out_format)
+    diff(ci_file;host;from_src;to_src)
   redeploy/cli/commands/exec_.py:
     e: exec_cmd,exec_multi_cmd,_extract_all_scripts,_extract_script_for_ref,_execute_single_script,_print_execution_results
     exec_cmd(ctx;ref;host;markdown_file;dry_run;timeout)
@@ -295,14 +319,14 @@ D:
     _print_execution_results(console;results)
   redeploy/cli/commands/export.py:
     e: export_cmd,_find_export_source,_load_manifest_from_css,_load_manifest_from_yaml,_export_to_css,_export_to_yaml
-    export_cmd(ctx;fmt;output;src_file)
+    export_cmd(ctx;output;src_file;fmt)
     _find_export_source(src_file;console)
     _load_manifest_from_css(src)
     _load_manifest_from_yaml(src)
     _export_to_css(manifest;templates)
     _export_to_yaml(manifest)
   redeploy/cli/commands/hardware.py:
-    e: _probe_hardware,_format_output,_print_drm_connectors,_print_backlights,_print_dsi_overlays,_print_i2c_buses,_print_diagnostics,_apply_fix,hardware
+    e: _probe_hardware,_format_output,_print_drm_connectors,_print_backlights,_print_dsi_overlays,_print_i2c_buses,_print_diagnostics,_apply_transform,_apply_config,_update_kanshi_from_cfg,_execute_query,_apply_fix,hardware
     _probe_hardware(host;ssh_key;console)
     _format_output(hw;output_fmt)
     _print_drm_connectors(console;hw)
@@ -310,8 +334,12 @@ D:
     _print_dsi_overlays(console;hw)
     _print_i2c_buses(console;hw)
     _print_diagnostics(console;hw;show_fix)
+    _apply_transform(console;p;hw;transform)
+    _apply_config(console;p;config_path)
+    _update_kanshi_from_cfg(console;p;dsi_outputs)
+    _execute_query(hw;query_expr;output_fmt)
     _apply_fix(console;p;hw;apply_fix_component;panel_id)
-    hardware(host;output_fmt;show_fix;apply_fix_component;panel_id;list_panels;ssh_key)
+    hardware(host;output_fmt;show_fix;apply_fix_component;panel_id;list_panels;ssh_key;set_transform;apply_config;query_expr)
   redeploy/cli/commands/import_.py:
     e: import_cmd,_print_import_spec,_default_output,_spec_to_migration_yaml
     import_cmd(source;output;target_host;target_strategy;dry_run;out_format;parser)
@@ -344,6 +372,9 @@ D:
   redeploy/cli/commands/probe.py:
     e: probe
     probe(hosts;subnet;users;ssh_port;app_hint;timeout;no_save;as_json)
+  redeploy/cli/commands/push.py:
+    e: push
+    push(host;files;dry_run;ssh_key)
   redeploy/cli/commands/state.py:
     e: _get_state_path,_list_checkpoints,_show_checkpoint,state_cmd
     _get_state_path(spec_file;host;state_file;console)
@@ -466,7 +497,7 @@ D:
     e: Detector
     Detector: __init__(3),run(0),save(2),probe_hardware(0)  # Probe infrastructure and produce InfraState.
   redeploy/detect/hardware.py:
-    e: _lines,probe_board,probe_config_txt,probe_drm_outputs,probe_wlr_randr,probe_backlights,probe_framebuffers,probe_i2c_buses,probe_dsi_dmesg,_analyze,probe_hardware
+    e: _lines,probe_board,probe_config_txt,probe_drm_outputs,probe_wlr_randr,probe_backlights,probe_framebuffers,probe_i2c_buses,probe_dsi_dmesg,probe_dsi_dmesg_errors,probe_kernel_modules,probe_wayland_sockets,probe_compositor_processes,_analyze,probe_hardware
     _lines(text)
     probe_board(p)
     probe_config_txt(p)
@@ -476,6 +507,10 @@ D:
     probe_framebuffers(p)
     probe_i2c_buses(p)
     probe_dsi_dmesg(p)
+    probe_dsi_dmesg_errors(dmesg_lines)
+    probe_kernel_modules(p)
+    probe_wayland_sockets(p)
+    probe_compositor_processes(p)
     _analyze(hw)
     probe_hardware(p)
   redeploy/detect/hardware_rules.py:
@@ -632,6 +667,22 @@ D:
     fix_enable_i2c(hw;panel)
     fix_enable_spi(hw;panel)
     generate_fix_plan(hw;component;panel)
+  redeploy/hardware/kiosk/__init__.py:
+  redeploy/hardware/kiosk/autostart.py:
+    e: ensure_autostart_entry,generate_labwc_autostart,AutostartEntry
+    AutostartEntry: render(0)  # One entry in a compositor autostart file.
+    ensure_autostart_entry(content;entry)
+    generate_labwc_autostart(kiosk_script;kanshi_settle_secs;extra_entries)
+  redeploy/hardware/kiosk/browsers.py:
+    e: BrowserKioskProfile
+    BrowserKioskProfile: build_launch_cmd(2)  # Static definition of a browser kiosk launch profile.
+  redeploy/hardware/kiosk/compositors.py:
+    e: CompositorDefinition
+    CompositorDefinition: autostart_abs(1)  # Static definition of a Wayland compositor for kiosk use.
+  redeploy/hardware/kiosk/output_profiles.py:
+    e: dsi_only_profile,OutputProfile
+    OutputProfile: to_kanshi_config(0)  # A kanshi output profile definition.
+    dsi_only_profile(dsi_connector;hdmi_connectors;profile_name;transform)
   redeploy/hardware/panels.py:
     e: register,get,all_panels,infer_from_hardware,PanelDefinition
     PanelDefinition: overlay_line(1)  # Definition of a Raspberry Pi display panel.
@@ -710,7 +761,7 @@ D:
     BacklightInfo:  # Sysfs backlight device.
     I2CBusInfo:
     HardwareDiagnostic:  # Problem found during hardware probe.
-    HardwareInfo: has_dsi(0),kms_enabled(0),dsi_connected(0),dsi_enabled(0),backlight_on(0),errors(0),warnings(0)  # Hardware state produced by hardware probe.
+    HardwareInfo: has_dsi(0),kms_enabled(0),dsi_connected(0),dsi_physically_connected(0),dsi_enabled(0),backlight_on(0),errors(0),warnings(0)  # Hardware state produced by hardware probe.
     InfraState:  # Full detected state of infrastructure — output of `detect`.
     TargetConfig: _accept_strategy_aliases(2)  # Desired infrastructure state — input to `plan`.
     MigrationStep:
@@ -1290,10 +1341,43 @@ D:
     test_raspi_config_spi_disable()
     test_raspi_config_invalid_interface()
     test_raspi_config_invalid_state()
+  tests/test_hardware_kiosk.py:
+    e: test_autostart_entry_render_with_comment,test_autostart_entry_render_no_comment,test_ensure_autostart_entry_appends_to_empty,test_ensure_autostart_entry_no_op_when_correct,test_ensure_autostart_entry_replaces_stale_line,test_ensure_autostart_entry_appends_preserving_existing,test_ensure_autostart_entry_no_double_newline,test_generate_labwc_autostart_has_kanshi_first,test_generate_labwc_autostart_sleep_between,test_generate_labwc_autostart_default_browser_path,test_generate_labwc_autostart_custom_browser_path,test_generate_labwc_autostart_extra_entries,test_output_profile_to_kanshi_config_basic,test_output_profile_transform_included,test_output_profile_mode_included,test_dsi_only_profile_defaults,test_dsi_only_profile_custom_connector,test_dsi_only_profile_with_transform,test_dsi_only_profile_kanshi_output,test_labwc_uses_kanshi,test_labwc_autostart_path_expands,test_labwc_required_packages,test_compositors_registry_contains_labwc,test_labwc_notes_mention_password_store,test_labwc_notes_warn_about_windowed_flag,test_chromium_kiosk_required_flags,test_chromium_kiosk_incompatible_windowed,test_build_launch_cmd_basic,test_build_launch_cmd_raises_on_incompatible_flag,test_chromium_notes_mention_keyring,test_chromium_wayland_platform_flag
+    test_autostart_entry_render_with_comment()
+    test_autostart_entry_render_no_comment()
+    test_ensure_autostart_entry_appends_to_empty()
+    test_ensure_autostart_entry_no_op_when_correct()
+    test_ensure_autostart_entry_replaces_stale_line()
+    test_ensure_autostart_entry_appends_preserving_existing()
+    test_ensure_autostart_entry_no_double_newline()
+    test_generate_labwc_autostart_has_kanshi_first()
+    test_generate_labwc_autostart_sleep_between()
+    test_generate_labwc_autostart_default_browser_path()
+    test_generate_labwc_autostart_custom_browser_path()
+    test_generate_labwc_autostart_extra_entries()
+    test_output_profile_to_kanshi_config_basic()
+    test_output_profile_transform_included()
+    test_output_profile_mode_included()
+    test_dsi_only_profile_defaults()
+    test_dsi_only_profile_custom_connector()
+    test_dsi_only_profile_with_transform()
+    test_dsi_only_profile_kanshi_output()
+    test_labwc_uses_kanshi()
+    test_labwc_autostart_path_expands()
+    test_labwc_required_packages()
+    test_compositors_registry_contains_labwc()
+    test_labwc_notes_mention_password_store()
+    test_labwc_notes_warn_about_windowed_flag()
+    test_chromium_kiosk_required_flags()
+    test_chromium_kiosk_incompatible_windowed()
+    test_build_launch_cmd_basic()
+    test_build_launch_cmd_raises_on_incompatible_flag()
+    test_chromium_notes_mention_keyring()
+    test_chromium_wayland_platform_flag()
   tests/test_hardware_rules.py:
     e: _hw,_dsi_output,_backlight,test_no_dsi_overlay_when_dsi_overlays_empty,test_no_dsi_overlay_rule_absent_when_overlay_present,test_auto_detect_conflict_flagged,test_auto_detect_no_conflict_when_zero,test_overlay_but_no_drm_connector_flagged,test_overlay_with_drm_connector_no_connector_error,test_dsi_disconnected_flagged,test_no_backlight_when_dsi_connected,test_backlight_power_off_flagged,test_backlight_brightness_zero_flagged,test_all_ok_emits_info,test_all_ok_no_wayland_warns,test_i2c_chip_missing_flagged,test_i2c_chip_present_no_warn
     _hw()
-    _dsi_output(status)
+    _dsi_output(status;edid_bytes)
     _backlight(name;brightness;bl_power)
     test_no_dsi_overlay_when_dsi_overlays_empty()
     test_no_dsi_overlay_rule_absent_when_overlay_present()

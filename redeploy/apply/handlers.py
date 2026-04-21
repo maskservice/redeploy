@@ -398,3 +398,137 @@ def run_raspi_config(step: MigrationStep, probe: "RemoteProbe") -> None:
 
     step.status = StepStatus.DONE
     step.result = f"applied: {cmd}"
+
+
+# ── kiosk handlers ────────────────────────────────────────────────────────────
+
+def run_ensure_kanshi_profile(step: MigrationStep, probe: "RemoteProbe") -> None:
+    """Idempotently write or replace a named kanshi output profile.
+
+    step.command   — the profile block to write (rendered kanshi syntax)
+    step.config_file — kanshi config path (default: ~/.config/kanshi/config)
+    """
+    from ..hardware.kiosk.output_profiles import OutputProfile
+
+    profile_block = step.command
+    if not profile_block:
+        raise StepError(step, "ensure_kanshi_profile requires step.command with profile block")
+
+    config_path = step.config_file or "~/.config/kanshi/config"
+    mkdir_cmd = f"mkdir -p $(dirname {config_path})"
+    probe.run(mkdir_cmd, timeout=10)
+
+    r = probe.run(f"cat {config_path} 2>/dev/null || echo ''", timeout=10)
+    existing = r.out if r.ok else ""
+
+    # Extract profile name from block (first line: "profile <name> {")
+    first_line = profile_block.strip().splitlines()[0]
+    import re
+    m = re.match(r"profile\s+(\S+)\s*\{", first_line)
+    if not m:
+        raise StepError(step, f"Cannot parse profile name from block: {first_line!r}")
+    profile_name = m.group(1)
+
+    # Replace existing profile block or append
+    pattern = re.compile(
+        rf"^profile\s+{re.escape(profile_name)}\s*\{{[^}}]*\}}", re.MULTILINE | re.DOTALL
+    )
+    if pattern.search(existing):
+        if profile_block.strip() in existing:
+            step.status = StepStatus.DONE
+            step.result = f"no-op: profile '{profile_name}' already correct"
+            return
+        new_content = pattern.sub(profile_block.strip(), existing)
+        changed = True
+    else:
+        sep = "\n" if existing and not existing.endswith("\n") else ""
+        new_content = existing + sep + profile_block.strip() + "\n"
+        changed = True
+
+    encoded = base64.b64encode(new_content.encode()).decode()
+    tmp = f"/tmp/redeploy-kanshi-{step.id}.conf"
+    write_r = probe.run(
+        f"echo '{encoded}' | base64 -d | tee {tmp} > /dev/null && mv {tmp} {config_path}",
+        timeout=15,
+    )
+    if not write_r.ok:
+        raise StepError(step, f"Cannot write {config_path}: {write_r.stderr[:200]}")
+
+    # Reload kanshi if running
+    probe.run("pkill -SIGUSR1 kanshi 2>/dev/null || true", timeout=5)
+
+    step.status = StepStatus.DONE
+    step.result = f"profile '{profile_name}' written to {config_path}"
+
+
+def run_ensure_autostart_entry(step: MigrationStep, probe: "RemoteProbe") -> None:
+    """Idempotently add or replace a keyed entry in a compositor autostart file.
+
+    step.config_file — path to autostart file
+    step.config_line — the line to write (the entry body)
+    step.config_section — used as the entry key for idempotent marker
+    """
+    from ..hardware.kiosk.autostart import AutostartEntry, ensure_autostart_entry
+
+    if not step.config_file or not step.config_line:
+        raise StepError(step, "ensure_autostart_entry requires config_file and config_line")
+
+    key = step.config_section or "redeploy"
+    entry = AutostartEntry(key=key, line=step.config_line)
+
+    r = probe.run(f"cat {step.config_file} 2>/dev/null || echo ''", timeout=10)
+    existing = r.out if r.ok else ""
+
+    new_content, changed = ensure_autostart_entry(existing, entry)
+    if not changed:
+        step.status = StepStatus.DONE
+        step.result = f"no-op: entry [{key}] already correct"
+        return
+
+    mkdir_cmd = f"mkdir -p $(dirname {step.config_file})"
+    probe.run(mkdir_cmd, timeout=10)
+
+    encoded = base64.b64encode(new_content.encode()).decode()
+    tmp = f"/tmp/redeploy-autostart-{step.id}.txt"
+    write_r = probe.run(
+        f"echo '{encoded}' | base64 -d | tee {tmp} > /dev/null && mv {tmp} {step.config_file}",
+        timeout=15,
+    )
+    if not write_r.ok:
+        raise StepError(step, f"Cannot write {step.config_file}: {write_r.stderr[:200]}")
+
+    step.status = StepStatus.DONE
+    step.result = f"entry [{key}] written to {step.config_file}"
+
+
+def run_ensure_browser_kiosk_script(step: MigrationStep, probe: "RemoteProbe") -> None:
+    """Write a kiosk-launch.sh script to the remote device.
+
+    step.command   — the full script content to write
+    step.dst       — destination path (default: ~/kiosk-launch.sh)
+    """
+    script_content = step.command
+    if not script_content:
+        raise StepError(step, "ensure_browser_kiosk_script requires step.command with script body")
+
+    dst = step.dst or "~/kiosk-launch.sh"
+
+    r = probe.run(f"cat {dst} 2>/dev/null || echo ''", timeout=10)
+    existing = r.out if r.ok else ""
+    if existing.strip() == script_content.strip():
+        step.status = StepStatus.DONE
+        step.result = f"no-op: {dst} already correct"
+        return
+
+    encoded = base64.b64encode(script_content.encode()).decode()
+    tmp = f"/tmp/redeploy-kiosk-{step.id}.sh"
+    write_r = probe.run(
+        f"echo '{encoded}' | base64 -d | tee {tmp} > /dev/null"
+        f" && chmod +x {tmp} && mv {tmp} {dst}",
+        timeout=15,
+    )
+    if not write_r.ok:
+        raise StepError(step, f"Cannot write {dst}: {write_r.stderr[:200]}")
+
+    step.status = StepStatus.DONE
+    step.result = f"kiosk script written to {dst}"
