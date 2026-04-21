@@ -4,27 +4,27 @@
 
 - **Project**: /home/tom/github/maskservice/redeploy
 - **Primary Language**: python
-- **Languages**: python: 153, yaml: 99, md: 52, shell: 2, toml: 1
+- **Languages**: python: 153, yaml: 102, md: 52, shell: 2, toml: 1
 - **Analysis Mode**: static
-- **Total Functions**: 2553
-- **Total Classes**: 267
-- **Modules**: 311
-- **Entry Points**: 2215
+- **Total Functions**: 2570
+- **Total Classes**: 270
+- **Modules**: 314
+- **Entry Points**: 2229
 
 ## Architecture by Module
 
 ### SUMD
-- **Functions**: 898
-- **Classes**: 50
+- **Functions**: 904
+- **Classes**: 51
 - **File**: `SUMD.md`
 
 ### project.map.toon
-- **Functions**: 735
+- **Functions**: 740
 - **File**: `map.toon.yaml`
 
 ### SUMR
-- **Functions**: 163
-- **Classes**: 50
+- **Functions**: 164
+- **Classes**: 51
 - **File**: `SUMR.md`
 
 ### docs.dsl-migration
@@ -37,7 +37,7 @@
 - **File**: `audit.py`
 
 ### redeploy.models
-- **Functions**: 29
+- **Functions**: 30
 - **Classes**: 34
 - **File**: `models.py`
 
@@ -73,6 +73,11 @@
 - **Classes**: 4
 - **File**: `ssh.py`
 
+### redeploy.apply.executor
+- **Functions**: 17
+- **Classes**: 1
+- **File**: `executor.py`
+
 ### redeploy.version.changelog
 - **Functions**: 15
 - **Classes**: 1
@@ -91,11 +96,6 @@
 ### redeploy.mcp_server
 - **Functions**: 14
 - **File**: `mcp_server.py`
-
-### redeploy.apply.executor
-- **Functions**: 14
-- **Classes**: 1
-- **File**: `executor.py`
 
 ### redeploy.detect.templates
 - **Functions**: 13
@@ -174,6 +174,9 @@ Checks DSI display, DRM connectors, backlight controller, I2C buses,
 config.txt overlays and Wayland co
 - **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, click.option, click.option
 
+### redeploy.heal.HealRunner.run
+- **Calls**: self._make_executor, executor.run, self.console.print, range, SUMD.write_repair_log, self.console.print, SUMD.write_repair_log, SUMD.parse_failed_step
+
 ### redeploy.cli.commands.bump_fix.fix_cmd
 > Self-healing deploy: bump version, then run with LLM auto-fix on failure.
 
@@ -184,9 +187,6 @@ PATH is a spec file or directory containing migration.yaml / migration.md
 ### redeploy.cli.commands.plan_apply.migrate
 > Full pipeline: detect → plan → apply.
 - **Calls**: click.command, click.option, click.option, click.option, click.option, click.option, click.option, click.option
-
-### redeploy.heal.HealRunner.run
-- **Calls**: self._make_executor, executor.run, self.console.print, range, redeploy.heal.write_repair_log, self.console.print, redeploy.heal.write_repair_log, redeploy.heal.parse_failed_step
 
 ### redeploy.cli.commands.plan_apply.plan
 > Generate migration-plan.yaml from infra.yaml + target config.
@@ -248,7 +248,7 @@ INSTRUCTION is a free-text description of what you want to do.
 
 Examples:
     redeploy prompt "deplo
-- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, Console, project.map.toon.build_schema
+- **Calls**: click.command, click.argument, click.option, click.option, click.option, click.option, Console, redeploy.schema.build_schema
 
 ### redeploy.cli.commands.blueprint._print_blueprint
 - **Calls**: console.print, console.print, console.print, console.print, console.print, click.echo, click.echo, None.join
@@ -351,15 +351,15 @@ fix_cmd [redeploy.cli.commands.bump_fix]
 - **Methods**: 21
 - **Key Methods**: redeploy.plan.planner.Planner.__init__, redeploy.plan.planner.Planner.run, redeploy.plan.planner.Planner._plan_conflict_fixes, redeploy.plan.planner.Planner._plan_stop_old_services, redeploy.plan.planner.Planner._plan_deploy_new, redeploy.plan.planner.Planner._plan_docker_full, redeploy.plan.planner.Planner._plan_podman_quadlet, redeploy.plan.planner.Planner._plan_kiosk, redeploy.plan.planner.Planner._plan_kiosk_appliance, redeploy.plan.planner.Planner._plan_systemd
 
+### redeploy.apply.executor.Executor
+> Execute MigrationPlan steps on a remote host.
+- **Methods**: 20
+- **Key Methods**: redeploy.apply.executor.Executor.__init__, redeploy.apply.executor.Executor.completed_steps, redeploy.apply.executor.Executor.state, redeploy.apply.executor.Executor.state_path, redeploy.apply.executor.Executor.run, redeploy.apply.executor.Executor._execute_steps_loop, redeploy.apply.executor.Executor._skip_step, redeploy.apply.executor.Executor._handle_step_failure, redeploy.apply.executor.Executor._handle_completion, redeploy.apply.executor.Executor._fire_hooks
+
 ### redeploy.observe.AuditEntry
 > Single audit log entry — immutable snapshot of one deployment.
 - **Methods**: 18
 - **Key Methods**: redeploy.observe.AuditEntry.__init__, redeploy.observe.AuditEntry.ts, redeploy.observe.AuditEntry.host, redeploy.observe.AuditEntry.app, redeploy.observe.AuditEntry.from_strategy, redeploy.observe.AuditEntry.to_strategy, redeploy.observe.AuditEntry.ok, redeploy.observe.AuditEntry.elapsed_s, redeploy.observe.AuditEntry.steps_total, redeploy.observe.AuditEntry.steps_ok
-
-### redeploy.apply.executor.Executor
-> Execute MigrationPlan steps on a remote host.
-- **Methods**: 17
-- **Key Methods**: redeploy.apply.executor.Executor.__init__, redeploy.apply.executor.Executor.completed_steps, redeploy.apply.executor.Executor.state, redeploy.apply.executor.Executor.state_path, redeploy.apply.executor.Executor.run, redeploy.apply.executor.Executor._execute_steps_loop, redeploy.apply.executor.Executor._skip_step, redeploy.apply.executor.Executor._handle_step_failure, redeploy.apply.executor.Executor._handle_completion, redeploy.apply.executor.Executor._handle_post_deploy
 
 ### redeploy.fleet.Fleet
 > Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
@@ -469,9 +469,9 @@ Key functions that process and transform data:
 
 ### docs.parsers.README.parse
 
-### redeploy.heal.parse_failed_step
-> Extract (step_id, step_output) from executor state or summary string.
-- **Output to**: re.search, getattr, getattr, results.get, isinstance
+### redeploy.schema._parse_spec_meta
+> Extract version, name, target from a migration spec (YAML or Markdown).
+- **Output to**: path.read_text, re.search, None.strip, None.strip, None.strip
 
 ### redeploy.parse.parse_docker_ps
 > Parse 'docker ps --format "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}|{{.State}}"' output.
@@ -515,6 +515,10 @@ Handles sections: ===SYSTEM===, ==
 ### redeploy.cli.commands.hardware._apply_transform
 > Apply display transform via wlr-randr and persist in kanshi config.
 - **Output to**: next, console.print, p.run, p.run, new_cfg.replace
+
+### redeploy.cli.commands.prompt_cmd._parse_llm_response
+> Parse JSON from LLM response, strip accidental fences and escape control characters.
+- **Output to**: raw.strip, clean.startswith, re.sub, json.loads, clean.splitlines
 
 ### redeploy.cli.commands.version.release._format_release_tag
 > Format release tag from git config.
@@ -561,9 +565,6 @@ Returns:
 > Format release content from unreleased section + commits.
 - **Output to**: unreleased_content.strip, self._init_categories, self._categorize_commits, self._build_release_content
 
-### redeploy.version.changelog.ChangelogManager._format_commit_entry
-> Format a single commit as a changelog entry.
-
 ## Behavioral Patterns
 
 ### recursion_probe_hardware
@@ -576,11 +577,6 @@ Returns:
 - **Confidence**: 0.90
 - **Functions**: redeploy.dsl_python.decorators.MigrationRegistry.list
 
-### recursion__deep_merge
-- **Type**: recursion
-- **Confidence**: 0.90
-- **Functions**: redeploy.markpact.compiler._deep_merge
-
 ### recursion__parse_port
 - **Type**: recursion
 - **Confidence**: 0.90
@@ -590,6 +586,11 @@ Returns:
 - **Type**: recursion
 - **Confidence**: 0.90
 - **Functions**: redeploy.iac.docker_compose._deep_merge
+
+### recursion__deep_merge
+- **Type**: recursion
+- **Confidence**: 0.90
+- **Functions**: redeploy.markpact.compiler._deep_merge
 
 ### state_machine_step
 - **Type**: state_machine
@@ -639,9 +640,9 @@ Functions exposed as public API (no underscore prefix):
 - `redeploy.cli.commands.plan_apply.run` - 49 calls
 - `redeploy.integrations.op3_bridge.snapshot_to_hardware_info` - 49 calls
 - `redeploy.cli.commands.hardware.hardware` - 47 calls
+- `redeploy.heal.HealRunner.run` - 45 calls
 - `redeploy.cli.commands.bump_fix.fix_cmd` - 44 calls
 - `redeploy.cli.commands.plan_apply.migrate` - 43 calls
-- `redeploy.heal.HealRunner.run` - 42 calls
 - `redeploy.cli.commands.plan_apply.plan` - 41 calls
 - `redeploy.cli.commands.exec_.exec_cmd` - 40 calls
 - `examples.redeploy_iac_parsers.argocd_flux.FluxKustomizationParser.parse` - 40 calls
@@ -704,9 +705,9 @@ graph TD
     hardware --> command
     hardware --> argument
     hardware --> option
-    fix_cmd --> command
-    fix_cmd --> argument
-    fix_cmd --> option
+    run --> _make_executor
+    run --> run
+    run --> print
 ```
 
 ## Reverse Engineering Guidelines

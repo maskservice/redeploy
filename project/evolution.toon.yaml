@@ -1,9 +1,9 @@
-# code2llm/evolution | 2528 func | 134f | 2026-04-21
+# code2llm/evolution | 2545 func | 134f | 2026-04-21
 
 NEXT[10] (ranked by impact):
   [1] !! SPLIT           redeploy/models.py
-      WHY: 1033L, 34 classes, max CC=19
-      EFFORT: ~4h  IMPACT: 19627
+      WHY: 1096L, 34 classes, max CC=19
+      EFFORT: ~4h  IMPACT: 20824
 
   [2] !! SPLIT           redeploy/discovery.py
       WHY: 789L, 2 classes, max CC=17
@@ -43,7 +43,7 @@ NEXT[10] (ranked by impact):
 
 
 RISKS[3]:
-  ⚠ Splitting redeploy/models.py may break 29 import paths
+  ⚠ Splitting redeploy/models.py may break 30 import paths
   ⚠ Splitting redeploy/discovery.py may break 26 import paths
   ⚠ Splitting redeploy/plan/planner.py may break 21 import paths
 
@@ -79,4 +79,4 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=1.7 → now CC̄=1.6
+  prev CC̄=1.6 → now CC̄=1.6

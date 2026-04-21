@@ -1,17 +1,17 @@
-# redeploy | 215f 40052L | python:212,shell:2,less:1 | 2026-04-21
-# stats: 740 func | 349 cls | 215 mod | CC̄=4.8 | critical:84 | cycles:0
+# redeploy | 217f 40292L | python:214,shell:2,less:1 | 2026-04-21
+# stats: 747 func | 350 cls | 217 mod | CC̄=4.7 | critical:84 | cycles:0
 # alerts[5]: CC probe=26; CC version_init=26; CC _bump_single=25; CC _build_manifest=25; CC extract_blueprint=22
 # hotspots[5]: fix_cmd fan=29; hardware fan=28; device_map_cmd fan=27; version_init fan=26; import_cmd fan=25
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[215]:
+M[217]:
   app.doql.less,60
   examples/redeploy_iac_parsers/argocd_flux.py,130
   examples/redeploy_iac_parsers/gitops_ci.py,138
   examples/redeploy_iac_parsers/helm_ansible.py,95
   examples/redeploy_iac_parsers/helm_kustomize.py,114
   project.sh,35
-  redeploy/__init__.py,150
+  redeploy/__init__.py,154
   redeploy/apply/__init__.py,60
   redeploy/apply/exceptions.py,13
   redeploy/apply/executor.py,355
@@ -110,7 +110,7 @@ M[215]:
   redeploy/hardware/kiosk/output_profiles.py,69
   redeploy/hardware/panels.py,52
   redeploy/hardware/raspi_config.py,33
-  redeploy/heal.py,415
+  redeploy/heal.py,452
   redeploy/iac/__init__.py,53
   redeploy/iac/base.py,276
   redeploy/iac/config_hints.py,290
@@ -119,9 +119,9 @@ M[215]:
   redeploy/iac/parsers/compose.py,288
   redeploy/iac/registry.py,108
   redeploy/integrations/__init__.py,2
-  redeploy/integrations/op3_bridge.py,208
+  redeploy/integrations/op3_bridge.py,251
   redeploy/markpact/__init__.py,25
-  redeploy/markpact/compiler.py,178
+  redeploy/markpact/compiler.py,183
   redeploy/markpact/models.py,27
   redeploy/markpact/parser.py,281
   redeploy/mcp_server.py,315
@@ -154,6 +154,8 @@ M[215]:
   redeploy/tests/test_executor.py,733
   redeploy/tests/test_fleet.py,526
   redeploy/tests/test_git_integration.py,326
+  redeploy/tests/test_heal.py,27
+  redeploy/tests/test_hooks.py,124
   redeploy/tests/test_iac.py,462
   redeploy/tests/test_manifest.py,339
   redeploy/tests/test_markpact_compiler.py,148
@@ -796,7 +798,8 @@ D:
     e: build_raspi_config_command
     build_raspi_config_command(interface;state)
   redeploy/heal.py:
-    e: _ssh,collect_diagnostics,ask_llm,apply_fix_to_spec,write_repair_log,parse_failed_step,HealRunner
+    e: _ssh,collect_diagnostics,ask_llm,apply_fix_to_spec,write_repair_log,parse_failed_step,HealLoopDetector,HealRunner
+    HealLoopDetector: __init__(1),observe(2)  # Detect repeated non-converging heal hints for a given step.
     HealRunner: __init__(8),_make_executor(1),_reload_migration(0),run(0)  # Wraps Executor with self-healing loop.
     _ssh(host;command)
     collect_diagnostics(host;failed_step)
@@ -1128,6 +1131,17 @@ D:
     _config()
     _ok(stdout;stderr)
     _fail(stdout;stderr)
+  redeploy/tests/test_heal.py:
+    e: test_loop_detector_triggers_on_identical_hint_streak,test_loop_detector_does_not_trigger_for_varying_hints,test_loop_detector_tracks_each_step_independently
+    test_loop_detector_triggers_on_identical_hint_streak()
+    test_loop_detector_does_not_trigger_for_varying_hints()
+    test_loop_detector_tracks_each_step_independently()
+  redeploy/tests/test_hooks.py:
+    e: _plan,test_legacy_post_deploy_is_migrated_to_hooks,test_executor_fires_hook_phases_on_success,test_executor_fires_failure_hooks
+    _plan()
+    test_legacy_post_deploy_is_migrated_to_hooks(tmp_path)
+    test_executor_fires_hook_phases_on_success(monkeypatch)
+    test_executor_fires_failure_hooks(monkeypatch)
   redeploy/tests/test_iac.py:
     e: _write,test_parse_file,test_parse_dir,test_parse_dir_skip_errors,test_warning_str_with_location,test_warning_str_no_location,TestCanParse,TestDockerComposeParse,TestParserRegistry
     TestCanParse: _p(1),test_canonical_names(0),test_override_files(0),test_rejects_other_yaml(0)

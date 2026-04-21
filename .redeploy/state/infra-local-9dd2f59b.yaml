@@ -1,0 +1,8 @@
+spec_path: infra.yaml
+host: local
+total_steps: 1
+completed_step_ids: []
+failed_step_id: s1
+failed_error: '[s1] No command specified'
+started_at: '2026-04-21T20:13:57+00:00'
+updated_at: '2026-04-21T20:25:31+00:00'

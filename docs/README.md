@@ -1,7 +1,7 @@
 <!-- code2docs:start --># redeploy
 
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2687-green)
-> **2687** functions | **267** classes | **318** files | CC̄ = 5.1
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2700-green)
+> **2700** functions | **270** classes | **321** files | CC̄ = 5.1
 
 > Auto-generated project documentation from source code analysis.
 
@@ -83,12 +83,9 @@ redeploy/
 ├── DOQL-INTEGRATION
 ├── pyqual
 ├── sumd
-├── pyproject
 ├── tree
 ├── TODO
-├── CHANGELOG
 ├── project
-├── README
     ├── patterns
     ├── markpact-implementation-plan
     ├── fleet
@@ -107,9 +104,9 @@ redeploy/
     ├── cli/
     ├── data_sync
     ├── heal
-├── redeploy/
     ├── parse
     ├── fleet
+    ├── models
     ├── verify
     ├── spec_loader
     ├── ssh
@@ -208,6 +205,7 @@ redeploy/
     ├── apply/
         ├── state_apply
         ├── handlers
+        ├── executor
         ├── rollback
         ├── utils/
         ├── bump
@@ -320,6 +318,7 @@ redeploy/
             ├── test-local-6bb4cec7
             ├── test-local-c05a99a2
             ├── test-local-ec3c5638
+            ├── test-local-1862711e
             ├── test-local-ec6ccce4
             ├── test-local-eac354f9
             ├── migration-local-92efc860
@@ -343,6 +342,7 @@ redeploy/
             ├── test-local-179edfed
             ├── test-local-e3a0f31a
             ├── test-local-6279ef2c
+            ├── infra-local-9dd2f59b
             ├── test-local-24cd498c
             ├── test-local-efd3d620
             ├── test-local-e322f022
@@ -362,6 +362,7 @@ redeploy/
             ├── test-local-ad30ec23
             ├── test-local-a929f336
             ├── test-local-4cea1066
+            ├── test-local-cba6eec3
             ├── test-local-5a1d7483
             ├── test-local-e069dd9f
             ├── test-local-36935faf
@@ -374,17 +375,19 @@ redeploy/
         ├── context
         ├── README
             ├── toon
+├── pyproject
     ├── prompt
+├── README
         ├── toon
     ├── context
-        ├── toon
-        ├── toon
+├── CHANGELOG
     ├── README
+        ├── toon
+        ├── toon
         ├── toon
     ├── calls
         ├── toon
-        ├── executor
-    ├── models
+├── redeploy/
 ```
 
 ## API Overview
@@ -407,6 +410,7 @@ redeploy/
 - **`HardwareDiagnostic`** — —
 - **`HardwareInfo`** — —
 - **`InfraState`** — —
+- **`Hook`** — —
 - **`TargetConfig`** — —
 - **`MigrationStep`** — —
 - **`InfraSpec`** — —
@@ -460,6 +464,7 @@ redeploy/
 - **`HardwareDiagnostic`** — —
 - **`HardwareInfo`** — —
 - **`InfraState`** — —
+- **`Hook`** — —
 - **`TargetConfig`** — —
 - **`MigrationStep`** — —
 - **`InfraSpec`** — —
@@ -497,6 +502,7 @@ redeploy/
 - **`AuditEntry`** — Single audit log entry — immutable snapshot of one deployment.
 - **`DeployAuditLog`** — Persistent audit log — newline-delimited JSON at ``path``.
 - **`DeployReport`** — Human-readable post-deploy report from an AuditEntry.
+- **`HealLoopDetector`** — Detect repeated non-converging heal hints for a given step.
 - **`HealRunner`** — Wraps Executor with self-healing loop.
 - **`DeviceArch`** — —
 - **`Stage`** — —
@@ -504,6 +510,40 @@ redeploy/
 - **`FleetDevice`** — Generic device descriptor — superset of ``deploy``'s DeviceConfig.
 - **`FleetConfig`** — Top-level fleet manifest — list of devices with stage / tag organisation.
 - **`Fleet`** — Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
+- **`ConflictSeverity`** — —
+- **`StepAction`** — —
+- **`StepStatus`** — —
+- **`DeployStrategy`** — —
+- **`PersistedModel`** — Mixin for models that can be persisted to/from YAML files.
+- **`ServiceInfo`** — —
+- **`PortInfo`** — —
+- **`ConflictInfo`** — —
+- **`RuntimeInfo`** — —
+- **`AppHealthInfo`** — —
+- **`DrmOutput`** — One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1).
+- **`BacklightInfo`** — Sysfs backlight device.
+- **`I2CBusInfo`** — —
+- **`HardwareDiagnostic`** — Problem found during hardware probe.
+- **`HardwareInfo`** — Hardware state produced by hardware probe.
+- **`InfraState`** — Full detected state of infrastructure — output of `detect`.
+- **`Hook`** — Generyczny hook w pipeline: faza + akcja (reuse StepAction) + opcjonalny warunek.
+- **`TargetConfig`** — Desired infrastructure state — input to `plan`.
+- **`MigrationStep`** — —
+- **`InfraSpec`** — Declarative description of one infrastructure state (from OR to).
+- **`MigrationSpec`** — Single YAML file describing full migration: from-state → to-state.
+- **`MigrationPlan`** — Full migration plan — output of `plan`, input to `apply`.
+- **`EnvironmentConfig`** — One named environment (prod / dev / rpi5 / staging …) in redeploy.yaml.
+- **`ProjectManifest`** — Per-project redeploy.yaml — replaces repetitive Makefile variables.
+- **`DeployRecord`** — Single deployment event recorded for a device.
+- **`KnownDevice`** — Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml.
+- **`DeviceMap`** — Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
+- **`ServicePort`** — A single port mapping for a container service.
+- **`VolumeMount`** — —
+- **`ServiceSpec`** — Complete specification of a single containerised service.
+- **`HardwareRequirements`** — Hardware capabilities required to run the blueprint.
+- **`BlueprintSource`** — Where the blueprint was extracted from — audit trail.
+- **`DeviceBlueprint`** — Self-contained, portable deployment recipe.
+- **`DeviceRegistry`** — Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
 - **`VerifyContext`** — Accumulates check results during verification.
 - **`SpecLoaderError`** — Base error raised when a deployment spec cannot be loaded.
 - **`UnsupportedSpecFormatError`** — Raised when the spec file uses an unsupported format.
@@ -565,6 +605,7 @@ redeploy/
 - **`StateHandler`** — Base class for a declarative state applier.
 - **`HardwareStateHandler`** — Applies HardwareInfo-shaped YAML: display transforms, backlight, etc.
 - **`InfraStateHandler`** — Placeholder — applies InfraState-shaped YAML (services, ports, etc.).
+- **`Executor`** — Execute MigrationPlan steps on a remote host.
 - **`GitTransactionResult`** — Result of full version bump transaction with git.
 - **`GitVersionBumpTransaction`** — Version bump transaction with Git integration.
 - **`StagingResult`** — Result of staging one source.
@@ -614,41 +655,6 @@ redeploy/
 - **`GitLabCIGitOpsParser`** — —
 - **`HelmChartParser`** — —
 - **`AnsiblePlaybookParser`** — —
-- **`Executor`** — Execute MigrationPlan steps on a remote host.
-- **`ConflictSeverity`** — —
-- **`StepAction`** — —
-- **`StepStatus`** — —
-- **`DeployStrategy`** — —
-- **`PersistedModel`** — Mixin for models that can be persisted to/from YAML files.
-- **`ServiceInfo`** — —
-- **`PortInfo`** — —
-- **`ConflictInfo`** — —
-- **`RuntimeInfo`** — —
-- **`AppHealthInfo`** — —
-- **`DrmOutput`** — One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1).
-- **`BacklightInfo`** — Sysfs backlight device.
-- **`I2CBusInfo`** — —
-- **`HardwareDiagnostic`** — Problem found during hardware probe.
-- **`HardwareInfo`** — Hardware state produced by hardware probe.
-- **`InfraState`** — Full detected state of infrastructure — output of `detect`.
-- **`Hook`** — Generyczny hook w pipeline: faza + akcja (reuse StepAction) + opcjonalny warunek.
-- **`TargetConfig`** — Desired infrastructure state — input to `plan`.
-- **`MigrationStep`** — —
-- **`InfraSpec`** — Declarative description of one infrastructure state (from OR to).
-- **`MigrationSpec`** — Single YAML file describing full migration: from-state → to-state.
-- **`MigrationPlan`** — Full migration plan — output of `plan`, input to `apply`.
-- **`EnvironmentConfig`** — One named environment (prod / dev / rpi5 / staging …) in redeploy.yaml.
-- **`ProjectManifest`** — Per-project redeploy.yaml — replaces repetitive Makefile variables.
-- **`DeployRecord`** — Single deployment event recorded for a device.
-- **`KnownDevice`** — Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml.
-- **`DeviceMap`** — Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
-- **`ServicePort`** — A single port mapping for a container service.
-- **`VolumeMount`** — —
-- **`ServiceSpec`** — Complete specification of a single containerised service.
-- **`HardwareRequirements`** — Hardware capabilities required to run the blueprint.
-- **`BlueprintSource`** — Where the blueprint was extracted from — audit trail.
-- **`DeviceBlueprint`** — Self-contained, portable deployment recipe.
-- **`DeviceRegistry`** — Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
 
 ### Functions
 
@@ -1195,6 +1201,7 @@ redeploy/
 - `test_schema_discovers_c2004_specs()` — —
 - `test_schema_has_command_catalogue()` — —
 - `test_schema_has_version_and_cwd()` — —
+- `test_schema_has_iac_metadata()` — —
 - `test_prompt_dry_run_plan_polish()` — —
 - `test_prompt_deploy_english()` — —
 - `test_prompt_diagnose_polish()` — —
@@ -1202,6 +1209,8 @@ redeploy/
 - `test_prompt_bump_minor()` — —
 - `test_prompt_fix_with_hint()` — —
 - `test_prompt_list_specs()` — —
+- `test_prompt_plugin_template_list()` — —
+- `test_prompt_plugin_template_generation()` — —
 - `test_prompt_response_has_required_fields()` — —
 - `test_prompt_argv_always_starts_with_redeploy()` — —
 - `test_prompt_uses_real_spec_paths()` — —
@@ -1312,8 +1321,6 @@ redeploy/
 - `list_saved()` — —
 - `snapshot_command()` — —
 - `cmd()` — —
-- `notify_slack()` — —
-- `notify_slack()` — —
 - `print()` — —
 - `list_patterns()` — —
 - `expand()` — —
@@ -1562,6 +1569,8 @@ redeploy/
 - `verify_all_services()` — —
 - `print()` — —
 - `exit()` — —
+- `notify_slack()` — —
+- `notify_slack()` — —
 - `probe()` — —
 - `version_cmd()` — —
 - `version_current()` — —
@@ -1629,9 +1638,10 @@ redeploy/
 - `run_ensure_kanshi_profile()` — —
 - `run_ensure_autostart_entry()` — —
 - `run_ensure_browser_kiosk_script()` — —
+- `prompt_cmd()` — —
 - `push()` — —
 - `main()` — —
-- `prompt_cmd()` — —
+- `build_schema()` — —
 - `audit_spec()` — —
 - `hardware_diagnostic()` — —
 - `ensure_line()` — —
@@ -1643,7 +1653,6 @@ redeploy/
 - `extract_script_from_markdown()` — —
 - `parse_file()` — —
 - `parse_dir()` — —
-- `build_schema()` — —
 - `probe_runtime()` — —
 - `probe_ports()` — —
 - `probe_iptables_dnat()` — —
@@ -2112,6 +2121,7 @@ redeploy/
 - `test_schema_discovers_c2004_specs()` — —
 - `test_schema_has_command_catalogue()` — —
 - `test_schema_has_version_and_cwd()` — —
+- `test_schema_has_iac_metadata()` — —
 - `test_prompt_dry_run_plan_polish()` — —
 - `test_prompt_deploy_english()` — —
 - `test_prompt_diagnose_polish()` — —
@@ -2119,6 +2129,8 @@ redeploy/
 - `test_prompt_bump_minor()` — —
 - `test_prompt_fix_with_hint()` — —
 - `test_prompt_list_specs()` — —
+- `test_prompt_plugin_template_list()` — —
+- `test_prompt_plugin_template_generation()` — —
 - `test_prompt_response_has_required_fields()` — —
 - `test_prompt_argv_always_starts_with_redeploy()` — —
 - `test_prompt_uses_real_spec_paths()` — —
@@ -2133,12 +2145,14 @@ redeploy/
 
 ## Project Structure
 
+📄 `.redeploy.state.infra-local-9dd2f59b`
 📄 `.redeploy.state.migration-local-92efc860`
 📄 `.redeploy.state.migration-local-e4114daa`
 📄 `.redeploy.state.test-local-036bc2a0`
 📄 `.redeploy.state.test-local-09b68243`
 📄 `.redeploy.state.test-local-0a0a5446`
 📄 `.redeploy.state.test-local-179edfed`
+📄 `.redeploy.state.test-local-1862711e`
 📄 `.redeploy.state.test-local-1d287d51`
 📄 `.redeploy.state.test-local-24cd498c`
 📄 `.redeploy.state.test-local-2859ad55`
@@ -2170,6 +2184,7 @@ redeploy/
 📄 `.redeploy.state.test-local-c05a99a2`
 📄 `.redeploy.state.test-local-c1ec6b35`
 📄 `.redeploy.state.test-local-c9849e24`
+📄 `.redeploy.state.test-local-cba6eec3`
 📄 `.redeploy.state.test-local-d3c0fad8`
 📄 `.redeploy.state.test-local-da199855`
 📄 `.redeploy.state.test-local-db469906`
@@ -2193,8 +2208,8 @@ redeploy/
 📄 `README` (1 functions)
 📄 `REFACTORING` (9 functions, 6 classes)
 📄 `REPAIR_LOG`
-📄 `SUMD` (898 functions, 50 classes)
-📄 `SUMR` (163 functions, 50 classes)
+📄 `SUMD` (904 functions, 51 classes)
+📄 `SUMR` (164 functions, 51 classes)
 📄 `TODO` (11 functions, 1 classes)
 📄 `code2llm_output.README`
 📄 `code2llm_output.analysis.toon`
@@ -2283,7 +2298,7 @@ redeploy/
 📄 `project.context`
 📄 `project.duplication.toon`
 📄 `project.evolution.toon`
-📄 `project.map.toon` (2326 functions)
+📄 `project.map.toon` (2339 functions)
 📄 `project.project.toon`
 📄 `project.prompt`
 📄 `project.validation.toon`
@@ -2387,7 +2402,7 @@ redeploy/
 📄 `redeploy.hardware.kiosk.output_profiles` (2 functions, 1 classes)
 📄 `redeploy.hardware.panels` (5 functions, 1 classes)
 📄 `redeploy.hardware.raspi_config` (1 functions)
-📄 `redeploy.heal` (10 functions, 1 classes)
+📄 `redeploy.heal` (12 functions, 2 classes)
 📦 `redeploy.iac`
 📄 `redeploy.iac.base` (13 functions, 7 classes)
 📄 `redeploy.iac.config_hints` (15 functions, 1 classes)
@@ -2402,7 +2417,7 @@ redeploy/
 📄 `redeploy.markpact.models` (2 classes)
 📄 `redeploy.markpact.parser` (9 functions, 1 classes)
 📄 `redeploy.mcp_server` (14 functions)
-📄 `redeploy.models` (29 functions, 34 classes)
+📄 `redeploy.models` (30 functions, 34 classes)
 📄 `redeploy.observe` (14 functions, 3 classes)
 📄 `redeploy.parse` (10 functions)
 📄 `redeploy.patterns` (11 functions, 4 classes)

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Introduce generic pipeline `hooks` model and executor flow (`before_apply`, `before_step`, `after_step`, `on_step_failure`, `on_step_retry`, `after_apply`, `on_failure`, `always`).
+- Deprecate legacy `post_deploy` and `pre_deploy` fields in migration specs.
+- Keep backward compatibility: legacy `post_deploy`/`pre_deploy` are auto-converted to `hooks` during spec loading.
+
+## [0.2.53] - 2026-04-21
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update SUMD.md
+- Update SUMR.md
+- Update docs/README.md
+- Update project/README.md
+- Update project/context.md
+
+### Other
+- Update .redeploy/state/infra-local-9dd2f59b.yaml
+- Update .redeploy/state/test-local-1862711e.yaml
+- Update app.doql.less
+- Update project/analysis.toon.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- Update project/calls.toon.yaml
+- Update project/calls.yaml
+- Update project/compact_flow.mmd
+- Update project/compact_flow.png
+- ... and 10 more files
+
 ## [0.2.52] - 2026-04-21
 
 ### Docs

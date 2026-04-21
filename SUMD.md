@@ -23,7 +23,7 @@ Infrastructure migration toolkit: detect → plan → apply
 ## Metadata
 
 - **name**: `redeploy`
-- **version**: `0.2.51`
+- **version**: `0.2.52`
 - **python_requires**: `>=3.11`
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
 - **ecosystem**: SUMD + DOQL + testql + taskfile
@@ -43,7 +43,7 @@ SUMD (description) → DOQL/source (code) → taskfile (automation) → testql (
 
 app {
   name: redeploy;
-  version: 0.2.51;
+  version: 0.2.52;
 }
 
 interface[type="cli"] {
@@ -169,7 +169,7 @@ pipeline:
 ```yaml
 project:
   name: redeploy
-  version: 0.2.51
+  version: 0.2.52
   env: local
 ```
 
@@ -271,20 +271,20 @@ pip install -e .[dev]
 ### `project/map.toon.yaml`
 
 ```toon markpact:analysis path=project/map.toon.yaml
-# redeploy | 215f 40052L | python:212,shell:2,less:1 | 2026-04-21
-# stats: 740 func | 349 cls | 215 mod | CC̄=4.8 | critical:84 | cycles:0
+# redeploy | 217f 40292L | python:214,shell:2,less:1 | 2026-04-21
+# stats: 747 func | 350 cls | 217 mod | CC̄=4.7 | critical:84 | cycles:0
 # alerts[5]: CC probe=26; CC version_init=26; CC _bump_single=25; CC _build_manifest=25; CC extract_blueprint=22
 # hotspots[5]: fix_cmd fan=29; hardware fan=28; device_map_cmd fan=27; version_init fan=26; import_cmd fan=25
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[215]:
+M[217]:
   app.doql.less,60
   examples/redeploy_iac_parsers/argocd_flux.py,130
   examples/redeploy_iac_parsers/gitops_ci.py,138
   examples/redeploy_iac_parsers/helm_ansible.py,95
   examples/redeploy_iac_parsers/helm_kustomize.py,114
   project.sh,35
-  redeploy/__init__.py,150
+  redeploy/__init__.py,154
   redeploy/apply/__init__.py,60
   redeploy/apply/exceptions.py,13
   redeploy/apply/executor.py,355
@@ -383,7 +383,7 @@ M[215]:
   redeploy/hardware/kiosk/output_profiles.py,69
   redeploy/hardware/panels.py,52
   redeploy/hardware/raspi_config.py,33
-  redeploy/heal.py,415
+  redeploy/heal.py,452
   redeploy/iac/__init__.py,53
   redeploy/iac/base.py,276
   redeploy/iac/config_hints.py,290
@@ -392,9 +392,9 @@ M[215]:
   redeploy/iac/parsers/compose.py,288
   redeploy/iac/registry.py,108
   redeploy/integrations/__init__.py,2
-  redeploy/integrations/op3_bridge.py,208
+  redeploy/integrations/op3_bridge.py,251
   redeploy/markpact/__init__.py,25
-  redeploy/markpact/compiler.py,178
+  redeploy/markpact/compiler.py,183
   redeploy/markpact/models.py,27
   redeploy/markpact/parser.py,281
   redeploy/mcp_server.py,315
@@ -427,6 +427,8 @@ M[215]:
   redeploy/tests/test_executor.py,733
   redeploy/tests/test_fleet.py,526
   redeploy/tests/test_git_integration.py,326
+  redeploy/tests/test_heal.py,27
+  redeploy/tests/test_hooks.py,124
   redeploy/tests/test_iac.py,462
   redeploy/tests/test_manifest.py,339
   redeploy/tests/test_markpact_compiler.py,148
@@ -1069,7 +1071,8 @@ D:
     e: build_raspi_config_command
     build_raspi_config_command(interface;state)
   redeploy/heal.py:
-    e: _ssh,collect_diagnostics,ask_llm,apply_fix_to_spec,write_repair_log,parse_failed_step,HealRunner
+    e: _ssh,collect_diagnostics,ask_llm,apply_fix_to_spec,write_repair_log,parse_failed_step,HealLoopDetector,HealRunner
+    HealLoopDetector: __init__(1),observe(2)  # Detect repeated non-converging heal hints for a given step.
     HealRunner: __init__(8),_make_executor(1),_reload_migration(0),run(0)  # Wraps Executor with self-healing loop.
     _ssh(host;command)
     collect_diagnostics(host;failed_step)
@@ -1401,6 +1404,17 @@ D:
     _config()
     _ok(stdout;stderr)
     _fail(stdout;stderr)
+  redeploy/tests/test_heal.py:
+    e: test_loop_detector_triggers_on_identical_hint_streak,test_loop_detector_does_not_trigger_for_varying_hints,test_loop_detector_tracks_each_step_independently
+    test_loop_detector_triggers_on_identical_hint_streak()
+    test_loop_detector_does_not_trigger_for_varying_hints()
+    test_loop_detector_tracks_each_step_independently()
+  redeploy/tests/test_hooks.py:
+    e: _plan,test_legacy_post_deploy_is_migrated_to_hooks,test_executor_fires_hook_phases_on_success,test_executor_fires_failure_hooks
+    _plan()
+    test_legacy_post_deploy_is_migrated_to_hooks(tmp_path)
+    test_executor_fires_hook_phases_on_success(monkeypatch)
+    test_executor_fires_failure_hooks(monkeypatch)
   redeploy/tests/test_iac.py:
     e: _write,test_parse_file,test_parse_dir,test_parse_dir_skip_errors,test_warning_str_with_location,test_warning_str_no_location,TestCanParse,TestDockerComposeParse,TestParserRegistry
     TestCanParse: _p(1),test_canonical_names(0),test_override_files(0),test_rejects_other_yaml(0)
@@ -2222,71 +2236,79 @@ class ProbeResult:  # Full autonomous probe result for a single host.
 
 ## Call Graph
 
-*352 nodes · 320 edges · 94 modules · CC̄=1.7*
+*359 nodes · 326 edges · 95 modules · CC̄=1.7*
 
 ### Hubs (by degree)
 
 | Function | CC | in | out | total |
 |----------|----|----|-----|-------|
 | `_parse_service` *(in redeploy.iac.docker_compose.DockerComposeParser)* | 37 ⚠ | 0 | 61 | **61** |
-| `snapshot_to_hardware_info` *(in redeploy.integrations.op3_bridge)* | 10 ⚠ | 2 | 49 | **51** |
-| `list` *(in redeploy.steps.StepLibrary)* | 1 | 46 | 2 | **48** |
-| `run` *(in redeploy.heal.HealRunner)* | 17 ⚠ | 0 | 42 | **42** |
+| `snapshot_to_hardware_info` *(in redeploy.integrations.op3_bridge)* | 10 ⚠ | 1 | 49 | **50** |
+| `list` *(in redeploy.steps.StepLibrary)* | 1 | 48 | 2 | **50** |
+| `run` *(in redeploy.heal.HealRunner)* | 18 ⚠ | 0 | 45 | **45** |
 | `exec_cmd` *(in redeploy.cli.commands.exec_)* | 9 | 0 | 40 | **40** |
 | `_bump_single` *(in redeploy.cli.commands.version.helpers)* | 25 ⚠ | 4 | 35 | **39** |
+| `version_list` *(in redeploy.cli.commands.version.commands)* | 13 ⚠ | 0 | 38 | **38** |
 | `plugin_cmd` *(in redeploy.cli.commands.plugin)* | 13 ⚠ | 0 | 38 | **38** |
-| `_parse_k8s_yaml` *(in redeploy.iac.config_hints.ConfigHintsParser)* | 26 ⚠ | 0 | 38 | **38** |
 
 ```toon markpact:analysis path=project/calls.toon.yaml
 # code2llm call graph | /home/tom/github/maskservice/redeploy
-# nodes: 352 | edges: 320 | modules: 94
+# nodes: 359 | edges: 326 | modules: 95
 # CC̄=1.7
 
 HUBS[20]:
   redeploy.iac.docker_compose.DockerComposeParser._parse_service
     CC=37  in:0  out:61  total:61
   redeploy.integrations.op3_bridge.snapshot_to_hardware_info
-    CC=10  in:2  out:49  total:51
+    CC=10  in:1  out:49  total:50
   redeploy.steps.StepLibrary.list
-    CC=1  in:46  out:2  total:48
+    CC=1  in:48  out:2  total:50
   redeploy.heal.HealRunner.run
-    CC=17  in:0  out:42  total:42
+    CC=18  in:0  out:45  total:45
   redeploy.cli.commands.exec_.exec_cmd
     CC=9  in:0  out:40  total:40
   redeploy.cli.commands.version.helpers._bump_single
     CC=25  in:4  out:35  total:39
+  redeploy.cli.commands.version.commands.version_list
+    CC=13  in:0  out:38  total:38
   redeploy.cli.commands.plugin.plugin_cmd
     CC=13  in:0  out:38  total:38
   redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
     CC=26  in:0  out:38  total:38
-  redeploy.cli.commands.version.commands.version_list
-    CC=13  in:0  out:38  total:38
-  redeploy.discovery.auto_probe
-    CC=7  in:4  out:33  total:37
   redeploy.cli.commands.prompt_cmd.prompt_cmd
     CC=15  in:0  out:37  total:37
+  redeploy.discovery.auto_probe
+    CC=7  in:4  out:33  total:37
   redeploy.blueprint.sources.compose._merge_compose
     CC=21  in:1  out:33  total:34
-  redeploy.plugins.builtin.hardware_diagnostic._analyze_hardware
-    CC=14  in:1  out:32  total:33
   redeploy.iac.parsers.compose.DockerComposeParser._parse_service
     CC=21  in:0  out:33  total:33
+  redeploy.plugins.builtin.hardware_diagnostic._analyze_hardware
+    CC=14  in:1  out:32  total:33
   redeploy.cli.commands.target.target
     CC=10  in:1  out:31  total:32
-  redeploy.detect.detector.Detector.run
-    CC=9  in:0  out:30  total:30
   redeploy.dsl_python.runner.PythonMigrationRunner.run_file
     CC=15  in:0  out:30  total:30
-  redeploy.apply.executor.Executor._execute_step
-    CC=4  in:0  out:27  total:27
-  redeploy.schema._discover_specs
-    CC=14  in:1  out:26  total:27
+  redeploy.detect.detector.Detector.run
+    CC=9  in:0  out:30  total:30
   redeploy.apply.state_apply.HardwareStateHandler.apply
     CC=18  in:0  out:27  total:27
+  redeploy.schema._discover_specs
+    CC=14  in:1  out:26  total:27
+  examples.redeploy_iac_parsers.helm_kustomize.HelmTemplatesParser.parse
+    CC=17  in:0  out:27  total:27
 
 MODULES:
   DOQL-INTEGRATION  [1 funcs]
     print  CC=0  out:0
+  SUMD  [5 funcs]
+    compile_markpact_document  CC=0  out:0
+    parse_failed_step  CC=0  out:0
+    run_container_build  CC=0  out:0
+    snapshot_to_hardware_info  CC=0  out:0
+    write_repair_log  CC=0  out:0
+  SUMR  [1 funcs]
+    _migrate_legacy_post_deploy  CC=0  out:0
   docs.markpact-implementation-plan  [1 funcs]
     load_migration_spec  CC=0  out:0
   examples.redeploy_iac_parsers.gitops_ci  [2 funcs]
@@ -2294,9 +2316,6 @@ MODULES:
     _is_gitops_command  CC=2  out:2
   examples.redeploy_iac_parsers.helm_kustomize  [1 funcs]
     parse  CC=17  out:27
-  project.map.toon  [2 funcs]
-    build_schema  CC=0  out:0
-    run_container_build  CC=0  out:0
   redeploy.apply.executor  [3 funcs]
     __init__  CC=14  out:8
     _execute_step  CC=4  out:27
@@ -2564,18 +2583,18 @@ MODULES:
     infer_from_hardware  CC=1  out:0
   redeploy.hardware.raspi_config  [1 funcs]
     build_raspi_config_command  CC=3  out:2
-  redeploy.heal  [6 funcs]
+  redeploy.heal  [5 funcs]
+    observe  CC=5  out:4
     _reload_migration  CC=1  out:4
-    run  CC=17  out:42
+    run  CC=18  out:45
     _ssh  CC=3  out:2
     collect_diagnostics  CC=2  out:4
-    parse_failed_step  CC=8  out:11
-    write_repair_log  CC=6  out:15
   redeploy.iac.config_hints  [1 funcs]
     _parse_k8s_yaml  CC=26  out:38
-  redeploy.iac.docker_compose  [3 funcs]
+  redeploy.iac.docker_compose  [4 funcs]
     _load_merged  CC=6  out:9
     _parse_service  CC=37  out:61
+    _deep_merge  CC=5  out:5
     _env_dict  CC=7  out:6
   redeploy.iac.parsers.compose  [2 funcs]
     _parse_depends_on  CC=5  out:6
@@ -2588,8 +2607,8 @@ MODULES:
     _deep_merge  CC=5  out:4
     _extract_steps  CC=9  out:20
     _load_block_payload  CC=8  out:7
-    _normalize_config_payload  CC=11  out:17
-    compile_markpact_document  CC=2  out:3
+    _normalize_config_payload  CC=11  out:18
+    compile_markpact_document  CC=2  out:4
     compile_markpact_document_to_data  CC=6  out:8
   redeploy.markpact.parser  [9 funcs]
     _check_heading  CC=5  out:5
@@ -2612,9 +2631,12 @@ MODULES:
     nlp_command  CC=2  out:2
     plan_spec  CC=1  out:2
     run_spec  CC=5  out:5
-  redeploy.models  [2 funcs]
+  redeploy.models  [5 funcs]
+    from_file  CC=2  out:5
+    to_target_config  CC=2  out:2
     find_and_load  CC=6  out:9
     find_css  CC=4  out:4
+    _migrate_legacy_post_deploy  CC=5  out:20
   redeploy.observe  [1 funcs]
     record  CC=11  out:20
   redeploy.parse  [7 funcs]
@@ -2703,11 +2725,11 @@ MODULES:
     _stage_one  CC=6  out:7
 
 EDGES:
+  redeploy.schema.build_schema → redeploy.schema._read_version
+  redeploy.schema.build_schema → redeploy.schema._git_branch
+  redeploy.schema.build_schema → redeploy.schema._discover_specs
+  redeploy.schema.build_schema → redeploy.schema._iac_info
   redeploy.observe.DeployAuditLog.record → redeploy.steps.StepLibrary.list
-  redeploy.heal.collect_diagnostics → redeploy.heal._ssh
-  redeploy.heal.HealRunner._reload_migration → docs.markpact-implementation-plan.load_migration_spec
-  redeploy.heal.HealRunner.run → redeploy.heal.write_repair_log
-  redeploy.heal.HealRunner.run → redeploy.heal.parse_failed_step
   redeploy.parse.parse_diagnostics → redeploy.parse._parse_section_line
   redeploy.parse._parse_section_line → redeploy.parse._apply_system_line
   redeploy.parse._parse_section_line → redeploy.parse.parse_container_line
@@ -2717,7 +2739,7 @@ EDGES:
   redeploy.fleet.Fleet.__init__ → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.from_registry → redeploy.steps.StepLibrary.list
   redeploy.fleet.Fleet.merge → redeploy.steps.StepLibrary.list
-  redeploy.spec_loader.load_migration_spec → redeploy.markpact.compiler.compile_markpact_document
+  redeploy.spec_loader.load_migration_spec → SUMD.compile_markpact_document
   redeploy.spec_loader.load_migration_spec → redeploy.markpact.parser.parse_markpact_file
   redeploy.patterns.BlueGreenPattern.expand → redeploy.patterns._step
   redeploy.patterns.CanaryPattern.expand → redeploy.patterns._step
@@ -2748,7 +2770,7 @@ EDGES:
   redeploy.audit._Extractor._from_target → redeploy.audit._normalize_path
   redeploy.audit.audit_spec → docs.markpact-implementation-plan.load_migration_spec
   redeploy.mcp_server._run → redeploy.mcp_server._redeploy_bin
-  redeploy.mcp_server.schema → project.map.toon.build_schema
+  redeploy.mcp_server.schema → redeploy.schema.build_schema
   redeploy.mcp_server.plan_spec → redeploy.mcp_server._run
   redeploy.mcp_server.run_spec → redeploy.mcp_server._run
   redeploy.mcp_server.fix_spec → redeploy.mcp_server._run

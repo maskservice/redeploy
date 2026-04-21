@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.52-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-27.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.53-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-28.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $7.5000 (72 commits)
-- 👤 **Human dev:** ~$2695 (27.0h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $7.5000 (73 commits)
+- 👤 **Human dev:** ~$2802 (28.0h @ $100/h, 30min dedup)
 
 Generated on 2026-04-21 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.52-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.53-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -217,6 +217,49 @@ redeploy run --env prod             # use prod env from redeploy.yaml
 redeploy run --env rpi5 --detect    # deploy to rpi5 with live probe
 redeploy run --dry-run              # uses .env DEPLOY_* vars if no redeploy.yaml
 ```
+
+### Generic pipeline hooks (recommended)
+
+Use top-level `hooks:` in your migration spec to run custom actions in specific phases.
+
+Supported phases:
+- `before_apply`
+- `before_step`
+- `after_step`
+- `on_step_failure`
+- `on_step_retry`
+- `after_apply`
+- `on_failure`
+- `always`
+
+Minimal example:
+
+```yaml
+hooks:
+  - id: refresh_cache
+    phase: after_apply
+    action: local_cmd
+    command: "curl -fsS -X POST http://localhost:8100/api/v3/cache/clear || true"
+    on_failure: warn
+
+  - id: open_browser
+    phase: after_apply
+    action: open_url
+    url: http://localhost:8100/
+    on_failure: warn
+
+  - id: before_sync_env_note
+    phase: before_step
+    when: "step.id == 'sync_env'"
+    action: local_cmd
+    command: "echo '[hook] about to run sync_env'"
+    on_failure: continue
+```
+
+Notes:
+- `when:` currently supports simple conditions like `step.id == 'sync_env'` and `step.id != 'sync_env'`.
+- Legacy `post_deploy`/`pre_deploy` blocks are still accepted and auto-migrated internally.
+- New specs should use `hooks:` only.
 
 ### `redeploy scan [options]`
 
