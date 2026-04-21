@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Other
 - Update .redeploy/state/infra-local-9dd2f59b.yaml
+- Update .redeploy/state/test-local-0fd4c73c.yaml
+- Update .redeploy/state/test-local-7256e9a0.yaml
+- Update .redeploy/state/test-local-93348601.yaml
+- Update redeploy/cli/commands/version/utils/__init__.py
+- Update redeploy/cli/commands/version/utils/changelog_config.py
+- Update redeploy/cli/commands/version/utils/git_config.py
+
+## [0.2.60] - 2026-04-21
+
+### Docs
+- Update README.md
+
+### Other
+- Update .redeploy/state/infra-local-9dd2f59b.yaml
 - Update .redeploy/state/test-local-7256e9a0.yaml
 - Update .redeploy/state/test-local-93348601.yaml
 - Update redeploy/cli/commands/version/utils/__init__.py
