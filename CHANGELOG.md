@@ -32,6 +32,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Migration specs can now use inline_script for cleaner deployment scripts (no base64 encoding in YAML)
 
+## [0.2.37] - 2026-04-21
+
+### Docs
+- Update README.md
+- Update examples/hardware/enable-i2c-spi.md
+- Update examples/hardware/official-dsi-7-inch.md
+- Update examples/hardware/waveshare-8-inch-dsi.md
+
+### Test
+- Update tests/test_hardware_config.py
+
+### Other
+- Update .redeploy/state/test-local-ad30ec23.yaml
+- Update redeploy/apply/executor.py
+- Update redeploy/apply/handlers.py
+- Update redeploy/cli/commands/hardware.py
+- Update redeploy/detect/hardware.py
+- Update redeploy/hardware/__init__.py
+- Update redeploy/hardware/data/__init__.py
+- Update redeploy/hardware/data/hyperpixel.py
+- Update redeploy/hardware/data/official.py
+- Update redeploy/hardware/fixes.py
+- ... and 1 more files
+
 ## [0.2.36] - 2026-04-21
 
 ### Docs

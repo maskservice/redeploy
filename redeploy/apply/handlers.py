@@ -338,3 +338,63 @@ def _resolve_command_ref(command_ref: str, step: MigrationStep, plan: MigrationP
         raise StepError(step, f"Could not find bash script for ref '{section_id}' in {file_path} (tried markpact:ref and section heading)")
 
     return script
+
+
+# ── hardware-specific handlers ────────────────────────────────────────────────
+
+def run_ensure_config_line(step: MigrationStep, probe: "RemoteProbe") -> None:
+    """Idempotent add/replace a line in a remote config.txt."""
+    from ..hardware.config_txt import ensure_line
+
+    if not step.config_file or not step.config_line:
+        raise StepError(step, "ensure_config_line requires config_file and config_line")
+
+    config_path = step.config_file
+    r = probe.run(f"sudo cat {config_path}", timeout=10)
+    if not r.ok:
+        raise StepError(step, f"Cannot read {config_path}: {r.stderr[:200]}")
+
+    edit = ensure_line(
+        r.out,
+        step.config_line,
+        section=step.config_section or "all",
+        replaces_pattern=step.config_replaces_pattern,
+    )
+
+    if not edit.changed:
+        step.status = StepStatus.DONE
+        step.result = f"no-op: {edit.diff_summary}"
+        return
+
+    # Write atomically: base64-encode to avoid shell quoting issues
+    encoded = base64.b64encode(edit.new_content.encode()).decode()
+    tmp = f"/tmp/redeploy-cfg-{step.id}.txt"
+    write_r = probe.run(
+        f"echo '{encoded}' | base64 -d | sudo tee {tmp} > /dev/null && sudo mv {tmp} {config_path}",
+        timeout=15,
+    )
+    if not write_r.ok:
+        raise StepError(step, f"Cannot write {config_path}: {write_r.stderr[:200]}")
+
+    step.status = StepStatus.DONE
+    step.result = edit.diff_summary
+
+
+def run_raspi_config(step: MigrationStep, probe: "RemoteProbe") -> None:
+    """Run raspi-config nonint to enable/disable an interface."""
+    from ..hardware.raspi_config import build_raspi_config_command
+
+    if not step.raspi_interface or not step.raspi_state:
+        raise StepError(step, "raspi_config requires raspi_interface and raspi_state")
+
+    try:
+        cmd = build_raspi_config_command(step.raspi_interface, step.raspi_state)
+    except ValueError as exc:
+        raise StepError(step, str(exc))
+
+    r = probe.run(cmd, timeout=30)
+    if not r.ok:
+        raise StepError(step, f"raspi-config failed: {r.stderr[:200]}")
+
+    step.status = StepStatus.DONE
+    step.result = f"applied: {cmd}"

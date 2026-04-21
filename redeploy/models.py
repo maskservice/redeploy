@@ -1,6 +1,7 @@
 """Shared data models for redeploy: InfraState, MigrationPlan, Target."""
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -185,6 +186,7 @@ class HardwareInfo(BaseModel):
     board: Optional[str] = None         # e.g. "Raspberry Pi 5 Model B Rev 1.0"
     kernel: Optional[str] = None        # uname -r
     config_txt: str = ""                # full /boot/firmware/config.txt
+    config_txt_path: str = "/boot/firmware/config.txt"  # probed path, varies by OS
 
     # Display
     drm_outputs: list[DrmOutput] = Field(default_factory=list)
@@ -208,6 +210,15 @@ class HardwareInfo(BaseModel):
     @property
     def has_dsi(self) -> bool:
         return any("DSI" in o.name for o in self.drm_outputs)
+
+    @property
+    def kms_enabled(self) -> bool:
+        """True if vc4-kms-v3d overlay is present in config.txt."""
+        return any(
+            re.match(r'\s*dtoverlay=vc4-kms-v3d', line)
+            for line in self.config_txt.splitlines()
+            if not line.strip().startswith("#")
+        )
 
     @property
     def dsi_connected(self) -> bool:
@@ -315,6 +326,16 @@ class MigrationStep(BaseModel):
     # plugin-specific params
     plugin_type: Optional[str] = None    # e.g. "browser_reload"
     plugin_params: dict = Field(default_factory=dict)  # passed to plugin
+
+    # ensure_config_line params
+    config_file: Optional[str] = None              # remote path, e.g. /boot/firmware/config.txt
+    config_line: Optional[str] = None              # line to ensure presence of
+    config_section: str = "all"                    # [all], [pi5], etc.
+    config_replaces_pattern: Optional[str] = None  # regex — replace matching line
+
+    # raspi_config params
+    raspi_interface: Optional[str] = None   # i2c, spi, camera, onewire, ssh, vnc, serial
+    raspi_state: Optional[str] = None       # enable, disable
 
     result: Optional[str] = None         # filled after apply
     error: Optional[str] = None

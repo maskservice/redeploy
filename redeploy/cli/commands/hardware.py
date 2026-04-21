@@ -177,28 +177,38 @@ def _print_diagnostics(console, hw, show_fix):
         )
 
 
-def _apply_fix(console, p, hw, apply_fix_component):
-    """Apply fix for a specific component."""
-    matching = [d for d in hw.diagnostics if d.component == apply_fix_component and d.fix]
-    if not matching:
+def _apply_fix(console, p, hw, apply_fix_component, panel_id=None):
+    """Apply fix for a specific component using fix plan generator."""
+    from ...hardware.fixes import generate_fix_plan
+    from ...hardware.panels import get
+
+    # Get panel if specified
+    panel = get(panel_id) if panel_id else None
+
+    # Generate fix plan
+    steps = generate_fix_plan(hw, apply_fix_component, panel)
+    if not steps:
         console.print(f"[yellow]No fix available for component: {apply_fix_component}[/yellow]")
+        if panel_id:
+            console.print(f"[dim]Panel: {panel_id}[/dim]")
         sys.exit(1)
 
-    for d in matching:
-        # Extract just the command lines (skip explanatory text)
-        fix_lines = [
-            line.strip()
-            for line in (d.fix or "").splitlines()
-            if line.strip() and not line.strip().startswith("#")
-            and ":" not in line[:20]  # skip lines like "Check: ..."
-        ]
-        for cmd in fix_lines:
-            console.print(f"[cyan]→ {cmd}[/cyan]")
-            result = p.run(cmd)
-            if result.ok:
-                console.print(f"[green]  ✓ done[/green]")
-            else:
-                console.print(f"[red]  ✗ failed: {result.err}[/red]")
+    console.print(f"[bold]Fix plan for {apply_fix_component}[/bold]")
+    if panel:
+        console.print(f"  Panel: {panel.name}")
+
+    # Execute steps via Executor (simplified version)
+    from ...apply.executor import Executor
+
+    executor = Executor(probe=p, console=console, dry_run=False)
+    for step in steps:
+        console.print(f"[cyan]→ {step.description}[/cyan]")
+        try:
+            executor._run_single_step(step)
+            console.print(f"[green]  ✓ done[/green]")
+        except Exception as exc:
+            console.print(f"[red]  ✗ failed: {exc}[/red]")
+            sys.exit(1)
 
 
 @click.command()
@@ -223,8 +233,19 @@ def _apply_fix(console, p, hw, apply_fix_component):
         "(e.g. 'backlight', 'overlay'). Requires sudo on target."
     ),
 )
+@click.option(
+    "--panel", "panel_id",
+    default=None,
+    metavar="PANEL_ID",
+    help="Specify panel ID explicitly (use --list-panels to see available)",
+)
+@click.option(
+    "--list-panels",
+    is_flag=True,
+    help="List available panel definitions and exit",
+)
 @click.option("--ssh-key", default=None, type=click.Path(), help="SSH private key path")
-def hardware(host, output_fmt, show_fix, apply_fix_component, ssh_key):
+def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_panels, ssh_key):
     """Probe and diagnose hardware on a remote host.
 
     Checks DSI display, DRM connectors, backlight controller, I2C buses,
@@ -236,8 +257,26 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, ssh_key):
         redeploy hardware pi@192.168.188.109
         redeploy hardware pi@192.168.188.109 --fix
         redeploy hardware pi@192.168.188.109 --format yaml
+        redeploy hardware --list-panels
     """
     console = Console()
+
+    # Handle --list-panels
+    if list_panels:
+        from ...hardware.panels import all_panels
+        panels = all_panels()
+        t = Table(show_header=True, box=box.ROUNDED)
+        t.add_column("ID", style="cyan")
+        t.add_column("Name", style="bold")
+        t.add_column("Vendor", style="dim")
+        t.add_column("Resolution", style="dim")
+        t.add_column("Overlay", style="dim")
+        for p in panels:
+            res = f"{p.resolution[0]}×{p.resolution[1]}" if p.resolution else "—"
+            t.add_row(p.id, p.name, p.vendor, res, p.overlay)
+        console.print(t)
+        return
+
     hw, p = _probe_hardware(host, ssh_key, console)
 
     if _format_output(hw, output_fmt):
@@ -264,7 +303,7 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, ssh_key):
     _print_diagnostics(console, hw, show_fix)
 
     if apply_fix_component:
-        _apply_fix(console, p, hw, apply_fix_component)
+        _apply_fix(console, p, hw, apply_fix_component, panel_id)
 
     # Exit code based on errors
     errors = hw.errors

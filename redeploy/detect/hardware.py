@@ -53,13 +53,16 @@ def probe_board(p: RemoteProbe) -> tuple[Optional[str], Optional[str]]:
     return board, kernel
 
 
-def probe_config_txt(p: RemoteProbe) -> str:
-    """Read /boot/firmware/config.txt (RPi5) or /boot/config.txt."""
+def probe_config_txt(p: RemoteProbe) -> tuple[str, str]:
+    """Read /boot/firmware/config.txt (RPi5) or /boot/config.txt.
+
+    Returns (content, path) — path is needed for idempotent edits later.
+    """
     for path in ("/boot/firmware/config.txt", "/boot/config.txt"):
         r = p.run(f"cat {path} 2>/dev/null")
         if r.ok and r.out.strip():
-            return r.out
-    return ""
+            return r.out, path
+    return "", "/boot/firmware/config.txt"
 
 
 def probe_drm_outputs(p: RemoteProbe) -> list[DrmOutput]:
@@ -232,7 +235,7 @@ def _analyze(hw: HardwareInfo) -> list[HardwareDiagnostic]:
 def probe_hardware(p: RemoteProbe) -> HardwareInfo:
     """Probe hardware state of the remote host and return HardwareInfo with diagnostics."""
     board, kernel = probe_board(p)
-    config_txt = probe_config_txt(p)
+    config_txt, config_txt_path = probe_config_txt(p)
 
     # Parse active DSI overlays from config.txt
     dsi_overlays = [
@@ -266,6 +269,7 @@ def probe_hardware(p: RemoteProbe) -> HardwareInfo:
         board=board,
         kernel=kernel,
         config_txt=config_txt,
+        config_txt_path=config_txt_path,
         dsi_overlays=dsi_overlays,
         drm_outputs=drm_outputs,
         wlr_outputs=wlr_outputs,

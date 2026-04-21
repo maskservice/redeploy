@@ -15,6 +15,7 @@ from .handlers import (
     run_ssh, run_scp, run_rsync, run_docker_build, run_podman_build,
     run_docker_health_wait, run_container_log_tail, run_http_check,
     run_version_check, run_plugin, run_wait, run_inline_script,
+    run_ensure_config_line, run_raspi_config,
 )
 from .progress import ProgressEmitter
 from .rollback import rollback_steps
@@ -227,6 +228,8 @@ class Executor:
             StepAction.WAIT:                lambda s: run_wait(s),
             StepAction.PLUGIN:              lambda s: run_plugin(s, self.probe, self.plan, self._emitter, self.dry_run),
             StepAction.INLINE_SCRIPT:       lambda s: run_inline_script(s, self.probe, self.plan),
+            StepAction.ENSURE_CONFIG_LINE:  lambda s: run_ensure_config_line(s, self.probe),
+            StepAction.RASPI_CONFIG:        lambda s: run_raspi_config(s, self.probe),
         }
 
         handler = dispatch.get(step.action)
