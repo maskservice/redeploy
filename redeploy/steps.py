@@ -218,6 +218,37 @@ _GIT_PULL = _step(
     rollback_command="git -C ~/app reset --hard HEAD@{1}",
 )
 
+# ── process control ─────────────────────────────────────────────────────────────
+
+_KILL_PROCESSES_ON_PORTS = _step(
+    id="kill_processes_on_ports",
+    action=StepAction.PLUGIN,
+    plugin_type="process_control",
+    description="Kill processes on specified ports (auto-detects PIDs)",
+    plugin_params={"ports": [], "strategy": "graceful", "timeout": 10, "notify": True},
+    risk=ConflictSeverity.LOW,
+)
+
+_KILL_DEV_PROCESSES = _step(
+    id="kill_dev_processes",
+    action=StepAction.PLUGIN,
+    plugin_type="process_control",
+    description="Kill common dev server processes (vite, uvicorn, python)",
+    plugin_params={"ports": [8100, 8101, 8202, 3000, 5173], "strategy": "graceful", "timeout": 5, "notify": True},
+    risk=ConflictSeverity.LOW,
+)
+
+# ── hardware diagnostic ─────────────────────────────────────────────────────────
+
+_HARDWARE_DIAGNOSTIC = _step(
+    id="hardware_diagnostic",
+    action=StepAction.PLUGIN,
+    plugin_type="hardware_diagnostic",
+    description="Analyze system hardware and provide configuration recommendations",
+    plugin_params={"checks": ["platform", "cpu", "memory", "storage"], "platform": "auto", "verbose": True},
+    risk=ConflictSeverity.LOW,
+)
+
 # ── registry ──────────────────────────────────────────────────────────────────
 
 _LIBRARY: dict[str, MigrationStep] = {
@@ -241,6 +272,9 @@ _LIBRARY: dict[str, MigrationStep] = {
         _SYSTEMCTL_RESTART,
         _SYSTEMCTL_DAEMON_RELOAD,
         _GIT_PULL,
+        _KILL_PROCESSES_ON_PORTS,
+        _KILL_DEV_PROCESSES,
+        _HARDWARE_DIAGNOSTIC,
     ]
 }
 
