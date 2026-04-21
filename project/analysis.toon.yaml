@@ -1,53 +1,402 @@
-# code2llm | 17f 2084L | python:15,shell:2 | 2026-04-20
-# CC̄=4.3 | critical:1/83 | dups:0 | cycles:0
+# code2llm | 302f 54728L | python:149,yaml:95,md:51,shell:2,toml:1,yml:1,txt:1,json:1 | 2026-04-21
+# CC̄=1.7 | critical:38/2459 | dups:0 | cycles:0
 
-HEALTH[1]:
-  🟡 CC    detect CC=16 (limit:15)
+HEALTH[20]:
+  🔴 GOD   redeploy/models.py = 996L, 33 classes, 29m, max CC=19
+  🔴 GOD   redeploy/audit.py = 609L, 6 classes, 32m, max CC=14
+  🔴 GOD   SUMR.md = 2719L, 50 classes, 139m, max CC=0.0
+  🔴 GOD   SUMD.md = 2658L, 50 classes, 780m, max CC=0.0
+  🟡 CC    run CC=17 (limit:15)
+  🟡 CC    verify_expectations CC=25 (limit:15)
+  🟡 CC    apply_to_spec CC=19 (limit:15)
+  🟡 CC    update_registry CC=17 (limit:15)
+  🟡 CC    _parse_probe_output CC=16 (limit:15)
+  🟡 CC    _collect_hosts CC=18 (limit:15)
+  🟡 CC    devices CC=22 (limit:15)
+  🟡 CC    render_rich CC=22 (limit:15)
+  🟡 CC    _find_spec CC=15 (limit:15)
+  🟡 CC    fix_cmd CC=17 (limit:15)
+  🟡 CC    _print_blueprint CC=20 (limit:15)
+  🟡 CC    probe CC=26 (limit:15)
+  🟡 CC    device_map_cmd CC=20 (limit:15)
+  🟡 CC    prompt_cmd CC=15 (limit:15)
+  🟡 CC    push CC=15 (limit:15)
+  🟡 CC    audit CC=18 (limit:15)
 
-REFACTOR[1]:
-  1. split 1 high-CC methods  (CC>15)
+REFACTOR[5]:
+  1. split redeploy/models.py  (god module)
+  2. split redeploy/audit.py  (god module)
+  3. split SUMR.md  (god module)
+  4. split SUMD.md  (god module)
+  5. split 16 high-CC methods  (CC>15)
 
-PIPELINES[66]:
-  [1] Src [run]: run
+PIPELINES[426]:
+  [1] Src [to_dict]: to_dict
       PURITY: 100% pure
-  [2] Src [_plan_conflict_fixes]: _plan_conflict_fixes
+  [2] Src [record]: record → list
       PURITY: 100% pure
-  [3] Src [_plan_stop_old_services]: _plan_stop_old_services
+  [3] Src [_append]: _append
       PURITY: 100% pure
-  [4] Src [_plan_deploy_new]: _plan_deploy_new
+  [4] Src [load]: load
       PURITY: 100% pure
-  [5] Src [_plan_docker_full]: _plan_docker_full
+  [5] Src [tail]: tail
       PURITY: 100% pure
 
 LAYERS:
-  redeploy/                       CC̄=4.3    ←in:0  →out:4
-  │ !! cli                        378L  0C    7m  CC=16     ←0
-  │ planner                    310L  1C   18m  CC=8      ←1
-  │ probes                     272L  0C    9m  CC=13     ←1
-  │ ssh                        271L  4C   16m  CC=7      ←0
-  │ models                     271L  15C    3m  CC=4      ←1
-  │ executor                   200L  2C   14m  CC=9      ←1
-  │ detector                    96L  1C    3m  CC=9      ←0
-  │ version                     95L  0C    4m  CC=8      ←0
+  redeploy/                       CC̄=5.0    ←in:84  →out:6
+  │ !! models                     996L  33C   29m  CC=19     ←17
+  │ !! discovery                  789L  2C   26m  CC=17     ←5
+  │ !! planner                    620L  1C   21m  CC=10     ←4
+  │ !! handlers                   616L  0C   20m  CC=16     ←2
+  │ !! audit                      609L  6C   32m  CC=14     ←1
+  │ !! commands                   594L  0C    8m  CC=26     ←0
+  │ !! plan_apply                 505L  0C   11m  CC=13     ←0
+  │ hardware                   464L  0C   11m  CC=13     ←0
+  │ templates                  419L  6C   13m  CC=9      ←0
+  │ !! workflow                   418L  3C   12m  CC=18     ←0
+  │ !! docker_compose             418L  1C   11m  CC=37     ←0
+  │ !! heal                       414L  1C   10m  CC=17     ←0
+  │ patterns                   407L  4C   11m  CC=5      ←1
+  │ !! loader                     403L  3C   12m  CC=25     ←5
+  │ !! fleet                      396L  6C   23m  CC=25     ←1
+  │ display                    389L  0C   25m  CC=9      ←6
+  │ !! helpers                    349L  0C   10m  CC=25     ←2
+  │ !! bump_fix                   348L  0C   12m  CC=17     ←0
+  │ !! blueprint                  333L  0C    8m  CC=20     ←0
+  │ mcp_server                 314L  0C   14m  CC=5      ←2
+  │ observe                    313L  3C   14m  CC=12     ←0
+  │ ssh                        301L  4C   17m  CC=7      ←0
+  │ !! device_map                 299L  0C    5m  CC=20     ←0
+  │ steps                      294L  0C    7m  CC=7      ←0
+  │ !! config_hints               289L  1C   15m  CC=26     ←0
+  │ !! compose                    287L  1C   13m  CC=21     ←0
+  │ bump                       284L  0C    6m  CC=13     ←3
+  │ hardware_diagnostic        282L  1C   11m  CC=14     ←0
+  │ parser                     280L  1C    9m  CC=14     ←3
+  │ probes                     277L  0C    9m  CC=13     ←1
+  │ builtins                   275L  0C    1m  CC=1      ←0
+  │ base                       275L  7C   13m  CC=7      ←1
+  │ executor                   268L  1C   13m  CC=14     ←1
+  │ scanner                    262L  0C   18m  CC=13     ←1
+  │ parser                     261L  2C    8m  CC=8      ←0
+  │ !! import_                    256L  0C    4m  CC=22     ←0
+  │ exec_                      251L  0C    6m  CC=10     ←0
+  │ schema                     242L  0C    5m  CC=14     ←2
+  │ !! prompt_cmd                 238L  0C    4m  CC=15     ←0
+  │ !! devices                    226L  0C    4m  CC=22     ←0
+  │ !! state_apply                222L  4C    9m  CC=18     ←2
+  │ !! commits                    218L  2C    3m  CC=18     ←2
+  │ templates.yaml             215L  0C    0m  CC=0.0    ←0
+  │ docker_steps               211L  2C    6m  CC=7      ←0
+  │ op3_bridge                 207L  0C    5m  CC=10     ←2
+  │ !! runner                     205L  1C    5m  CC=15     ←0
+  │ changelog                  204L  1C   15m  CC=7      ←1
+  │ fixes                      203L  0C    6m  CC=7      ←1
+  │ parse                      190L  0C   10m  CC=12     ←0
+  │ !! docker_compose             190L  0C    2m  CC=20     ←1
+  │ __init__                   180L  2C   10m  CC=7      ←8
+  │ core                       179L  0C    7m  CC=10     ←6
+  │ !! migration                  179L  0C    1m  CC=19     ←1
+  │ compiler                   177L  1C    6m  CC=11     ←2
+  │ !! device_map_renderers       170L  0C    7m  CC=22     ←1
+  │ manifest                   169L  8C   10m  CC=6      ←2
+  │ notify                     168L  0C    7m  CC=6      ←0
+  │ process_control_template.yaml   164L  0C    0m  CC=0.0    ←0
+  │ transaction                162L  2C    6m  CC=12     ←0
+  │ state                      161L  1C   13m  CC=5      ←2
+  │ release                    153L  0C    6m  CC=7      ←2
+  │ __init__                   149L  0C    0m  CC=0.0    ←0
+  │ __init__                   148L  0C    4m  CC=8      ←1
+  │ !! compose                    146L  0C    6m  CC=21     ←1
+  │ !! probe                      144L  0C    1m  CC=26     ←0
+  │ git_integration            142L  2C   13m  CC=4      ←0
+  │ !! extractor                  140L  0C    1m  CC=22     ←1
+  │ monorepo                   139L  0C    5m  CC=11     ←1
+  │ decorators                 137L  4C    8m  CC=3      ←0
+  │ export                     126L  0C    6m  CC=9      ←0
+  │ !! audit                      126L  0C    1m  CC=18     ←0
+  │ process_control            123L  0C    3m  CC=11     ←0
+  │ __init__                   122L  0C    3m  CC=5      ←0
+  │ !! browser_reload             120L  0C    3m  CC=16     ←0
+  │ state                      118L  0C    4m  CC=7      ←0
+  │ detect                     118L  0C    1m  CC=10     ←0
+  │ diff                       118L  1C    3m  CC=8      ←1
+  │ init                       111L  0C    1m  CC=10     ←0
+  │ !! push                       110L  0C    1m  CC=15     ←0
+  │ progress                   107L  1C   11m  CC=2      ←0
+  │ registry                   107L  0C    4m  CC=14     ←0
+  │ git_transaction            105L  2C    5m  CC=9      ←0
+  │ detector                   104L  1C    4m  CC=9      ←2
+  │ patterns                   104L  0C    1m  CC=8      ←0
+  │ toml_                      104L  1C    3m  CC=10     ←0
+  │ systemd_reload              98L  0C    2m  CC=12     ←0
+  │ target                      97L  0C    1m  CC=10     ←1
+  │ yaml_                       94L  1C    3m  CC=10     ←0
   │ verify                      92L  1C    7m  CC=8      ←0
+  │ json_                       90L  1C    3m  CC=9      ←0
+  │ config_txt                  88L  1C    2m  CC=14     ←1
+  │ workflow                    87L  0C    3m  CC=10     ←0
+  │ autostart                   84L  1C    3m  CC=6      ←1
+  │ hardware                    83L  0C    2m  CC=4      ←0
+  │ compositors                 80L  1C    1m  CC=2      ←0
+  │ plugin                      79L  0C    1m  CC=13     ←0
+  │ browsers                    78L  1C    1m  CC=5      ←0
+  │ __init__                    77L  0C    0m  CC=0.0    ←0
+  │ __init__                    76L  1C    4m  CC=4      ←34
+  │ inspect                     73L  0C    2m  CC=4      ←0
+  │ applier                     72L  0C    3m  CC=4      ←3
+  │ output_profiles             68L  1C    2m  CC=5      ←0
+  │ regex                       65L  1C    2m  CC=5      ←0
+  │ __init__                    65L  1C    5m  CC=2      ←3
+  │ __init__                    59L  0C    0m  CC=0.0    ←0
+  │ hardware_rules              56L  0C    3m  CC=3      ←0
+  │ status                      55L  0C    1m  CC=12     ←0
+  │ mcp_cmd                     54L  0C    1m  CC=1      ←0
+  │ __init__                    52L  0C    0m  CC=0.0    ←0
+  │ panels                      51L  1C    5m  CC=2      ←2
+  │ base                        49L  1C    5m  CC=3      ←0
+  │ kiosk                       49L  0C    0m  CC=0.0    ←0
+  │ waveshare                   48L  0C    0m  CC=0.0    ←0
+  │ spec_loader                 47L  2C    1m  CC=4      ←0
+  │ diagnose                    47L  0C    1m  CC=5      ←0
   │ data_sync                   45L  0C    2m  CC=7      ←0
-  │ __init__                     4L  0C    0m  CC=0.0    ←0
+  │ hardware                    45L  0C    1m  CC=13     ←1
+  │ exceptions                  44L  6C    4m  CC=1      ←0
+  │ rollback                    44L  0C    1m  CC=8      ←1
+  │ __init__                    44L  0C    0m  CC=0.0    ←0
+  │ infra                       43L  0C    2m  CC=8      ←1
+  │ query                       42L  0C    1m  CC=5      ←3
+  │ hyperpixel                  41L  0C    0m  CC=0.0    ←0
+  │ context                     39L  1C    3m  CC=1      ←0
+  │ migration                   34L  0C    1m  CC=9      ←1
+  │ diff                        33L  0C    1m  CC=1      ←0
+  │ raspi_config                32L  0C    1m  CC=3      ←1
+  │ __init__                    30L  0C    0m  CC=0.0    ←0
+  │ models                      26L  2C    0m  CC=0.0    ←0
+  │ plain                       24L  1C    2m  CC=2      ←0
+  │ __init__                    24L  0C    0m  CC=0.0    ←0
+  │ __init__                    18L  0C    0m  CC=0.0    ←0
+  │ official                    18L  0C    0m  CC=0.0    ←0
+  │ loader                      17L  0C    1m  CC=3      ←1
+  │ __init__                    15L  0C    0m  CC=0.0    ←0
+  │ exceptions                  12L  1C    1m  CC=1      ←0
+  │ __init__                    11L  0C    0m  CC=0.0    ←0
+  │ __init__                     8L  0C    0m  CC=0.0    ←0
+  │ __init__                     8L  0C    0m  CC=0.0    ←0
+  │ __init__                     6L  0C    0m  CC=0.0    ←0
+  │ __init__                     6L  0C    0m  CC=0.0    ←0
+  │ __init__                     5L  0C    0m  CC=0.0    ←0
   │ remote                       4L  0C    0m  CC=0.0    ←0
   │ __init__                     4L  0C    0m  CC=0.0    ←0
   │ __init__                     4L  0C    0m  CC=0.0    ←0
   │ __init__                     2L  0C    0m  CC=0.0    ←0
+  │ __init__                     1L  0C    0m  CC=0.0    ←0
+  │ __init__                     1L  0C    0m  CC=0.0    ←0
+  │ __init__                     1L  0C    0m  CC=0.0    ←0
+  │ __init__                     0L  0C    0m  CC=0.0    ←0
   │
   ./                              CC̄=0.0    ←in:0  →out:0
+  │ !! SUMR.md                   2719L  50C  139m  CC=0.0    ←0
+  │ !! SUMD.md                   2658L  50C  780m  CC=0.0    ←0
+  │ !! CHANGELOG.md              1003L  0C    1m  CC=0.0    ←0
+  │ !! README.md                  966L  0C    1m  CC=0.0    ←0
+  │ !! goal.yaml                  512L  0C    0m  CC=0.0    ←0
+  │ REFACTORING.md             399L  6C    9m  CC=0.0    ←0
+  │ TODO.md                    198L  1C   11m  CC=0.0    ←0
+  │ DOQL-INTEGRATION.md        197L  0C    3m  CC=0.0    ←8
+  │ sumd.json                  156L  0C    0m  CC=0.0    ←0
+  │ pyproject.toml              73L  0C    0m  CC=0.0    ←0
+  │ REPAIR_LOG.md               37L  0C    0m  CC=0.0    ←0
   │ project.sh                  35L  0C    0m  CC=0.0    ←0
+  │ pyqual.yaml                 32L  0C    0m  CC=0.0    ←0
   │ tree.sh                      1L  0C    0m  CC=0.0    ←0
+  │ Makefile                     0L  0C    0m  CC=0.0    ←0
   │
+  docs/                           CC̄=0.0    ←in:3  →out:0
+  │ !! README.md                 2401L  0C    1m  CC=0.0    ←0
+  │ dsl-migration.md           478L  0C   13m  CC=0.0    ←0
+  │ fleet.md                   366L  0C    1m  CC=0.0    ←0
+  │ patterns.md                304L  1C    4m  CC=0.0    ←0
+  │ observe.md                 302L  0C    0m  CC=0.0    ←0
+  │ markpact-implementation-plan.md   284L  0C    1m  CC=0.0    ←3
+  │ README.md                  202L  1C    2m  CC=0.0    ←0
+  │ markpact-audit.md           81L  0C    0m  CC=0.0    ←0
+  │
+  examples/                       CC̄=0.0    ←in:0  →out:0
+  │ migration.md               312L  0C    3m  CC=0.0    ←0
+  │ migration.md               255L  0C    2m  CC=0.0    ←0
+  │ rpi5-waveshare-kiosk.md    196L  0C    0m  CC=0.0    ←0
+  │ migration.md               145L  0C    2m  CC=0.0    ←0
+  │ migration.md               138L  0C    0m  CC=0.0    ←0
+  │ fleet.yaml                 128L  0C    0m  CC=0.0    ←0
+  │ migration-rpi5.yaml         85L  0C    0m  CC=0.0    ←0
+  │ README.md                   81L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              72L  0C    0m  CC=0.0    ←0
+  │ README.md                   67L  0C    0m  CC=0.0    ←0
+  │ waveshare-8-inch-dsi.md     64L  0C    0m  CC=0.0    ←0
+  │ README.md                   63L  0C    0m  CC=0.0    ←0
+  │ fleet.yaml                  62L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              62L  0C    0m  CC=0.0    ←0
+  │ README.md                   62L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              61L  0C    0m  CC=0.0    ←0
+  │ official-dsi-7-inch.md      58L  0C    0m  CC=0.0    ←0
+  │ README.md                   55L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              52L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              52L  0C    0m  CC=0.0    ←0
+  │ migration.md                51L  0C    0m  CC=0.0    ←0
+  │ README.md                   49L  0C    0m  CC=0.0    ←0
+  │ README.md                   48L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              46L  0C    0m  CC=0.0    ←0
+  │ enable-i2c-spi.md           45L  0C    0m  CC=0.0    ←0
+  │ README.md                   45L  0C    0m  CC=0.0    ←0
+  │ migration.md                45L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              44L  0C    0m  CC=0.0    ←0
+  │ README.md                   44L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              43L  0C    0m  CC=0.0    ←0
+  │ README.md                   41L  0C    0m  CC=0.0    ←0
+  │ README.md                   41L  0C    0m  CC=0.0    ←0
+  │ README.md                   40L  0C    0m  CC=0.0    ←0
+  │ README.md                   40L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              40L  0C    0m  CC=0.0    ←0
+  │ migration.md                39L  0C    0m  CC=0.0    ←0
+  │ 14-blue-green.yaml          38L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              37L  0C    0m  CC=0.0    ←0
+  │ 15-canary.yaml              36L  0C    0m  CC=0.0    ←0
+  │ README.md                   36L  0C    0m  CC=0.0    ←0
+  │ 16-auto-rollback.yaml       35L  0C    0m  CC=0.0    ←0
+  │ migration.yaml              35L  0C    0m  CC=0.0    ←0
+  │ README.md                   35L  0C    0m  CC=0.0    ←0
+  │ prod.yaml                   34L  0C    0m  CC=0.0    ←0
+  │ 13-kiosk-appliance.yaml     33L  0C    0m  CC=0.0    ←0
+  │ staging.yaml                33L  0C    0m  CC=0.0    ←0
+  │ README.md                   29L  0C    0m  CC=0.0    ←0
+  │ README.md                   29L  0C    0m  CC=0.0    ←0
+  │ README.md                   29L  0C    0m  CC=0.0    ←0
+  │ dev.yaml                    28L  0C    0m  CC=0.0    ←0
+  │ redeploy.yaml               11L  0C    0m  CC=0.0    ←0
+  │ redeploy.yaml                6L  0C    0m  CC=0.0    ←0
+  │ redeploy.yaml                6L  0C    0m  CC=0.0    ←0
+  │ redeploy.yaml                6L  0C    0m  CC=0.0    ←0
+  │ redeploy.yaml                5L  0C    0m  CC=0.0    ←0
+  │ redeploy.yaml                5L  0C    0m  CC=0.0    ←0
+  │ tls.yml                      4L  0C    0m  CC=0.0    ←0
+  │ redeploy.yaml                4L  0C    0m  CC=0.0    ←0
+  │ redeploy.yaml                3L  0C    0m  CC=0.0    ←0
+  │
+  project/                        CC̄=0.0    ←in:0  →out:0
+  │ !! calls.yaml                5893L  0C    0m  CC=0.0    ←0
+  │ !! map.toon.yaml             1616L  0C  674m  CC=0.0    ←2
+  │ !! context.md                 736L  0C    0m  CC=0.0    ←0
+  │ !! validation.toon.yaml       683L  0C    0m  CC=0.0    ←0
+  │ !! calls.toon.yaml            502L  0C    0m  CC=0.0    ←0
+  │ analysis.toon.yaml         401L  0C    0m  CC=0.0    ←0
+  │ README.md                  339L  0C    0m  CC=0.0    ←0
+  │ README.md                  329L  0C    0m  CC=0.0    ←0
+  │ evolution.toon.yaml         82L  0C    0m  CC=0.0    ←0
+  │ duplication.toon.yaml       74L  0C    0m  CC=0.0    ←0
+  │ project.toon.yaml           60L  0C    0m  CC=0.0    ←0
+  │ context.md                  51L  0C    0m  CC=0.0    ←0
+  │ prompt.txt                  47L  0C    0m  CC=0.0    ←0
+  │ analysis.toon.yaml          16L  0C    0m  CC=0.0    ←0
+  │
+  code2llm_output/                CC̄=0.0    ←in:0  →out:0
+  │ !! context.md                 722L  0C    0m  CC=0.0    ←0
+  │ README.md                  329L  0C    0m  CC=0.0    ←0
+  │ analysis.toon.yaml         161L  0C    0m  CC=0.0    ←0
+  │
+  .redeploy/                      CC̄=0.0    ←in:0  →out:0
+  │ version.yaml                30L  0C    0m  CC=0.0    ←0
+  │ migration-local-92efc860.yaml    12L  0C    0m  CC=0.0    ←0
+  │ migration-local-e4114daa.yaml    11L  0C    0m  CC=0.0    ←0
+  │ test-local-63f620b6.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-68ae2b20.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-be94eb0c.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-6bb4cec7.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-c05a99a2.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-ec3c5638.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-eac354f9.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-ed7da478.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-46c5e2ce.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-abe8802f.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-831fd1ab.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-e1009318.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-563ceb24.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-036bc2a0.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-35782b9c.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-4d4cf12b.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-f868d117.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-09b68243.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-ab92e6d9.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-ee51c059.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-c1ec6b35.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-ea908429.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-7f5ddd97.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-179edfed.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-e3a0f31a.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-6279ef2c.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-24cd498c.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-efd3d620.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-e322f022.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-3ad44506.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-9cc88960.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-50622a24.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-df0d6ff6.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-c9849e24.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-56cb0635.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-d3c0fad8.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-891787e9.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-0a0a5446.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-9c9d5826.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-da199855.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-db469906.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-a70e54ce.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-ad30ec23.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-a929f336.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-5a1d7483.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-e069dd9f.yaml    10L  0C    0m  CC=0.0    ←0
+  │ test-local-36935faf.yaml    10L  0C    0m  CC=0.0    ←0
+  │
+  scripts/                        CC̄=0.0    ←in:0  →out:0
+  │ quality_gate                48L  0C    0m  CC=0.0    ←0
+  │
+  reports/                        CC̄=0.0    ←in:0  →out:0
+  │ hardware-108.yaml          224L  0C    0m  CC=0.0    ←0
+  │ hardware-109.yaml          200L  0C    0m  CC=0.0    ←0
+  │
+  ── zero ──
+     Makefile                                  0L
+     redeploy/blueprint/generators/__init__.py  0L
 
 COUPLING:
-                        redeploy   redeploy.plan  redeploy.apply
-        redeploy              ──               3               1
-   redeploy.plan              ←3              ──                
-  redeploy.apply              ←1                              ──
+                                  redeploy.cli               redeploy    redeploy.dsl_python       DOQL-INTEGRATION       redeploy.version         redeploy.apply        redeploy.detect           redeploy.dsl           redeploy.iac      redeploy.markpact          redeploy.plan     redeploy.blueprint      redeploy.hardware       redeploy.plugins  redeploy.config_apply
+           redeploy.cli                     ──                     52                     ←1                      4                     21                     10                      2                      7                      1                      3                      5                      3                      2                                             3  !! fan-out
+               redeploy                    ←52                     ──                     ←3                                            ←1                     ←2                     ←6                      1                     ←7                      2                      1                     ←2                     ←1                     ←5                         hub
+    redeploy.dsl_python                      1                      3                     ──                     21                      1                                                                                                                                                                                                                                        !! fan-out
+       DOQL-INTEGRATION                     ←4                                           ←21                     ──                                                                                                                                                                                                                                                               hub
+       redeploy.version                    ←21                      1                     ←1                                            ──                                                                                                                                                                                                                                        hub
+         redeploy.apply                    ←10                      2                                                                                          ──                                                                                           2                                                                    3                                            ←1  hub
+        redeploy.detect                     ←2                      6                                                                                                                 ──                                                                                                                                                                                        
+           redeploy.dsl                     ←7                      1                                                                                                                                        ──                                                                                                                                                                   hub
+           redeploy.iac                     ←1                      7                                                                                                                                                               ──                      1                                                                                                                     !! fan-out
+      redeploy.markpact                     ←3                      1                                                                                          ←2                                                                   ←1                     ──                                                                                                                     hub
+          redeploy.plan                     ←5                      2                                                                                                                                                                                                             ──                                                                                              hub
+     redeploy.blueprint                     ←3                      2                                                                                                                                                                                                                                    ──                                                                     
+      redeploy.hardware                     ←2                      1                                                                                          ←3                                                                                                                                                               ──                                                hub
+       redeploy.plugins                                             5                                                                                                                                                                                                                                                                                  ──                       
+  redeploy.config_apply                     ←3                                                                                                                  1                                                                                                                                                                                                             ──
   CYCLES: none
+  HUB: redeploy.plan/ (fan-in=6)
+  HUB: redeploy.hardware/ (fan-in=5)
+  HUB: DOQL-INTEGRATION/ (fan-in=25)
+  HUB: redeploy.version/ (fan-in=22)
+  HUB: redeploy.markpact/ (fan-in=8)
+  HUB: redeploy.apply/ (fan-in=11)
+  HUB: redeploy.dsl/ (fan-in=8)
+  HUB: redeploy/ (fan-in=84)
+  SMELL: redeploy.cli/ fan-out=115 → split needed
+  SMELL: redeploy.dsl_python/ fan-out=26 → split needed
+  SMELL: redeploy.iac/ fan-out=8 → split needed
+  SMELL: redeploy.apply/ fan-out=9 → split needed
 
 EXTERNAL:
   validation: run `vallm batch .` → validation.toon

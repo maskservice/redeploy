@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.49-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-24.9h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.51-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-25.0h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $7.5000 (70 commits)
-- 👤 **Human dev:** ~$2486 (24.9h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $7.5000 (71 commits)
+- 👤 **Human dev:** ~$2496 (25.0h @ $100/h, 30min dedup)
 
 Generated on 2026-04-21 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.49-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.51-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -22,6 +22,10 @@ redeploy detect   →  live probe host        (what is there now)
 redeploy plan     →  migration-plan.yaml    (what to do)
 redeploy apply    →  execute plan           (do it)
 redeploy run      →  detect + plan + apply  (all at once from spec)
+redeploy fix      →  bump + run + LLM heal  (smart self-healing deploy)
+redeploy bump     →  bump version in spec   (patch/minor/major)
+redeploy prompt   →  NLP → command via LLM  (natural language interface)
+redeploy mcp      →  start MCP server       (Claude Desktop / VS Code / remote API)
 redeploy scan     →  find devices on LAN    (device registry)
 redeploy target   →  deploy to named device (fleet)
 ```
@@ -637,6 +641,20 @@ doql `DEPLOY.target` → redeploy `strategy` mapping:
 | `kiosk-appliance` | `native_kiosk` |
 | `kubernetes` | `k3s` |
 
+IaC/CI config coverage (via `redeploy import`, used by doql/redeploy workflows):
+- Docker Compose + Dockerfile
+- nginx configs (`nginx.conf`, `*.conf`)
+- Kubernetes manifests (`apiVersion` + `kind` YAML)
+- Terraform (`*.tf`, `*.tfvars`)
+- TOML (`pyproject.toml`, app/tool TOML)
+- Vite config (`vite.config.ts/js/mjs/cjs`)
+- CI/CD: GitHub Actions, GitLab CI, Jenkinsfile
+
+Parser plugin extension:
+- Python entry points: `redeploy.iac.parsers`
+- Project-local parsers: `./redeploy_iac_parsers/*.py`
+- User-global parsers: `~/.redeploy/iac_parsers/*.py`
+
 ## Examples
 
 | Directory | Scenario | Strategy |
@@ -656,9 +674,212 @@ redeploy run examples/01-vps-version-bump/migration.yaml --plan-only
 redeploy run examples/04-rpi-kiosk/migration.yaml --plan-only
 ```
 
+## Self-healing deploy — `redeploy fix`
+
+`redeploy fix` is the recommended day-to-day deploy command. It:
+1. bumps the patch version in `VERSION` + spec header
+2. applies the migration spec with `--heal` enabled
+3. if a step fails, calls an LLM (via LiteLLM / OpenRouter) to suggest a fix and retries automatically
+
+```bash
+# Self-healing deploy: bump version → run → LLM retry on failure
+redeploy fix .
+redeploy fix redeploy/pi109/migration.md
+
+# With a problem hint for the LLM
+redeploy fix . --hint "service not starting after update"
+redeploy fix . --hint "brak ikon SVG w menu"
+
+# Preview only (no apply)
+redeploy fix . --dry-run
+
+# Bump minor version instead of patch
+redeploy fix . --minor
+
+# Bump major version
+redeploy fix . --major
+redeploy fix . --retries 5
+
+# Skip version bump
+redeploy fix . --no-bump
+```
+
+Spec discovery from `.`:
+- `./migration.md` or `./migration.yaml` — direct match
+- `./redeploy/<target>/migration.md` — project pattern (lists targets, asks if multiple)
+- Recursive fallback anywhere under the directory
+
+`redeploy fix` automatically discovers migration specs — running from project root
+with multiple targets prompts interactively.
+
+### Version management — `redeploy bump`
+
+```bash
+# Bump patch (default): 1.0.31 → 1.0.32
+redeploy bump .
+redeploy bump redeploy/pi109/migration.md
+
+# Bump minor: 1.0.31 → 1.1.0
+redeploy bump . --minor
+
+# Bump major: 1.0.31 → 2.0.0
+redeploy bump . --major
+```
+
+Updates `VERSION` file and all version references in the migration spec
+(`version:`, `name: "... vX.Y.Z"`, `description: "... vX.Y.Z"`).
+
+### LLM self-healing on `redeploy run`
+
+`redeploy run` also supports `--heal` mode (enabled by default):
+
+```bash
+# Run with LLM self-healing (default)
+redeploy run migration.yaml
+
+# Disable healing
+redeploy run migration.yaml --no-heal
+
+# Pass problem description to LLM
+redeploy run migration.yaml --fix "nginx port conflict"
+
+# Max heal retries
+redeploy run migration.yaml --max-heal-retries 5
+```
+
+LLM reads the failed step output, runs SSH diagnostics, and patches the spec YAML.
+Repairs are logged to `REPAIR_LOG.md` next to the spec.
+
+Requires `OPENROUTER_API_KEY` (or `OPENAI_API_KEY`) in `.env` or `~/.redeploy/.env`.
+Model defaults to `openrouter/qwen/qwen3-coder-next` (override with `LLM_MODEL=...`).
+
+---
+
+## Natural language interface — `redeploy prompt`
+
+```bash
+# Map a natural language instruction to a redeploy command
+redeploy prompt "deploy c2004 to pi109"
+redeploy prompt "pokaż plan deployu na pi109"
+redeploy prompt "bump version and redeploy" --yes
+redeploy prompt "what specs are available?" --schema-only
+
+# Force dry-run on generated command
+redeploy prompt "run the pi109 migration" --dry-run
+
+# Skip confirmation
+redeploy prompt "fix the frontend service" --yes
+
+# Preview the workspace schema sent to the LLM
+redeploy prompt "..." --show-schema
+```
+
+The LLM receives a workspace schema (discovered specs, version, git branch, command catalogue)
+and maps the instruction to a concrete `redeploy` invocation.
+
+Language is auto-detected — Polish, English, or any language the model supports.
+
+---
+
+## MCP server — `redeploy mcp`
+
+redeploy exposes an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server,
+letting AI assistants (Claude Desktop, VS Code Copilot, custom agents) call redeploy operations
+as structured tools.
+
+### Start
+
+```bash
+# stdio — for Claude Desktop / VS Code local integration
+redeploy mcp
+
+# HTTP SSE — for remote/shared access
+redeploy mcp --transport sse --port 8811
+
+# Streamable HTTP
+redeploy mcp --transport http --port 8811
+
+# Standalone binary (no CLI wrapper)
+redeploy-mcp --transport sse
+```
+
+### Available MCP tools
+
+| Tool | Description |
+|------|-------------|
+| `schema` | Discover workspace: specs, version, git branch, command catalogue |
+| `list_specs` | List all migration specs found in a directory |
+| `plan_spec` | Preview a spec (dry-run) — safe, no changes |
+| `run_spec` | Apply a migration spec |
+| `fix_spec` | Self-healing deploy: bump → apply → LLM retry |
+| `bump_version` | Bump patch/minor/major version |
+| `diagnose` | SSH diagnostics on a remote host |
+| `exec_ssh` | Run an ad-hoc command on a remote host |
+| `nlp_command` | Translate NLP instruction → redeploy command |
+
+### MCP resources
+
+| URI | Description |
+|-----|-------------|
+| `redeploy://workspace` | Current workspace schema as JSON |
+| `redeploy://spec/{path}` | Raw content of a migration spec file |
+
+### Claude Desktop integration
+
+Add to `~/.config/claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "redeploy": {
+      "command": "redeploy",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+### VS Code Copilot integration
+
+Add to `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "servers": {
+    "redeploy": {
+      "type": "stdio",
+      "command": "redeploy",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Or for an SSE server already running on a remote machine:
+
+```json
+{
+  "servers": {
+    "redeploy-remote": {
+      "type": "sse",
+      "url": "http://192.168.188.109:8811/sse"
+    }
+  }
+}
+```
+
+### Install with MCP dependencies
+
+```bash
+pip install "redeploy[mcp]"
+```
+
+---
+
 ## Hardware diagnostics commands
 
 ### `redeploy hardware HOST [options]`
+
 
 Probe and diagnose hardware on a remote host (DSI display, DRM connectors, backlight, I2C, config.txt, Wayland compositor).
 

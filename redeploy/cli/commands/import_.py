@@ -39,8 +39,14 @@ from rich.table import Table
 def import_cmd(source, output, target_host, target_strategy, dry_run, out_format, parser):
     """Parse an IaC/CI-CD file and produce a migration.yaml scaffold.
 
-    Auto-detects format from filename. Supports docker-compose.yml (Tier 1).
-    GitHub Actions, Kubernetes, GitLab CI, Ansible coming in Tier 1–2.
+        Auto-detects format from filename. Built-in parsers cover:
+        docker-compose, Dockerfile, Kubernetes YAML, Terraform, TOML/pyproject,
+        Vite config, nginx.conf, GitHub Actions, GitLab CI, Jenkinsfile.
+
+        Additional parsers can be provided via plugins:
+            - Python entry points group: redeploy.iac.parsers
+            - Local files: ./redeploy_iac_parsers/*.py
+            - User files: ~/.redeploy/iac_parsers/*.py
 
     \b
     Examples:

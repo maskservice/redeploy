@@ -1,14 +1,16 @@
-"""Contract test: hardware command output is identical in legacy and op3 paths."""
-from __future__ import annotations
+"""Contract test: hardware command yields deterministic YAML from op3-backed probe.
 
-from datetime import datetime, timezone
+The legacy-vs-op3 dual code path was collapsed in redeploy ≥ 0.1.x
+(``REDEPLOY_USE_OP3`` is a no-op now — both branches used op3 internally).
+This test now just guards the single code path against shape regressions.
+"""
+from __future__ import annotations
 
 import pytest
 import yaml
 from click.testing import CliRunner
 
 from redeploy.cli.commands.hardware import hardware
-from redeploy.integrations.op3_bridge import snapshot_to_hardware_info, op3_available
 from redeploy.models import HardwareInfo, DrmOutput
 
 op3 = pytest.importorskip("opstree")
@@ -16,7 +18,7 @@ op3 = pytest.importorskip("opstree")
 
 @pytest.fixture
 def mock_hw() -> HardwareInfo:
-    """Deterministic hardware state used for both paths."""
+    """Deterministic hardware state injected into the CLI."""
     return HardwareInfo(
         board="Raspberry Pi 5 Model B Rev 1.0",
         kernel="6.6.20+rpt-rpi-2712",
@@ -36,49 +38,19 @@ def mock_hw() -> HardwareInfo:
     )
 
 
-def _make_mock_probe_hardware_op3(hw: HardwareInfo):
-    """Return a replacement for _probe_hardware_op3 that yields *hw*."""
-    def _fn(host, ssh_key, console):
-        return hw
-    return _fn
-
-
-def _normalize(data: dict) -> dict:
-    """Drop empty defaults so missing vs empty lists don't differ."""
-    def clean(v):
-        if isinstance(v, dict):
-            return {k: clean(vv) for k, vv in v.items() if vv not in (None, [], {}, "")}
-        if isinstance(v, list):
-            return [clean(vv) for vv in v]
-        return v
-    return clean(data)
-
-
-def test_hardware_yaml_parity(mock_hw: HardwareInfo, monkeypatch):
-    """Legacy and op3 paths must produce semantically identical YAML."""
+def test_hardware_yaml_shape(mock_hw: HardwareInfo, monkeypatch):
+    """CLI renders HardwareInfo as YAML containing the expected top-level keys."""
     runner = CliRunner()
 
-    # Legacy path
-    monkeypatch.setenv("REDEPLOY_USE_OP3", "0")
     monkeypatch.setattr(
         "redeploy.detect.hardware.probe_hardware",
         lambda p: mock_hw,
     )
 
-    legacy_result = runner.invoke(hardware, ["pi@mock.local", "--format", "yaml"])
-    assert legacy_result.exit_code == 0, legacy_result.output
+    result = runner.invoke(hardware, ["pi@mock.local", "--format", "yaml"])
+    assert result.exit_code == 0, result.output
 
-    # op3 path
-    monkeypatch.setenv("REDEPLOY_USE_OP3", "1")
-    monkeypatch.setattr(
-        "redeploy.cli.commands.hardware._probe_hardware_op3",
-        _make_mock_probe_hardware_op3(mock_hw),
-    )
-
-    op3_result = runner.invoke(hardware, ["pi@mock.local", "--format", "yaml"])
-    assert op3_result.exit_code == 0, op3_result.output
-
-    legacy_data = yaml.safe_load(legacy_result.output)
-    op3_data = yaml.safe_load(op3_result.output)
-
-    assert _normalize(legacy_data) == _normalize(op3_data)
+    data = yaml.safe_load(result.output)
+    assert data["board"] == "Raspberry Pi 5 Model B Rev 1.0"
+    assert data["kernel"] == "6.6.20+rpt-rpi-2712"
+    assert data["drm_outputs"][0]["connector"] == "DSI-1"

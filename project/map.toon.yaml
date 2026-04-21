@@ -1,17 +1,17 @@
-# redeploy | 182f 35876L | python:179,shell:2,less:1 | 2026-04-21
-# stats: 633 func | 319 cls | 182 mod | CC̄=5.0 | critical:80 | cycles:0
-# alerts[5]: CC _render=38; CC build_context=36; CC extract_blueprint=31; CC probe=26; CC version_init=26
-# hotspots[5]: hardware fan=31; device_map_cmd fan=27; version_init fan=26; audit fan=22; import_cmd fan=22
+# redeploy | 206f 38715L | python:203,shell:2,less:1 | 2026-04-21
+# stats: 708 func | 340 cls | 206 mod | CC̄=4.8 | critical:84 | cycles:0
+# alerts[5]: CC probe=26; CC version_init=26; CC _bump_single=25; CC _build_manifest=25; CC extract_blueprint=22
+# hotspots[5]: fix_cmd fan=29; hardware fan=28; device_map_cmd fan=27; version_init fan=26; run fan=25
 # evolution: baseline
 # Keys: M=modules, D=details, i=imports, e=exports, c=classes, f=functions, m=methods
-M[182]:
+M[206]:
   app.doql.less,60
   project.sh,35
   redeploy/__init__.py,150
-  redeploy/apply/__init__.py,50
+  redeploy/apply/__init__.py,60
   redeploy/apply/exceptions.py,13
   redeploy/apply/executor.py,269
-  redeploy/apply/handlers.py,535
+  redeploy/apply/handlers.py,617
   redeploy/apply/progress.py,108
   redeploy/apply/rollback.py,45
   redeploy/apply/state.py,162
@@ -20,29 +20,38 @@ M[182]:
   redeploy/apply/utils/run_container_build.py,70
   redeploy/audit.py,610
   redeploy/blueprint/__init__.py,12
-  redeploy/blueprint/extractor.py,329
+  redeploy/blueprint/extractor.py,141
   redeploy/blueprint/generators/__init__.py,1
   redeploy/blueprint/generators/docker_compose.py,191
   redeploy/blueprint/generators/migration.py,180
-  redeploy/cli/__init__.py,116
+  redeploy/blueprint/sources/__init__.py,9
+  redeploy/blueprint/sources/compose.py,147
+  redeploy/blueprint/sources/hardware.py,46
+  redeploy/blueprint/sources/infra.py,44
+  redeploy/blueprint/sources/migration.py,35
+  redeploy/cli/__init__.py,123
   redeploy/cli/commands/__init__.py,45
   redeploy/cli/commands/audit.py,127
-  redeploy/cli/commands/blueprint.py,352
+  redeploy/cli/commands/blueprint.py,334
+  redeploy/cli/commands/bump_fix.py,349
   redeploy/cli/commands/detect.py,119
-  redeploy/cli/commands/device_map.py,425
+  redeploy/cli/commands/device_map.py,300
+  redeploy/cli/commands/device_map_renderers.py,171
   redeploy/cli/commands/devices.py,227
   redeploy/cli/commands/diagnose.py,48
   redeploy/cli/commands/diff.py,34
   redeploy/cli/commands/exec_.py,252
   redeploy/cli/commands/export.py,127
-  redeploy/cli/commands/hardware.py,515
-  redeploy/cli/commands/import_.py,251
+  redeploy/cli/commands/hardware.py,465
+  redeploy/cli/commands/import_.py,257
   redeploy/cli/commands/init.py,112
   redeploy/cli/commands/inspect.py,74
+  redeploy/cli/commands/mcp_cmd.py,55
   redeploy/cli/commands/patterns.py,105
-  redeploy/cli/commands/plan_apply.py,437
+  redeploy/cli/commands/plan_apply.py,506
   redeploy/cli/commands/plugin.py,80
   redeploy/cli/commands/probe.py,145
+  redeploy/cli/commands/prompt_cmd.py,239
   redeploy/cli/commands/push.py,111
   redeploy/cli/commands/state.py,119
   redeploy/cli/commands/status.py,56
@@ -56,6 +65,7 @@ M[182]:
   redeploy/cli/commands/workflow.py,88
   redeploy/cli/core.py,180
   redeploy/cli/display.py,390
+  redeploy/cli/query.py,43
   redeploy/cli.py,94
   redeploy/config_apply/__init__.py,16
   redeploy/config_apply/applier.py,73
@@ -64,11 +74,11 @@ M[182]:
   redeploy/detect/__init__.py,6
   redeploy/detect/builtin/__init__.py,3
   redeploy/detect/detector.py,105
-  redeploy/detect/hardware.py,354
-  redeploy/detect/hardware_rules.py,490
+  redeploy/detect/hardware.py,84
+  redeploy/detect/hardware_rules.py,57
   redeploy/detect/probes.py,278
   redeploy/detect/remote.py,5
-  redeploy/detect/templates.py,375
+  redeploy/detect/templates.py,420
   redeploy/detect/workflow.py,419
   redeploy/discovery.py,790
   redeploy/dsl/__init__.py,31
@@ -96,19 +106,22 @@ M[182]:
   redeploy/hardware/kiosk/output_profiles.py,69
   redeploy/hardware/panels.py,52
   redeploy/hardware/raspi_config.py,33
-  redeploy/iac/__init__.py,48
+  redeploy/heal.py,415
+  redeploy/iac/__init__.py,53
   redeploy/iac/base.py,276
+  redeploy/iac/config_hints.py,290
   redeploy/iac/docker_compose.py,419
   redeploy/iac/parsers/__init__.py,2
   redeploy/iac/parsers/compose.py,288
-  redeploy/iac/registry.py,38
+  redeploy/iac/registry.py,108
   redeploy/integrations/__init__.py,2
-  redeploy/integrations/op3_bridge.py,117
+  redeploy/integrations/op3_bridge.py,208
   redeploy/markpact/__init__.py,25
   redeploy/markpact/compiler.py,178
   redeploy/markpact/models.py,27
   redeploy/markpact/parser.py,281
-  redeploy/models.py,1000
+  redeploy/mcp_server.py,315
+  redeploy/models.py,997
   redeploy/observe.py,314
   redeploy/parse.py,191
   redeploy/patterns.py,408
@@ -121,9 +134,12 @@ M[182]:
   redeploy/plugins/builtin/notify.py,169
   redeploy/plugins/builtin/process_control.py,124
   redeploy/plugins/builtin/systemd_reload.py,99
+  redeploy/schema.py,243
   redeploy/spec_loader.py,48
   redeploy/ssh.py,302
-  redeploy/steps.py,329
+  redeploy/steps/__init__.py,77
+  redeploy/steps/builtins.py,276
+  redeploy/steps/kiosk.py,50
   redeploy/tests/__init__.py,1
   redeploy/tests/test_audit.py,245
   redeploy/tests/test_cli.py,329
@@ -177,15 +193,23 @@ M[182]:
   redeploy/version.py,24
   scripts/quality_gate.py,49
   tests/contract/__init__.py,2
-  tests/contract/test_hardware_op3_parity.py,85
+  tests/contract/test_blueprint_op3_parity.py,71
+  tests/contract/test_detect_op3_parity.py,52
+  tests/contract/test_hardware_op3_parity.py,57
   tests/integration/__init__.py,2
-  tests/integration/test_op3_bridge.py,45
+  tests/integration/test_op3_bridge.py,101
+  tests/test_blueprint_sources.py,187
+  tests/test_blueprint_sources_compose.py,154
+  tests/test_cli_query.py,80
   tests/test_hardware_config.py,163
   tests/test_hardware_kiosk.py,231
   tests/test_hardware_rules.py,190
   tests/test_iac.py,512
+  tests/test_iac_config_hints.py,130
   tests/test_parse.py,158
+  tests/test_prompt_llm.py,270
   tests/test_redeploy.py,12
+  tests/test_steps_kiosk.py,94
   tree.sh,2
 D:
   redeploy/__init__.py:
@@ -259,15 +283,8 @@ D:
     audit_spec(spec_path)
   redeploy/blueprint/__init__.py:
   redeploy/blueprint/extractor.py:
-    e: extract_blueprint,_merge_compose,_parse_compose_ports,_parse_compose_volumes,_parse_compose_env,_parse_compose_healthcheck,_parse_migration_meta,_build_hw_requirements
+    e: extract_blueprint
     extract_blueprint()
-    _merge_compose(path;services;seen)
-    _parse_compose_ports(raw)
-    _parse_compose_volumes(raw)
-    _parse_compose_env(raw)
-    _parse_compose_healthcheck(raw)
-    _parse_migration_meta(path)
-    _build_hw_requirements(hw)
   redeploy/blueprint/generators/__init__.py:
   redeploy/blueprint/generators/docker_compose.py:
     e: generate_twin,_build_service
@@ -276,6 +293,25 @@ D:
   redeploy/blueprint/generators/migration.py:
     e: generate_migration
     generate_migration(blueprint)
+  redeploy/blueprint/sources/__init__.py:
+  redeploy/blueprint/sources/compose.py:
+    e: merge_compose_files,_merge_compose,_parse_compose_ports,_parse_compose_volumes,_parse_compose_env,_parse_compose_healthcheck
+    merge_compose_files(compose_files;services;seen)
+    _merge_compose(path;services;seen)
+    _parse_compose_ports(raw)
+    _parse_compose_volumes(raw)
+    _parse_compose_env(raw)
+    _parse_compose_healthcheck(raw)
+  redeploy/blueprint/sources/hardware.py:
+    e: build_hw_requirements
+    build_hw_requirements(hw)
+  redeploy/blueprint/sources/infra.py:
+    e: extract_services_from_infra,infer_app_url
+    extract_services_from_infra(infra;seen)
+    infer_app_url(infra)
+  redeploy/blueprint/sources/migration.py:
+    e: parse_migration_meta
+    parse_migration_meta(path)
   redeploy/cli/__init__.py:
     e: _setup_logging,cli,_resolve_device
     _setup_logging(verbose)
@@ -295,6 +331,20 @@ D:
     show(blueprint_file;fmt;apply_config;query_expr)
     list_blueprints()
     _print_blueprint(console;bp;fmt)
+  redeploy/cli/commands/bump_fix.py:
+    e: _find_spec,_prompt_choose_spec,_find_version_file,_bump_patch,_bump_version_file,_update_migration_header,_update_quadlet_service_version,_load_dotenv,bump_cmd,fix_cmd,_print_banner,_detect_version
+    _find_spec(spec_arg)
+    _prompt_choose_spec(specs;base)
+    _find_version_file(spec_path)
+    _bump_patch(version)
+    _bump_version_file(version_file;console)
+    _update_migration_header(spec_path;new_version)
+    _update_quadlet_service_version(start;new_version)
+    _load_dotenv()
+    bump_cmd(spec_or_dir;minor;major)
+    fix_cmd(spec_or_dir;hint;bump;minor;major;retries;dry_run;env_name)
+    _print_banner(console;hint)
+    _detect_version(spec_path)
   redeploy/cli/commands/detect.py:
     e: detect
     detect(ctx;host;app;domain;output;run_workflow;scan_subnet;no_deep;save_yaml;output_fmt)
@@ -305,6 +355,15 @@ D:
     _render(console;dm;fmt)
     _print_list(console)
     _diff(console;a;b)
+  redeploy/cli/commands/device_map_renderers.py:
+    e: render_yaml,render_json,_build_header_panel,_build_drm_table,_build_services_table,_build_issues_table,render_rich
+    render_yaml(dm)
+    render_json(dm)
+    _build_header_panel(dm)
+    _build_drm_table(dm)
+    _build_services_table(dm)
+    _build_issues_table(dm)
+    render_rich(console;dm)
   redeploy/cli/commands/devices.py:
     e: devices,scan,device_add,device_rm
     devices(tag;strategy;rpi;reachable;as_json)
@@ -334,9 +393,8 @@ D:
     _export_to_css(manifest;templates)
     _export_to_yaml(manifest)
   redeploy/cli/commands/hardware.py:
-    e: _probe_hardware,_probe_hardware_op3,_format_output,_print_drm_connectors,_print_backlights,_print_dsi_overlays,_print_i2c_buses,_print_diagnostics,_apply_transform,_execute_query,_apply_fix,hardware
+    e: _probe_hardware,_format_output,_print_drm_connectors,_print_backlights,_print_dsi_overlays,_print_i2c_buses,_print_diagnostics,_apply_transform,_execute_query,_apply_fix,hardware
     _probe_hardware(host;ssh_key;console)
-    _probe_hardware_op3(host;ssh_key;console)
     _format_output(hw;output_fmt)
     _print_drm_connectors(console;hw)
     _print_backlights(console;hw)
@@ -360,25 +418,37 @@ D:
     e: _find_css_path,inspect
     _find_css_path(css_file;console)
     inspect(ctx;css_file)
+  redeploy/cli/commands/mcp_cmd.py:
+    e: mcp_cmd
+    mcp_cmd(transport;host;port)
   redeploy/cli/commands/patterns.py:
     e: patterns
     patterns(name)
   redeploy/cli/commands/plan_apply.py:
-    e: plan,apply,migrate,run,_apply_manifest_to_spec,_print_spec_summary,_perform_live_detect,_run_apply
+    e: plan,apply,migrate,run,_apply_manifest_to_spec,_print_spec_summary,_perform_live_detect,_run_apply,_load_dotenv,_detect_project_version,_print_heal_banner
     plan(ctx;infra;target;strategy;domain;target_version;compose;env_file;output)
     apply(ctx;plan_file;dry_run;step;output)
     migrate(ctx;host;app;domain;target;strategy;target_version;compose;env_file;dry_run;infra_out;plan_out)
-    run(ctx;spec_file;dry_run;plan_only;do_detect;plan_out;output;env_name;progress_yaml;resume;from_step;state_file;no_state)
+    run(ctx;spec_file;dry_run;plan_only;do_detect;plan_out;output;env_name;progress_yaml;resume;from_step;state_file;no_state;heal;fix_hint;max_heal_retries)
     _apply_manifest_to_spec(console;manifest;spec;env_name)
     _print_spec_summary(console;spec)
     _perform_live_detect(console;spec)
     _run_apply(console;migration;dry_run;output;ssh_key;progress_yaml;resume;from_step;state_file;no_state;spec_path)
+    _load_dotenv()
+    _detect_project_version(spec_path)
+    _print_heal_banner(console;fix_hint)
   redeploy/cli/commands/plugin.py:
     e: plugin_cmd
     plugin_cmd(ctx;subcommand;name)
   redeploy/cli/commands/probe.py:
     e: probe
     probe(hosts;subnet;users;ssh_port;app_hint;timeout;no_save;as_json)
+  redeploy/cli/commands/prompt_cmd.py:
+    e: _call_llm,_parse_llm_response,prompt_cmd,_find_redeploy_bin
+    _call_llm(schema;user_prompt)
+    _parse_llm_response(raw)
+    prompt_cmd(instruction;schema_only;dry_run;yes;show_schema)
+    _find_redeploy_bin()
   redeploy/cli/commands/push.py:
     e: push
     push(host;files;dry_run;ssh_key)
@@ -493,6 +563,9 @@ D:
     _print_services_table(console;services)
     _print_spec_metadata(console;spec)
     print_import_spec(console;spec)
+  redeploy/cli/query.py:
+    e: execute_query
+    execute_query(obj;query_expr;output_fmt;echo)
   redeploy/cli.py:
   redeploy/config_apply/__init__.py:
   redeploy/config_apply/applier.py:
@@ -513,33 +586,13 @@ D:
     e: Detector
     Detector: __init__(3),run(0),save(2),probe_hardware(0)  # Probe infrastructure and produce InfraState.
   redeploy/detect/hardware.py:
-    e: _lines,probe_board,probe_config_txt,probe_drm_outputs,probe_wlr_randr,probe_backlights,probe_framebuffers,probe_i2c_buses,probe_dsi_dmesg,probe_dsi_dmesg_errors,probe_kernel_modules,probe_wayland_sockets,probe_compositor_processes,_analyze,probe_hardware
-    _lines(text)
-    probe_board(p)
-    probe_config_txt(p)
-    probe_drm_outputs(p)
-    probe_wlr_randr(p)
-    probe_backlights(p)
-    probe_framebuffers(p)
-    probe_i2c_buses(p)
-    probe_dsi_dmesg(p)
-    probe_dsi_dmesg_errors(dmesg_lines)
-    probe_kernel_modules(p)
-    probe_wayland_sockets(p)
-    probe_compositor_processes(p)
-    _analyze(hw)
+    e: _wrap_remote_probe,probe_hardware
+    _wrap_remote_probe(p)
     probe_hardware(p)
   redeploy/detect/hardware_rules.py:
-    e: _dsi_outputs,_has_dsi_overlay,_dsi_connected,_backlight_chip_addr,_backlight_power_off_rules,_i2c_chip_missing_rules,_all_ok,_any_errors_from_static,analyze,DiagnosticRule
-    DiagnosticRule: evaluate(1)  # A single hardware diagnostic rule.
-    _dsi_outputs(hw)
-    _has_dsi_overlay(hw)
-    _dsi_connected(hw)
-    _backlight_chip_addr(name)
-    _backlight_power_off_rules(hw)
-    _i2c_chip_missing_rules(hw)
-    _all_ok(hw)
-    _any_errors_from_static(hw)
+    e: _hw_info_to_dict,_op3_diag_to_hw_diag,analyze
+    _hw_info_to_dict(hw)
+    _op3_diag_to_hw_diag(d)
     analyze(hw)
   redeploy/detect/probes.py:
     e: probe_runtime,probe_ports,probe_iptables_dnat,probe_docker_services,probe_k3s_services,probe_systemd_services,probe_health,detect_conflicts,detect_strategy
@@ -554,12 +607,14 @@ D:
     detect_strategy(runtime;docker_services;k3s_services;systemd_services)
   redeploy/detect/remote.py:
   redeploy/detect/templates.py:
-    e: build_context,_svc,_port,_load_templates_from_yaml,_build_templates,Condition,DetectionTemplate,TemplateMatch,DetectionResult,TemplateEngine
+    e: _all_services,build_context,_svc,_port,_load_templates_from_yaml,_build_templates,Condition,DetectionTemplate,FactExtractor,TemplateMatch,DetectionResult,TemplateEngine
     Condition:  # A single scoreable condition.
     DetectionTemplate: score(1),max_score(0)  # Named template for a device+environment+strategy combination
+    FactExtractor: __call__(4)  # Extract a single key/value pair into the context dict.
     TemplateMatch: confidence(0),confidence_label(0)  # Scored template match.
     DetectionResult: strategy(0),environment(0),spec_template(0),generated_env_block(2),generated_notes(0)  # Full result of template-based detection.
     TemplateEngine: __init__(1),score_all(1),detect(3)  # Score all templates against a context and return ranked matc
+    _all_services(state;probe)
     build_context(state;probe;manifest)
     _svc(name)
     _port(p)
@@ -709,6 +764,15 @@ D:
   redeploy/hardware/raspi_config.py:
     e: build_raspi_config_command
     build_raspi_config_command(interface;state)
+  redeploy/heal.py:
+    e: _ssh,collect_diagnostics,ask_llm,apply_fix_to_spec,write_repair_log,parse_failed_step,HealRunner
+    HealRunner: __init__(8),_make_executor(1),_reload_migration(0),run(0)  # Wraps Executor with self-healing loop.
+    _ssh(host;command)
+    collect_diagnostics(host;failed_step)
+    ask_llm(failed_step;step_output;diag;spec_text;fix_hint)
+    apply_fix_to_spec(spec_path;failed_step;llm_response)
+    write_repair_log(spec_path;version;repairs)
+    parse_failed_step(executor_summary;executor)
   redeploy/iac/__init__.py:
   redeploy/iac/base.py:
     e: PortInfo,VolumeInfo,ServiceInfo,ConversionWarning,ParsedSpec,Parser,ParserRegistry
@@ -719,6 +783,10 @@ D:
     ParsedSpec: add_warning(4),all_images(0),all_ports(0),summary(0)  # Common intermediate representation from any IaC/CI-CD parser
     Parser: can_parse(1),parse(1)  # Protocol every format-specific parser must satisfy.
     ParserRegistry: __init__(0),register(1),parser_for(1),parse(1),parse_dir(3),registered(0)  # Dispatch file → registered parser.
+  redeploy/iac/config_hints.py:
+    e: parse_json_file,ConfigHintsParser
+    ConfigHintsParser: can_parse(1),parse(1),_new_spec(3),_read_text(1),_parse_dockerfile(1),_parse_nginx(1),_looks_like_k8s(1),_parse_k8s_yaml(1),_parse_terraform(1),_parse_toml(1),_parse_vite(1),_parse_github_actions(1),_parse_gitlab_ci(1),_parse_jenkinsfile(1)  # Best-effort parser for common DevOps/IaC config files.
+    parse_json_file(path)
   redeploy/iac/docker_compose.py:
     e: _resolve_var,_parse_port,_parse_volume,_env_dict,_deep_merge,DockerComposeParser
     DockerComposeParser: can_parse(1),parse(1),_load_merged(2),_find_override(1),_load_dotenv(1),_parse_service(4)  # Parser for docker-compose.yml / compose.yaml files.
@@ -732,18 +800,19 @@ D:
     e: DockerComposeParser
     DockerComposeParser: can_parse(1),parse(1),_parse_service(3),_parse_build(1),_parse_command(1),_parse_ports(2),_parse_port_entry(1),_parse_volumes(2),_parse_volume_entry(1),_parse_env(2),_parse_depends_on(1),_parse_labels(1),_parse_healthcheck(1)  # Parser for Docker Compose files (v2 + v3 schema, Compose Spe
   redeploy/iac/registry.py:
-    e: parse_file,parse_dir
+    e: _load_entrypoint_parsers,_load_local_parsers,parse_file,parse_dir
+    _load_entrypoint_parsers(registry)
+    _load_local_parsers(registry)
     parse_file(path)
     parse_dir(root;recursive;skip_errors)
   redeploy/integrations/__init__.py:
   redeploy/integrations/op3_bridge.py:
-    e: op3_enabled,op3_available,should_use_op3,make_op3_context_from_ssh_client,snapshot_to_infra_state,snapshot_to_hardware_info
-    op3_enabled()
-    op3_available()
-    should_use_op3()
+    e: make_op3_context_from_ssh_client,snapshot_to_infra_state,snapshot_to_hardware_info,diagnostics_to_hardware_diagnostics,snapshot_to_device_map
     make_op3_context_from_ssh_client(ssh_client)
-    snapshot_to_infra_state(snapshot)
+    snapshot_to_infra_state(snapshot;host)
     snapshot_to_hardware_info(snapshot)
+    diagnostics_to_hardware_diagnostics(diagnostics)
+    snapshot_to_device_map(snapshot;host;tags)
   redeploy/markpact/__init__.py:
   redeploy/markpact/compiler.py:
     e: compile_markpact_document,compile_markpact_document_to_data,_load_block_payload,_normalize_config_payload,_extract_steps,_deep_merge,MarkpactCompileError
@@ -770,6 +839,22 @@ D:
     _normalize_section_id(section_id)
     _check_heading(line;in_target_section;normalized_id;section_id)
     _handle_fence_line(line;code_block_lang;language;script_lines)
+  redeploy/mcp_server.py:
+    e: _redeploy_bin,_run,schema,plan_spec,run_spec,fix_spec,bump_version,diagnose,list_specs,exec_ssh,nlp_command,get_spec_content,get_workspace,serve
+    _redeploy_bin()
+    _run()
+    schema(directory)
+    plan_spec(spec;cwd)
+    run_spec(spec;force;dry_run;heal;fix_hint;cwd)
+    fix_spec(spec_or_dir;hint;bump;retries;dry_run;cwd)
+    bump_version(spec_or_dir;level;cwd)
+    diagnose(host)
+    list_specs(directory)
+    exec_ssh(host;command)
+    nlp_command(instruction;dry_run;cwd)
+    get_spec_content(path)
+    get_workspace()
+    serve(transport;host;port)
   redeploy/models.py:
     e: ConflictSeverity,StepAction,StepStatus,DeployStrategy,PersistedModel,ServiceInfo,PortInfo,ConflictInfo,RuntimeInfo,AppHealthInfo,DrmOutput,BacklightInfo,I2CBusInfo,HardwareDiagnostic,HardwareInfo,InfraState,TargetConfig,MigrationStep,InfraSpec,MigrationSpec,MigrationPlan,EnvironmentConfig,ProjectManifest,DeployRecord,KnownDevice,DeviceMap,ServicePort,VolumeMount,ServiceSpec,HardwareRequirements,BlueprintSource,DeviceBlueprint,DeviceRegistry
     ConflictSeverity:
@@ -880,6 +965,13 @@ D:
     e: systemd_reload,_wait_for_active
     systemd_reload(ctx)
     _wait_for_active(ctx;unit;timeout)
+  redeploy/schema.py:
+    e: _parse_spec_meta,_discover_specs,_read_version,_git_branch,build_schema
+    _parse_spec_meta(path)
+    _discover_specs(root;max_specs)
+    _read_version(root)
+    _git_branch(root)
+    build_schema(root)
   redeploy/spec_loader.py:
     e: load_migration_spec,SpecLoaderError,UnsupportedSpecFormatError
     SpecLoaderError:  # Base error raised when a deployment spec cannot be loaded.
@@ -891,10 +983,13 @@ D:
     SshClient: __init__(4),key(0),key(1),run(2),rsync(5),scp(3),put_file(3),is_reachable(1),is_ssh_ready(0),ping(0),_run_local(2),_ssh_opts(0),_scp_opts(0),_detect_ssh_key(0),_detect_key(0)  # Execute commands on a remote host via SSH (or locally).
     RemoteProbe: __init__(1),is_local(0),is_local(1)  # Thin wrapper kept for redeploy.detect compatibility.
     RemoteExecutor: __init__(1),ssh_target(0),ssh_opts(0),scp_opts(0)  # Thin wrapper kept for deploy.core compatibility.
-  redeploy/steps.py:
-    e: _step,StepLibrary
+  redeploy/steps/__init__.py:
+    e: StepLibrary
     StepLibrary: get(1),list(0),all(0),resolve_from_spec(1)  # Registry of pre-defined named MigrationSteps.
+  redeploy/steps/builtins.py:
+    e: _step
     _step(id;action;description)
+  redeploy/steps/kiosk.py:
   redeploy/tests/__init__.py:
   redeploy/tests/test_audit.py:
     e: _spec,TestExtractor,TestExtractPort,_FakeProbe,TestAuditor,TestReport,TestAuditSpec
@@ -1346,17 +1441,50 @@ D:
   redeploy/version.py:
   scripts/quality_gate.py:
   tests/contract/__init__.py:
+  tests/contract/test_blueprint_op3_parity.py:
+    e: mock_device_map,_build_mock_snapshot,test_snapshot_to_device_map_roundtrip
+    mock_device_map()
+    _build_mock_snapshot()
+    test_snapshot_to_device_map_roundtrip(mock_device_map)
+  tests/contract/test_detect_op3_parity.py:
+    e: mock_infra,_build_mock_snapshot,test_snapshot_to_infra_state_parity
+    mock_infra()
+    _build_mock_snapshot()
+    test_snapshot_to_infra_state_parity(mock_infra)
   tests/contract/test_hardware_op3_parity.py:
-    e: mock_hw,_make_mock_probe_hardware_op3,_normalize,test_hardware_yaml_parity
+    e: mock_hw,test_hardware_yaml_shape
     mock_hw()
-    _make_mock_probe_hardware_op3(hw)
-    _normalize(data)
-    test_hardware_yaml_parity(mock_hw;monkeypatch)
+    test_hardware_yaml_shape(mock_hw;monkeypatch)
   tests/integration/__init__.py:
   tests/integration/test_op3_bridge.py:
-    e: test_op3_importable,test_op3_mock_scan
+    e: test_op3_importable,test_require_op3_is_noop_when_available,test_make_scanner_defaults_to_hardware_layers,test_make_scanner_instances_are_isolated,test_make_ssh_context_forwards_key,test_end_to_end_mock_scan_physical_display
     test_op3_importable()
-    test_op3_mock_scan()
+    test_require_op3_is_noop_when_available()
+    test_make_scanner_defaults_to_hardware_layers()
+    test_make_scanner_instances_are_isolated()
+    test_make_ssh_context_forwards_key()
+    test_end_to_end_mock_scan_physical_display()
+  tests/test_blueprint_sources.py:
+    e: FakeHw,TestParseMigrationMeta,TestBuildHwRequirements,FakeSvc,FakeInfra,TestExtractServicesFromInfra,TestInferAppUrl
+    FakeHw: __init__(0)  # Minimal fake hardware probe result.
+    TestParseMigrationMeta: test_reads_version_and_strategy(1),test_infers_podman_quadlet_from_steps(1),test_infers_docker_from_steps(1),test_missing_file_returns_empty(1),test_invalid_yaml_returns_empty(1),test_no_strategy_or_version_returns_empty(1)
+    TestBuildHwRequirements: test_none_returns_empty(0),test_dsi_detected(0),test_backlight_and_i2c_features(0),test_rpi_arch(0),test_aarch64_arch(0),test_non_pi_arch(0)
+    FakeSvc: __init__(2)
+    FakeInfra: __init__(3)
+    TestExtractServicesFromInfra: test_empty_infra(0),test_extracts_services(0),test_skips_already_seen(0),test_multiple_groups(0)
+    TestInferAppUrl: test_none_infra(0),test_no_host(0),test_port_80(0),test_port_443(0),test_port_8100(0),test_no_matching_ports(0),test_strips_user_from_host(0)
+  tests/test_blueprint_sources_compose.py:
+    e: compose_file,TestMergeComposeFiles,TestParseComposePorts,TestParseComposeVolumes,TestParseComposeEnv,TestParseComposeHealthcheck
+    TestMergeComposeFiles: test_parses_services(1),test_populates_seen(1),test_noop_on_empty_list(0),test_skips_missing_file(1),test_skips_invalid_yaml(1),test_merges_duplicate_service(1)
+    TestParseComposePorts: test_int_form(0),test_string_form(0),test_string_with_protocol(0),test_dict_form(0),test_dict_form_defaults(0),test_mixed_list(0)
+    TestParseComposeVolumes: test_string_form(0),test_string_form_readonly(0),test_dict_form(0),test_dict_input(0)
+    TestParseComposeEnv: test_dict_form(0),test_list_form(0),test_skips_none_values(0)
+    TestParseComposeHealthcheck: test_list_test(0),test_string_test(0),test_empty_returns_none(0)
+    compose_file(tmp_path)
+  tests/test_cli_query.py:
+    e: _FakeModel,TestExecuteQuery
+    _FakeModel: __init__(1),model_dump(0)  # Minimal stand-in for a Pydantic model.
+    TestExecuteQuery: test_basic_dict_result(1),test_json_format(1),test_yaml_format(1),test_no_match_message(1),test_jmespath_expression(1),test_jmespath_error_exits(1),test_custom_echo(0),test_json_with_non_serializable_default(1)
   tests/test_hardware_config.py:
     e: test_add_new_line_to_all_section,test_no_op_when_line_already_present,test_replace_existing_dsi_overlay,test_replace_is_idempotent_for_same_line,test_add_to_pi5_section,test_add_to_existing_section,test_no_op_for_existing_line_in_section,test_ensure_lines_multiple,test_ensure_lines_no_change_when_all_present,test_ensure_lines_partial_update,test_all_panels_non_empty,test_waveshare_8_inch_registered,test_overlay_line_dsi1,test_overlay_line_dsi0,test_official_rpi_panel_registered,test_hyperpixel_panels_registered,test_raspi_config_i2c_enable,test_raspi_config_spi_disable,test_raspi_config_invalid_interface,test_raspi_config_invalid_state
     test_add_new_line_to_all_section()
@@ -1442,6 +1570,17 @@ D:
     TestGlobalRegistry: test_parser_registry_has_compose(0),test_parse_file_helper(1),test_parse_dir_helper(1)
     TestSummary: test_summary_non_empty(1)
     write_compose(tmp_path;content)
+  tests/test_iac_config_hints.py:
+    e: test_can_parse_dockerfile,test_parse_dockerfile_images,test_parse_nginx_conf_ports,test_parse_k8s_yaml,test_parse_terraform,test_parse_toml,test_parse_vite_config,test_parse_github_actions,test_parse_gitlab_ci
+    test_can_parse_dockerfile(tmp_path)
+    test_parse_dockerfile_images(tmp_path)
+    test_parse_nginx_conf_ports(tmp_path)
+    test_parse_k8s_yaml(tmp_path)
+    test_parse_terraform(tmp_path)
+    test_parse_toml(tmp_path)
+    test_parse_vite_config(tmp_path)
+    test_parse_github_actions(tmp_path)
+    test_parse_gitlab_ci(tmp_path)
   tests/test_parse.py:
     e: test_parse_docker_ps_full_format,test_parse_docker_ps_partial_format,test_parse_docker_ps_skips_empty_lines,test_parse_docker_ps_skips_no_containers_marker,test_parse_docker_ps_empty,test_parse_container_line_full,test_parse_container_line_no_image,test_parse_container_line_invalid_returns_none,test_parse_system_info_basic,test_parse_system_info_disk,test_parse_system_info_memory,test_parse_system_info_unknown_lines_ignored,test_parse_diagnostics_sections,test_parse_diagnostics_empty,test_parse_diagnostics_docker_section_alias,test_parse_diagnostics_skips_no_markers,test_parse_health_info_full,test_parse_health_info_invalid_health_code,test_parse_health_info_empty
     test_parse_docker_ps_full_format()
@@ -1463,7 +1602,34 @@ D:
     test_parse_health_info_full()
     test_parse_health_info_invalid_health_code()
     test_parse_health_info_empty()
+  tests/test_prompt_llm.py:
+    e: _load_env,build_c2004_schema,call_llm,test_schema_discovers_c2004_specs,test_schema_has_command_catalogue,test_schema_has_version_and_cwd,test_prompt_dry_run_plan_polish,test_prompt_deploy_english,test_prompt_diagnose_polish,test_prompt_fix_kiosk_polish,test_prompt_bump_minor,test_prompt_fix_with_hint,test_prompt_list_specs,test_prompt_response_has_required_fields,test_prompt_argv_always_starts_with_redeploy,test_prompt_uses_real_spec_paths,test_prompt_cli_schema_only,test_prompt_cli_dry_run_no_confirm
+    _load_env()
+    build_c2004_schema()
+    call_llm(instruction;schema)
+    test_schema_discovers_c2004_specs()
+    test_schema_has_command_catalogue()
+    test_schema_has_version_and_cwd()
+    test_prompt_dry_run_plan_polish()
+    test_prompt_deploy_english()
+    test_prompt_diagnose_polish()
+    test_prompt_fix_kiosk_polish()
+    test_prompt_bump_minor()
+    test_prompt_fix_with_hint()
+    test_prompt_list_specs()
+    test_prompt_response_has_required_fields()
+    test_prompt_argv_always_starts_with_redeploy()
+    test_prompt_uses_real_spec_paths()
+    test_prompt_cli_schema_only(tmp_path)
+    test_prompt_cli_dry_run_no_confirm(tmp_path)
   tests/test_redeploy.py:
     e: test_placeholder,test_import
     test_placeholder()
     test_import()
+  tests/test_steps_kiosk.py:
+    e: TestKioskStepsExistInLibrary,TestKanshiDsiOnly,TestAutostartKiosk,TestBrowserKioskScript,TestKioskStepsAllUnique
+    TestKioskStepsExistInLibrary: test_kanshi_dsi_only_in_library(0),test_autostart_kiosk_in_library(0),test_browser_kiosk_script_in_library(0)
+    TestKanshiDsiOnly: test_profile_name(0),test_outputs_on_are_strings(0),test_outputs_off_are_strings(0),test_compositor_set(0),test_risk_low(0),test_step_library_get_returns_copy(0),test_override_outputs_on(0)
+    TestAutostartKiosk: test_entries_are_strings(0),test_compositor_set(0),test_risk_low(0)
+    TestBrowserKioskScript: test_kiosk_script_path(0),test_browser_profile(0),test_risk_low(0)
+    TestKioskStepsAllUnique: test_no_duplicate_ids(0)

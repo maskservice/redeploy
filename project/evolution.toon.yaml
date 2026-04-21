@@ -1,18 +1,57 @@
-# code2llm/evolution | 83 func | 10f | 2026-04-20
+# code2llm/evolution | 2452 func | 134f | 2026-04-21
 
-NEXT[1] (ranked by impact):
-  [1] !  SPLIT-FUNC      detect  CC=16  fan=20
-      WHY: CC=16 exceeds 15
-      EFFORT: ~1h  IMPACT: 320
+NEXT[10] (ranked by impact):
+  [1] !! SPLIT           redeploy/models.py
+      WHY: 996L, 33 classes, max CC=19
+      EFFORT: ~4h  IMPACT: 18924
+
+  [2] !! SPLIT           redeploy/discovery.py
+      WHY: 789L, 2 classes, max CC=17
+      EFFORT: ~4h  IMPACT: 13413
+
+  [3] !! SPLIT           redeploy/plan/planner.py
+      WHY: 620L, 1 classes, max CC=10
+      EFFORT: ~4h  IMPACT: 6200
+
+  [4] !! SPLIT-FUNC      DockerComposeParser._parse_service  CC=37  fan=23
+      WHY: CC=37 exceeds 15
+      EFFORT: ~1h  IMPACT: 851
+
+  [5] !! SPLIT-FUNC      version_init  CC=26  fan=26
+      WHY: CC=26 exceeds 15
+      EFFORT: ~1h  IMPACT: 676
+
+  [6] !! SPLIT-FUNC      DockerComposeParser.parse  CC=25  fan=24
+      WHY: CC=25 exceeds 15
+      EFFORT: ~1h  IMPACT: 600
+
+  [7] !  SPLIT-FUNC      device_map_cmd  CC=20  fan=28
+      WHY: CC=20 exceeds 15
+      EFFORT: ~1h  IMPACT: 560
+
+  [8] !! SPLIT-FUNC      probe  CC=26  fan=21
+      WHY: CC=26 exceeds 15
+      EFFORT: ~1h  IMPACT: 546
+
+  [9] !! SPLIT-FUNC      ConfigHintsParser._parse_k8s_yaml  CC=26  fan=20
+      WHY: CC=26 exceeds 15
+      EFFORT: ~1h  IMPACT: 520
+
+  [10] !  SPLIT-FUNC      fix_cmd  CC=17  fan=30
+      WHY: CC=17 exceeds 15
+      EFFORT: ~1h  IMPACT: 510
 
 
-RISKS[0]: none
+RISKS[3]:
+  ⚠ Splitting redeploy/models.py may break 29 import paths
+  ⚠ Splitting redeploy/discovery.py may break 26 import paths
+  ⚠ Splitting redeploy/plan/planner.py may break 21 import paths
 
 METRICS-TARGET:
-  CC̄:          4.3 → ≤3.0
-  max-CC:      16 → ≤8
-  god-modules: 0 → 0
-  high-CC(≥15): 1 → ≤0
+  CC̄:          1.7 → ≤1.2
+  max-CC:      37 → ≤18
+  god-modules: 7 → 0
+  high-CC(≥15): 38 → ≤19
   hub-types:   0 → ≤0
 
 PATTERNS (language parser shared logic):
@@ -40,4 +79,4 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  (first run — no previous data)
+  prev CC̄=1.6 → now CC̄=1.7

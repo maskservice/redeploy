@@ -210,9 +210,6 @@ class HardwareInfo(BaseModel):
     # I2C
     i2c_buses: list[I2CBusInfo] = Field(default_factory=list)
 
-    # GPIO header
-    gpio_4pin_detected: Optional[bool] = None  # 5V/GND/SDA/SCL header present
-
     # Kernel modules — names of loaded DRM/DSI/panel modules
     kernel_modules: list[str] = Field(default_factory=list)  # lsmod filtered
 

@@ -37,11 +37,18 @@ _SEVERITY_ICON = {
 
 
 def _probe_hardware(host, ssh_key, console):
-    """Probe hardware on remote host (legacy path)."""
+    """Probe hardware on remote host via op3 scanner.
+
+    Delegates to :func:`redeploy.detect.hardware.probe_hardware`, which
+    wraps op3's :class:`LinearScanner` (physical.display + os.kernel +
+    os.config layers) and attaches diagnostics from the op3 rule engine.
+    """
     from ...detect.hardware import probe_hardware
     from ...detect.remote import RemoteProbe
 
-    p = RemoteProbe(host, ssh_key=ssh_key) if ssh_key else RemoteProbe(host)
+    p = RemoteProbe(host)
+    if ssh_key:
+        p.key = ssh_key
 
     with console.status(f"[cyan]Probing hardware on {host}…[/cyan]"):
         try:
@@ -54,31 +61,6 @@ def _probe_hardware(host, ssh_key, console):
             raise
 
     return hw, p
-
-
-def _probe_hardware_op3(host: str, ssh_key: str | None, console):
-    """Probe hardware via op3 scanner (new path).
-
-    Delegates all the layer/probe plumbing to
-    :mod:`redeploy.integrations.op3_bridge`, which in turn calls
-    :func:`opstree.build_scanner` (0.1.8+). That upstream helper handles
-    transitive dependency resolution (e.g. ``os.kernel`` requires
-    ``physical.compute``) and guarantees probe-registry isolation so
-    repeated calls in the same process don't accumulate state.
-    """
-    from ...integrations.op3_bridge import (
-        make_scanner,
-        make_ssh_context,
-        snapshot_to_hardware_info,
-    )
-
-    ctx = make_ssh_context(target=host, ssh_key=ssh_key)
-    scanner = make_scanner(["physical.display", "os.kernel", "os.config"])
-
-    with console.status(f"[cyan]Probing hardware on {host} via op3…[/cyan]"):
-        snapshot = scanner.scan(host, ctx.execute)
-
-    return snapshot_to_hardware_info(snapshot)
 
 
 def _format_output(hw, output_fmt):
@@ -429,13 +411,7 @@ def hardware(host, output_fmt, show_fix, apply_fix_component, panel_id, list_pan
     if not host:
         raise click.UsageError("HOST argument is required unless --list-panels is used.")
 
-    # op3 path for read-only operations (parity with legacy output)
-    from ...integrations.op3_bridge import should_use_op3
-    if should_use_op3() and not any((apply_config, set_transform, apply_fix_component)):
-        hw = _probe_hardware_op3(host, ssh_key, console)
-        p = None
-    else:
-        hw, p = _probe_hardware(host, ssh_key, console)
+    hw, p = _probe_hardware(host, ssh_key, console)
 
     # --apply-config: load YAML/JSON file and push settings to device
     if apply_config is not None:

@@ -7,8 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.51] - 2026-04-21
+
+### Docs
+- Update CHANGELOG.md
+- Update README.md
+- Update SUMD.md
+- Update SUMR.md
+- Update docs/README.md
+- Update project/README.md
+- Update project/context.md
+
+### Test
+- Update tests/contract/test_blueprint_op3_parity.py
+- Update tests/contract/test_detect_op3_parity.py
+- Update tests/contract/test_hardware_op3_parity.py
+- Update tests/test_blueprint_sources.py
+- Update tests/test_blueprint_sources_compose.py
+- Update tests/test_cli_query.py
+- Update tests/test_iac_config_hints.py
+- Update tests/test_prompt_llm.py
+- Update tests/test_steps_kiosk.py
+
+### Other
+- Update .redeploy/state/migration-local-92efc860.yaml
+- Update .redeploy/state/test-local-3ad44506.yaml
+- Update VERSION
+- Update app.doql.less
+- Update project/analysis.toon.yaml
+- Update project/calls.mmd
+- Update project/calls.png
+- Update project/calls.toon.yaml
+- Update project/calls.yaml
+- Update project/compact_flow.mmd
+- ... and 28 more files
+
+## [0.2.50] - 2026-04-21
+
 ### Added
-- Add `action: inline_script` for executing multiline bash scripts directly from YAML without external files
+- Add `redeploy detect` op3 single-host path: fork live detect via op3 scanner when `REDEPLOY_USE_OP3=1` (`redeploy/cli/commands/detect.py`)
+- Add `redeploy blueprint capture` op3 path: fork live blueprint extraction via op3 snapshot when flag is on (`redeploy/blueprint/extractor.py`)
+- Add `snapshot_to_device_map` bridge adapter converting op3 snapshot → redeploy `DeviceMap`
+- Add contract tests for detect/infra parity (`tests/contract/test_detect_op3_parity.py`) and blueprint/device-map parity (`tests/contract/test_blueprint_op3_parity.py`)
+
+### Changed
+- `snapshot_to_infra_state` now accepts optional `host` parameter to satisfy `InfraState` validation
+- `snapshot_to_device_map` generates deterministic `id` from host string
+
+### Added
+- Add `redeploy fix PATH` command — self-healing deploy: bump version → run spec → LLM auto-repair on failure (`redeploy/cli/commands/bump_fix.py`)
+- Add `redeploy bump PATH` command — bump patch/minor/major version in `VERSION` file and migration spec header fields (`version:`, `name:`, `description:`)
+- Add `redeploy prompt INSTRUCTION` command — natural language → redeploy command via LLM; discovers workspace schema, maps NLP to CLI invocation, optionally executes
+- Add `redeploy mcp` command — start MCP (Model Context Protocol) server for Claude Desktop / VS Code Copilot / remote API integration
+- Add `redeploy-mcp` standalone binary entrypoint (same as `redeploy mcp`)
+- Add `redeploy/mcp_server.py` — FastMCP server with tools: `schema`, `list_specs`, `plan_spec`, `run_spec`, `fix_spec`, `bump_version`, `diagnose`, `exec_ssh`, `nlp_command`; resources: `redeploy://workspace`, `redeploy://spec/{path}`; transports: stdio, SSE, streamable-HTTP
+- Add `redeploy/schema.py` — workspace discovery: finds migration specs via project pattern (`redeploy/<target>/migration.*`), extracts metadata, returns JSON schema for LLM context
+- Add `redeploy/heal.py` — `HealRunner` class: wraps Executor with LLM self-healing retry loop; SSH diagnostics per step type; REPAIR_LOG writer; `apply_fix_to_spec` patches YAML block
+- Add `--heal/--no-heal`, `--fix TEXT`, `--max-heal-retries N` options to `redeploy run`
+- Add `[mcp]` optional dependency group (`pip install "redeploy[mcp]"`)
+- Spec auto-discovery in `_find_spec()`: project pattern → interactive multi-spec chooser when multiple targets found
+
+### Add `action: inline_script` for executing multiline bash scripts directly from YAML without external files
 - Script is base64-encoded and executed via SSH with automatic temp file cleanup
 - Use `command` field with YAML `|` for multiline script content
 - Add `command_ref` field to reference scripts from markdown codeblocks

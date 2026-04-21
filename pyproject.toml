@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "redeploy"
-version = "0.2.49"
+version = "0.2.51"
 description = "Infrastructure migration toolkit: detect → plan → apply"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,6 +25,7 @@ dependencies = [
 
 [project.scripts]
 redeploy = "redeploy.cli:cli"
+redeploy-mcp = "redeploy.mcp_server:serve"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.4",
@@ -33,6 +34,7 @@ dev = ["pytest>=8.0", "ruff>=0.4",
     "pfix>=0.1.60",
 ]
 op3 = ["op3>=0.1.8"]
+mcp = ["mcp>=1.0"]
 
 [tool.ruff]
 line-length = 100

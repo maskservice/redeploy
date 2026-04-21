@@ -1,58 +1,503 @@
 # code2llm call graph | /home/tom/github/maskservice/redeploy
-# nodes: 12 | edges: 7 | modules: 6
-# CC̄=4.3
+# nodes: 343 | edges: 314 | modules: 91
+# CC̄=1.7
 
 HUBS[20]:
-  redeploy.cli.run
-    CC=12  in:0  out:48  total:48
+  redeploy.iac.docker_compose.DockerComposeParser._parse_service
+    CC=37  in:0  out:61  total:61
+  redeploy.integrations.op3_bridge.snapshot_to_hardware_info
+    CC=10  in:2  out:49  total:51
+  redeploy.steps.StepLibrary.list
+    CC=1  in:44  out:2  total:46
+  redeploy.heal.HealRunner.run
+    CC=17  in:0  out:42  total:42
+  redeploy.cli.commands.exec_.exec_cmd
+    CC=9  in:0  out:40  total:40
+  redeploy.cli.commands.version.helpers._bump_single
+    CC=25  in:4  out:35  total:39
+  redeploy.iac.config_hints.ConfigHintsParser._parse_k8s_yaml
+    CC=26  in:0  out:38  total:38
+  redeploy.cli.commands.plugin.plugin_cmd
+    CC=13  in:0  out:38  total:38
+  redeploy.cli.commands.version.commands.version_list
+    CC=13  in:0  out:38  total:38
+  redeploy.cli.commands.prompt_cmd.prompt_cmd
+    CC=15  in:0  out:37  total:37
+  redeploy.discovery.auto_probe
+    CC=7  in:4  out:33  total:37
+  redeploy.blueprint.sources.compose._merge_compose
+    CC=21  in:1  out:33  total:34
+  redeploy.iac.parsers.compose.DockerComposeParser._parse_service
+    CC=21  in:0  out:33  total:33
+  redeploy.plugins.builtin.hardware_diagnostic._analyze_hardware
+    CC=14  in:1  out:32  total:33
+  redeploy.cli.commands.target.target
+    CC=10  in:1  out:31  total:32
+  redeploy.dsl_python.runner.PythonMigrationRunner.run_file
+    CC=15  in:0  out:30  total:30
   redeploy.detect.detector.Detector.run
     CC=9  in:0  out:30  total:30
-  redeploy.cli.apply
-    CC=9  in:0  out:22  total:22
-  redeploy.detect.probes.probe_runtime
-    CC=5  in:1  out:15  total:16
-  redeploy.detect.probes.probe_ports
-    CC=6  in:1  out:11  total:12
-  redeploy.ssh.SshClient._detect_key
-    CC=6  in:1  out:8  total:9
-  redeploy.detect.probes.probe_iptables_dnat
-    CC=7  in:1  out:5  total:6
-  redeploy.models.MigrationSpec.from_file
-    CC=1  in:1  out:4  total:5
-  redeploy.apply.executor.Executor.from_file
-    CC=1  in:1  out:4  total:5
-  redeploy.cli.cli
-    CC=1  in:0  out:5  total:5
-  redeploy.cli._setup_logging
-    CC=2  in:1  out:2  total:3
-  redeploy.ssh.SshClient._detect_ssh_key
-    CC=1  in:0  out:1  total:1
+  redeploy.apply.executor.Executor._execute_step
+    CC=4  in:0  out:27  total:27
+  redeploy.apply.state_apply.HardwareStateHandler.apply
+    CC=18  in:0  out:27  total:27
+  redeploy.schema._discover_specs
+    CC=14  in:1  out:26  total:27
 
 MODULES:
-  redeploy.apply.executor  [1 funcs]
-    from_file  CC=1  out:4
-  redeploy.cli  [4 funcs]
+  DOQL-INTEGRATION  [1 funcs]
+    print  CC=0  out:0
+  docs.markpact-implementation-plan  [1 funcs]
+    load_migration_spec  CC=0  out:0
+  project.map.toon  [1 funcs]
+    run_container_build  CC=0  out:0
+  redeploy.apply.executor  [3 funcs]
+    __init__  CC=14  out:8
+    _execute_step  CC=4  out:27
+    _rollback  CC=1  out:1
+  redeploy.apply.handlers  [11 funcs]
+    _all_containers_healthy  CC=5  out:2
+    _parse_container_statuses  CC=6  out:8
+    _resolve_command_ref  CC=7  out:11
+    run_docker_build  CC=1  out:1
+    run_docker_health_wait  CC=10  out:11
+    run_ensure_autostart_entry  CC=16  out:21
+    run_ensure_config_line  CC=7  out:9
+    run_inline_script  CC=6  out:7
+    run_podman_build  CC=1  out:1
+    run_raspi_config  CC=5  out:6
+  redeploy.apply.rollback  [1 funcs]
+    rollback_steps  CC=8  out:8
+  redeploy.apply.state  [6 funcs]
+    reset  CC=1  out:2
+    save  CC=5  out:11
+    _now_iso  CC=1  out:2
+    _slug  CC=5  out:3
+    default_state_path  CC=2  out:2
+    state_key  CC=1  out:7
+  redeploy.apply.state_apply  [4 funcs]
+    apply  CC=18  out:27
+    _update_kanshi  CC=9  out:17
+    apply_state  CC=2  out:4
+    detect_handler  CC=3  out:1
+  redeploy.audit  [4 funcs]
+    _from_target  CC=7  out:9
+    _extract_port  CC=5  out:6
+    _normalize_path  CC=3  out:5
+    audit_spec  CC=1  out:3
+  redeploy.blueprint.extractor  [1 funcs]
+    extract_blueprint  CC=22  out:23
+  redeploy.blueprint.generators.docker_compose  [2 funcs]
+    _build_service  CC=20  out:8
+    generate_twin  CC=11  out:3
+  redeploy.blueprint.sources.compose  [6 funcs]
+    _merge_compose  CC=21  out:33
+    _parse_compose_env  CC=7  out:8
+    _parse_compose_healthcheck  CC=6  out:6
+    _parse_compose_ports  CC=7  out:21
+    _parse_compose_volumes  CC=8  out:13
+    merge_compose_files  CC=2  out:1
+  redeploy.blueprint.sources.hardware  [1 funcs]
+    build_hw_requirements  CC=13  out:15
+  redeploy.blueprint.sources.infra  [1 funcs]
+    infer_app_url  CC=8  out:1
+  redeploy.cli  [3 funcs]
+    _resolve_device  CC=5  out:12
     _setup_logging  CC=2  out:2
-    apply  CC=9  out:22
     cli  CC=1  out:5
-    run  CC=12  out:48
-  redeploy.detect.detector  [1 funcs]
+  redeploy.cli.commands.blueprint  [2 funcs]
+    _execute_query_blueprint  CC=1  out:1
+    show  CC=3  out:17
+  redeploy.cli.commands.bump_fix  [9 funcs]
+    _bump_patch  CC=2  out:7
+    _bump_version_file  CC=1  out:5
+    _detect_version  CC=2  out:3
+    _find_spec  CC=15  out:22
+    _find_version_file  CC=3  out:2
+    _prompt_choose_spec  CC=5  out:9
+    _update_migration_header  CC=2  out:7
+    _update_quadlet_service_version  CC=6  out:9
+    bump_cmd  CC=6  out:23
+  redeploy.cli.commands.device_map  [2 funcs]
+    _execute_query_device_map  CC=1  out:1
+    _render  CC=3  out:3
+  redeploy.cli.commands.device_map_renderers  [7 funcs]
+    _build_drm_table  CC=9  out:8
+    _build_header_panel  CC=4  out:3
+    _build_issues_table  CC=3  out:12
+    _build_services_table  CC=7  out:9
+    render_json  CC=1  out:3
+    render_rich  CC=22  out:22
+    render_yaml  CC=1  out:2
+  redeploy.cli.commands.diagnose  [1 funcs]
+    diagnose  CC=5  out:19
+  redeploy.cli.commands.exec_  [3 funcs]
+    _extract_all_scripts  CC=3  out:7
+    _extract_script_for_ref  CC=4  out:3
+    exec_cmd  CC=9  out:40
+  redeploy.cli.commands.export  [4 funcs]
+    _export_to_css  CC=2  out:2
+    _find_export_source  CC=9  out:10
+    _load_manifest_from_css  CC=1  out:1
+    export_cmd  CC=7  out:23
+  redeploy.cli.commands.hardware  [3 funcs]
+    _apply_fix  CC=8  out:18
+    _execute_query  CC=1  out:2
+    _probe_hardware  CC=4  out:6
+  redeploy.cli.commands.inspect  [2 funcs]
+    _find_css_path  CC=4  out:4
+    inspect  CC=4  out:22
+  redeploy.cli.commands.mcp_cmd  [1 funcs]
+    mcp_cmd  CC=1  out:6
+  redeploy.cli.commands.plan_apply  [1 funcs]
+    _apply_manifest_to_spec  CC=8  out:9
+  redeploy.cli.commands.plugin  [1 funcs]
+    plugin_cmd  CC=13  out:38
+  redeploy.cli.commands.prompt_cmd  [1 funcs]
+    prompt_cmd  CC=15  out:37
+  redeploy.cli.commands.state  [4 funcs]
+    _get_state_path  CC=5  out:5
+    _list_checkpoints  CC=7  out:17
+    _show_checkpoint  CC=4  out:11
+    state_cmd  CC=4  out:16
+  redeploy.cli.commands.target  [1 funcs]
+    target  CC=10  out:31
+  redeploy.cli.commands.version.commands  [2 funcs]
+    version_list  CC=13  out:38
+    version_verify  CC=7  out:18
+  redeploy.cli.commands.version.helpers  [10 funcs]
+    _build_package_version_manifest  CC=2  out:5
+    _bump_single  CC=25  out:35
+    _load_live_version_diff  CC=3  out:4
+    _load_spec_version_diff  CC=8  out:13
+    _print_source_drift_status  CC=7  out:6
+    _print_verify_result  CC=6  out:5
+    _resolve_monorepo_targets  CC=8  out:11
+    _resolve_package_release_changelog_config  CC=5  out:2
+    _resolve_package_release_git_config  CC=5  out:5
+    _run_version_diff_for_manifest  CC=7  out:11
+  redeploy.cli.commands.version.monorepo  [5 funcs]
+    _create_version_set_git  CC=6  out:3
+    _create_version_set_taggers  CC=2  out:2
+    _finalize_monorepo_version_set  CC=11  out:8
+    _print_monorepo_set_dry_run  CC=3  out:5
+    _set_monorepo_version  CC=8  out:13
+  redeploy.cli.commands.version.release  [5 funcs]
+    _create_release_tags  CC=3  out:5
+    _format_release_tag  CC=1  out:1
+    _resolve_package_release_changelog_config  CC=5  out:2
+    _update_monorepo_release_changelogs  CC=5  out:12
+    _update_release_changelog  CC=7  out:7
+  redeploy.cli.commands.version.scanner  [17 funcs]
+    _classify_version_scan_source_confidence  CC=3  out:0
+    _default_keep_scanned_source  CC=2  out:0
+    _derive_scanned_package_name  CC=4  out:5
+    _detect_source_version  CC=2  out:1
+    _detect_version_sources_in_dir  CC=13  out:17
+    _format_version_scan_source_status  CC=2  out:2
+    _is_scannable_version_path  CC=2  out:1
+    _iter_version_scan_groups  CC=4  out:1
+    _print_version_scan_group  CC=3  out:4
+    _print_version_scan_review  CC=6  out:5
+  redeploy.cli.commands.workflow  [2 funcs]
+    _execute_workflow  CC=6  out:8
+    workflow_cmd  CC=10  out:21
+  redeploy.cli.core  [5 funcs]
+    find_manifest_path  CC=3  out:5
+    load_spec_or_exit  CC=2  out:3
+    load_spec_with_manifest  CC=5  out:8
+    resolve_device  CC=5  out:12
+    run_detect_workflow  CC=4  out:8
+  redeploy.cli.display  [18 funcs]
+    _format_workflow_header  CC=2  out:1
+    _get_plugin_hint  CC=5  out:1
+    _get_status_color  CC=3  out:0
+    _print_alternatives  CC=5  out:2
+    _print_host_header  CC=1  out:1
+    _print_services_table  CC=9  out:14
+    _print_spec_metadata  CC=4  out:6
+    _print_template_match  CC=5  out:7
+    _print_workflow_step  CC=4  out:4
+    generate_workflow_output_css  CC=8  out:9
+  redeploy.cli.query  [1 funcs]
+    execute_query  CC=5  out:9
+  redeploy.config_apply.applier  [3 funcs]
+    _normalize_hardware  CC=4  out:2
+    apply_config_dict  CC=1  out:2
+    apply_config_file  CC=4  out:6
+  redeploy.config_apply.loader  [1 funcs]
+    load_config_file  CC=3  out:4
+  redeploy.detect.detector  [2 funcs]
+    probe_hardware  CC=2  out:4
     run  CC=9  out:30
-  redeploy.detect.probes  [3 funcs]
+  redeploy.detect.hardware  [2 funcs]
+    _wrap_remote_probe  CC=1  out:2
+    probe_hardware  CC=4  out:10
+  redeploy.detect.hardware_rules  [3 funcs]
+    _hw_info_to_dict  CC=2  out:2
+    _op3_diag_to_hw_diag  CC=1  out:5
+    analyze  CC=3  out:4
+  redeploy.detect.probes  [4 funcs]
+    detect_conflicts  CC=13  out:12
     probe_iptables_dnat  CC=7  out:5
     probe_ports  CC=6  out:11
-    probe_runtime  CC=5  out:15
-  redeploy.models  [1 funcs]
-    from_file  CC=1  out:4
-  redeploy.ssh  [2 funcs]
-    _detect_key  CC=6  out:8
-    _detect_ssh_key  CC=1  out:1
+    probe_runtime  CC=5  out:16
+  redeploy.detect.templates  [4 funcs]
+    detect  CC=2  out:3
+    _build_templates  CC=1  out:1
+    _load_templates_from_yaml  CC=9  out:22
+    build_context  CC=2  out:1
+  redeploy.detect.workflow  [2 funcs]
+    _collect_hosts  CC=18  out:14
+    _probe_ssh  CC=3  out:3
+  redeploy.discovery  [21 funcs]
+    _build_probe_command  CC=1  out:0
+    _build_ssh_command  CC=1  out:1
+    _collect_ssh_keys  CC=14  out:18
+    _detect_local_subnet  CC=9  out:11
+    _detect_strategy_remote  CC=3  out:5
+    _infer_strategy  CC=8  out:5
+    _is_ip  CC=1  out:2
+    _merge  CC=11  out:2
+    _parse_probe_input  CC=4  out:1
+    _parse_probe_output  CC=16  out:20
+  redeploy.dsl.loader  [9 funcs]
+    _build_from_nodes  CC=1  out:4
+    _build_manifest  CC=25  out:23
+    _build_templates  CC=14  out:24
+    _build_workflows  CC=8  out:16
+    _condition_key  CC=4  out:5
+    load_css  CC=1  out:4
+    load_css_text  CC=2  out:4
+    manifest_to_css  CC=14  out:17
+    templates_to_css  CC=6  out:13
+  redeploy.dsl.parser  [3 funcs]
+    __repr__  CC=2  out:4
+    parse  CC=6  out:23
+    _strip_comments  CC=1  out:3
+  redeploy.dsl_python.decorators  [3 funcs]
+    begin  CC=1  out:3
+    end  CC=3  out:1
+    migration  CC=1  out:8
+  redeploy.dsl_python.docker_steps  [1 funcs]
+    wait_healthy  CC=7  out:14
+  redeploy.dsl_python.runner  [3 funcs]
+    list_migrations  CC=5  out:13
+    run_file  CC=15  out:30
+    main  CC=5  out:13
+  redeploy.dsl_python.steps  [4 funcs]
+    ssh  CC=4  out:4
+    ssh_available  CC=5  out:9
+    version_check  CC=7  out:10
+    wait  CC=2  out:2
+  redeploy.fleet  [4 funcs]
+    __init__  CC=1  out:1
+    from_registry  CC=6  out:5
+    get  CC=3  out:1
+    merge  CC=3  out:3
+  redeploy.hardware.config_txt  [2 funcs]
+    ensure_line  CC=14  out:20
+    ensure_lines  CC=4  out:4
+  redeploy.hardware.fixes  [6 funcs]
+    _detect_port  CC=6  out:0
+    _step  CC=1  out:1
+    fix_dsi_not_enabled  CC=6  out:20
+    fix_enable_i2c  CC=1  out:1
+    fix_enable_spi  CC=1  out:1
+    generate_fix_plan  CC=7  out:3
+  redeploy.hardware.kiosk.autostart  [1 funcs]
+    ensure_autostart_entry  CC=6  out:6
+  redeploy.hardware.kiosk.browsers  [1 funcs]
+    build_launch_cmd  CC=5  out:3
+  redeploy.hardware.panels  [1 funcs]
+    infer_from_hardware  CC=1  out:0
+  redeploy.hardware.raspi_config  [1 funcs]
+    build_raspi_config_command  CC=3  out:2
+  redeploy.heal  [6 funcs]
+    _reload_migration  CC=1  out:4
+    run  CC=17  out:42
+    _ssh  CC=3  out:2
+    collect_diagnostics  CC=2  out:4
+    parse_failed_step  CC=8  out:11
+    write_repair_log  CC=6  out:15
+  redeploy.iac.config_hints  [1 funcs]
+    _parse_k8s_yaml  CC=26  out:38
+  redeploy.iac.docker_compose  [3 funcs]
+    _load_merged  CC=6  out:9
+    _parse_service  CC=37  out:61
+    _env_dict  CC=7  out:6
+  redeploy.iac.parsers.compose  [2 funcs]
+    _parse_depends_on  CC=5  out:6
+    _parse_service  CC=21  out:33
+  redeploy.integrations.op3_bridge  [3 funcs]
+    snapshot_to_device_map  CC=7  out:10
+    snapshot_to_hardware_info  CC=10  out:49
+    snapshot_to_infra_state  CC=3  out:2
+  redeploy.markpact.compiler  [6 funcs]
+    _deep_merge  CC=5  out:4
+    _extract_steps  CC=9  out:20
+    _load_block_payload  CC=8  out:7
+    _normalize_config_payload  CC=11  out:17
+    compile_markpact_document  CC=2  out:3
+    compile_markpact_document_to_data  CC=6  out:8
+  redeploy.markpact.parser  [9 funcs]
+    _check_heading  CC=5  out:5
+    _handle_fence_line  CC=7  out:7
+    _normalize_section_id  CC=1  out:3
+    _parse_markpact_fence_info  CC=14  out:10
+    extract_script_by_ref  CC=12  out:11
+    extract_script_from_markdown  CC=10  out:10
+    parse_markpact_file  CC=1  out:3
+    parse_markpact_file_with_refs  CC=6  out:6
+    parse_markpact_text  CC=7  out:8
+  redeploy.mcp_server  [12 funcs]
+    _redeploy_bin  CC=5  out:4
+    _run  CC=4  out:4
+    bump_version  CC=3  out:4
+    diagnose  CC=1  out:2
+    fix_spec  CC=4  out:5
+    get_workspace  CC=1  out:3
+    list_specs  CC=1  out:6
+    nlp_command  CC=2  out:2
+    plan_spec  CC=1  out:2
+    run_spec  CC=5  out:5
+  redeploy.models  [2 funcs]
+    find_and_load  CC=6  out:9
+    find_css  CC=4  out:4
+  redeploy.observe  [1 funcs]
+    record  CC=11  out:20
+  redeploy.parse  [7 funcs]
+    _apply_git_line  CC=3  out:3
+    _apply_health_line  CC=2  out:1
+    _apply_network_line  CC=3  out:2
+    _apply_system_line  CC=8  out:10
+    _parse_section_line  CC=7  out:6
+    parse_container_line  CC=3  out:3
+    parse_diagnostics  CC=5  out:4
+  redeploy.patterns  [6 funcs]
+    expand  CC=2  out:14
+    expand  CC=5  out:13
+    expand  CC=1  out:8
+    _step  CC=1  out:1
+    get_pattern  CC=1  out:1
+    list_patterns  CC=1  out:2
+  redeploy.plan.planner  [1 funcs]
+    _plan_pattern  CC=10  out:17
+  redeploy.plugins  [5 funcs]
+    _ensure_builtins  CC=2  out:1
+    names  CC=1  out:2
+    _load_builtin_plugins  CC=6  out:7
+    load_user_plugins  CC=3  out:4
+    register_plugin  CC=1  out:1
+  redeploy.plugins.builtin.browser_reload  [1 funcs]
+    browser_reload  CC=16  out:26
+  redeploy.plugins.builtin.hardware_diagnostic  [11 funcs]
+    _analyze_hardware  CC=14  out:32
+    _check_gpio  CC=2  out:2
+    _detect_platform  CC=10  out:6
+    _get_audio_devices  CC=3  out:5
+    _get_cpu_info  CC=5  out:10
+    _get_memory_mb  CC=3  out:5
+    _get_network_interfaces  CC=5  out:6
+    _get_storage_gb  CC=6  out:11
+    _get_usb_devices  CC=4  out:5
+    _run_command  CC=2  out:3
+  redeploy.plugins.builtin.notify  [6 funcs]
+    _fmt  CC=1  out:3
+    _http_post  CC=5  out:10
+    _notify_slack  CC=3  out:7
+    _notify_webhook  CC=6  out:16
+    _resolve_env  CC=1  out:1
+    notify  CC=4  out:5
+  redeploy.plugins.builtin.process_control  [2 funcs]
+    _find_pid_on_port  CC=11  out:14
+    process_control  CC=9  out:19
+  redeploy.plugins.builtin.systemd_reload  [1 funcs]
+    systemd_reload  CC=12  out:23
+  redeploy.schema  [4 funcs]
+    _discover_specs  CC=14  out:26
+    _git_branch  CC=3  out:2
+    _read_version  CC=3  out:4
+    build_schema  CC=2  out:6
+  redeploy.spec_loader  [1 funcs]
+    load_migration_spec  CC=4  out:8
+  redeploy.steps  [2 funcs]
+    all  CC=2  out:2
+    list  CC=1  out:2
+  redeploy.version  [1 funcs]
+    read_remote_version  CC=4  out:3
+  redeploy.version.bump  [6 funcs]
+    _calculate_bump  CC=8  out:10
+    bump_all_packages  CC=3  out:5
+    bump_package  CC=9  out:13
+    bump_version  CC=6  out:9
+    bump_version_with_git  CC=13  out:14
+    verify_sources  CC=4  out:7
+  redeploy.version.changelog  [2 funcs]
+    _categorize_commits  CC=3  out:3
+    get_commits_since_tag  CC=5  out:3
+  redeploy.version.commits  [3 funcs]
+    analyze_commits  CC=18  out:25
+    format_analysis_report  CC=2  out:3
+    parse_conventional  CC=4  out:6
+  redeploy.version.diff  [2 funcs]
+    diff_manifest_vs_live  CC=2  out:2
+    diff_manifest_vs_spec  CC=4  out:7
+  redeploy.version.manifest  [1 funcs]
+    list_packages  CC=2  out:2
+  redeploy.version.sources  [1 funcs]
+    get_adapter  CC=2  out:1
+  redeploy.version.transaction  [1 funcs]
+    _stage_one  CC=6  out:7
 
 EDGES:
-  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_runtime
-  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_ports
-  redeploy.detect.detector.Detector.run → redeploy.detect.probes.probe_iptables_dnat
-  redeploy.ssh.SshClient._detect_ssh_key → redeploy.ssh.SshClient._detect_key
-  redeploy.cli.cli → redeploy.cli._setup_logging
-  redeploy.cli.apply → redeploy.apply.executor.Executor.from_file
-  redeploy.cli.run → redeploy.models.MigrationSpec.from_file
+  redeploy.schema.build_schema → redeploy.schema._read_version
+  redeploy.schema.build_schema → redeploy.schema._git_branch
+  redeploy.schema.build_schema → redeploy.schema._discover_specs
+  redeploy.observe.DeployAuditLog.record → redeploy.steps.StepLibrary.list
+  redeploy.heal.collect_diagnostics → redeploy.heal._ssh
+  redeploy.heal.HealRunner._reload_migration → docs.markpact-implementation-plan.load_migration_spec
+  redeploy.heal.HealRunner.run → redeploy.heal.write_repair_log
+  redeploy.heal.HealRunner.run → redeploy.heal.parse_failed_step
+  redeploy.parse.parse_diagnostics → redeploy.parse._parse_section_line
+  redeploy.parse._parse_section_line → redeploy.parse._apply_system_line
+  redeploy.parse._parse_section_line → redeploy.parse.parse_container_line
+  redeploy.parse._parse_section_line → redeploy.parse._apply_git_line
+  redeploy.parse._parse_section_line → redeploy.parse._apply_health_line
+  redeploy.parse._parse_section_line → redeploy.parse._apply_network_line
+  redeploy.fleet.Fleet.__init__ → redeploy.steps.StepLibrary.list
+  redeploy.fleet.Fleet.from_registry → redeploy.steps.StepLibrary.list
+  redeploy.fleet.Fleet.merge → redeploy.steps.StepLibrary.list
+  redeploy.models.ProjectManifest.find_and_load → redeploy.steps.StepLibrary.list
+  redeploy.models.ProjectManifest.find_and_load → redeploy.dsl.loader.load_css
+  redeploy.models.ProjectManifest.find_css → redeploy.steps.StepLibrary.list
+  redeploy.spec_loader.load_migration_spec → redeploy.markpact.compiler.compile_markpact_document
+  redeploy.spec_loader.load_migration_spec → redeploy.markpact.parser.parse_markpact_file
+  redeploy.patterns.BlueGreenPattern.expand → redeploy.patterns._step
+  redeploy.patterns.CanaryPattern.expand → redeploy.patterns._step
+  redeploy.patterns.RollbackOnFailurePattern.expand → redeploy.patterns._step
+  redeploy.patterns.list_patterns → redeploy.steps.StepLibrary.list
+  redeploy.discovery._scan_arp_cache → redeploy.discovery._run
+  redeploy.discovery._scan_mdns → redeploy.discovery._run
+  redeploy.discovery._scan_mdns → redeploy.discovery._is_ip
+  redeploy.discovery._ping_sweep → redeploy.steps.StepLibrary.list
+  redeploy.discovery._probe_ssh → redeploy.steps.StepLibrary.list
+  redeploy.discovery._detect_local_subnet → redeploy.discovery._run
+  redeploy.discovery._merge → redeploy.steps.StepLibrary.list
+  redeploy.discovery.discover → redeploy.discovery._merge
+  redeploy.discovery.discover → redeploy.discovery._scan_known_hosts
+  redeploy.discovery.discover → redeploy.discovery._scan_arp_cache
+  redeploy.discovery.discover → redeploy.discovery._probe_ssh
+  redeploy.discovery._try_ssh_credentials → redeploy.discovery._tcp_reachable
+  redeploy.discovery._detect_strategy_remote → redeploy.discovery._build_probe_command
+  redeploy.discovery._detect_strategy_remote → redeploy.discovery._build_ssh_command
+  redeploy.discovery._detect_strategy_remote → redeploy.discovery._run_ssh_probe
+  redeploy.discovery._detect_strategy_remote → redeploy.discovery._parse_probe_output
+  redeploy.discovery._detect_strategy_remote → redeploy.discovery._infer_strategy
+  redeploy.discovery.auto_probe → redeploy.discovery._parse_probe_input
+  redeploy.discovery.auto_probe → redeploy.discovery._collect_ssh_keys
+  redeploy.discovery.auto_probe → redeploy.discovery._try_ssh_credentials
+  redeploy.discovery.auto_probe → redeploy.discovery._detect_strategy_remote
+  redeploy.audit._Extractor._from_target → redeploy.audit._extract_port
+  redeploy.audit._Extractor._from_target → redeploy.audit._normalize_path
+  redeploy.audit.audit_spec → docs.markpact-implementation-plan.load_migration_spec

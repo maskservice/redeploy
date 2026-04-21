@@ -3,30 +3,21 @@
 All adapters go through here. This module isolates op3 usage so that redeploy
 remains runnable when op3 is not installed.
 
-Design notes
-------------
-
-- ``op3_available()`` hard feature-detects ``opstree``.
-- ``op3_enabled()`` reads ``REDEPLOY_USE_OP3`` so operators can flip the
-  code path without a code change — mirrors doql's ``DOQL_USE_OP3``.
-- ``should_use_op3()`` is what legacy call sites branch on.
-- The scanner helpers (:func:`make_scanner`, :func:`make_ssh_context`,
-  :func:`make_mock_context`) are thin shims over op3 0.1.8's
-  :func:`opstree.build_scanner`. They exist so redeploy command modules
-  don't have to import ~6 submodules apiece and so we have one place to
-  patch when op3's API evolves.
+The feature-detect / scanner-factory / context helpers are produced by
+:func:`opstree.integrations.make_compat_helpers` — they were previously
+copy-pasted between doql and redeploy. Only redeploy-specific snapshot
+adapters live here now.
 """
 from __future__ import annotations
 
-import os
-from typing import TYPE_CHECKING, Callable, Optional, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
+
+from opstree.integrations import make_compat_helpers
 
 if TYPE_CHECKING:
-    from opstree.probes.base import Probe
-    from opstree.probes.context import ProbeContext, SSHContext
-    from opstree.scanner.linear import LinearScanner
+    from opstree.probes.context import SSHContext
     from opstree.snapshot.model import Snapshot
-    from redeploy.models import InfraState, HardwareInfo
+    from redeploy.models import InfraState, HardwareInfo, DeviceMap
 
 OP3_ENABLED_ENV = "REDEPLOY_USE_OP3"
 
@@ -39,67 +30,21 @@ DEFAULT_HARDWARE_LAYERS: tuple[str, ...] = (
 )
 
 
-# ── feature detection ────────────────────────────────────────────────────
+# ── feature detection + factory helpers (shared via op3) ────────────────
 
+_H = make_compat_helpers(
+    env_var=OP3_ENABLED_ENV,
+    default_layers=DEFAULT_HARDWARE_LAYERS,
+    install_hint="pip install 'redeploy[op3]'",
+)
 
-def op3_enabled() -> bool:
-    """Check whether the user wants to use op3."""
-    return os.environ.get(OP3_ENABLED_ENV, "0").lower() in ("1", "true", "yes", "on")
-
-
-def op3_available() -> bool:
-    """Check whether op3 is installed."""
-    try:
-        import opstree  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
-def should_use_op3() -> bool:
-    """Use op3 only when both flag is on and library is available."""
-    return op3_enabled() and op3_available()
-
-
-def require_op3(feature: str) -> None:
-    """Raise :class:`RuntimeError` with a helpful install hint.
-
-    Use at the top of any code path that unconditionally needs op3.
-    """
-    if op3_available():
-        return
-    raise RuntimeError(
-        f"{feature} requires op3. Install with: pip install 'redeploy[op3]'"
-    )
-
-
-# ── scanner + context helpers ────────────────────────────────────────────
-
-
-def make_scanner(
-    layer_ids: Optional[Sequence[str]] = None,
-    *,
-    extra_probes: Optional[dict[str, list["Probe"]]] = None,
-) -> "LinearScanner":
-    """Return a fully-wired op3 :class:`LinearScanner`.
-
-    Delegates to :func:`opstree.build_scanner` (0.1.8+), which handles
-    transitive layer dependency resolution and per-scanner probe
-    isolation. When ``layer_ids`` is omitted we fall back to
-    :data:`DEFAULT_HARDWARE_LAYERS` because the historical consumer is
-    the ``redeploy hardware`` command.
-    """
-    from opstree.scanner.build import build_scanner as _op3_build_scanner
-
-    requested = list(layer_ids) if layer_ids else list(DEFAULT_HARDWARE_LAYERS)
-    return _op3_build_scanner(requested, extra_probes=extra_probes)
-
-
-def make_ssh_context(target: str, ssh_key: Optional[str] = None) -> "SSHContext":
-    """Build an :class:`opstree.SSHContext` from redeploy-style arguments."""
-    from opstree.probes.context import SSHContext
-
-    return SSHContext(target=target, ssh_key_path=ssh_key)
+op3_available = _H.op3_available
+op3_enabled = _H.op3_enabled
+should_use_op3 = _H.should_use_op3
+require_op3 = _H.require_op3
+make_ssh_context = _H.make_ssh_context
+make_mock_context = _H.make_mock_context
+make_scanner = _H.make_scanner
 
 
 def make_op3_context_from_ssh_client(ssh_client) -> "SSHContext":
@@ -112,40 +57,32 @@ def make_op3_context_from_ssh_client(ssh_client) -> "SSHContext":
     return make_ssh_context(target=ssh_client.host, ssh_key=ssh_client.key)
 
 
-def make_mock_context(responses: dict[str, tuple[str, str, int]]) -> "ProbeContext":
-    """Build an :class:`opstree.MockContext` used in tests.
+def snapshot_to_infra_state(
+    snapshot: "Snapshot",
+    host: str = "",
+) -> "InfraState":
+    """Convert opstree.Snapshot -> redeploy.InfraState (backward compat).
 
-    ``responses`` maps a command string to a ``(stdout, stderr, returncode)``
-    triple — the same shape doql's bridge uses.
+    Only ``host`` is mapped for now — ``runtime``/``services`` layer
+    schemas haven't been aligned between op3 probes and the pydantic
+    models, so we leave them at their defaults instead of passing
+    incompatible dicts that would fail validation.  Raw layer data is
+    stashed under ``raw`` so downstream code can still inspect it.
     """
-    from opstree.probes.context import ExecuteResult, MockContext
-
-    normalised = {
-        cmd: ExecuteResult(stdout=out, stderr=err, returncode=rc)
-        for cmd, (out, err, rc) in responses.items()
-    }
-    return MockContext(responses=normalised)
-
-
-def snapshot_to_infra_state(snapshot: "Snapshot") -> "InfraState":
-    """Convert opstree.Snapshot -> redeploy.InfraState (backward compat)."""
     from redeploy.models import InfraState
 
-    runtime_data = snapshot.layer("runtime.container")
-    service_data = snapshot.layer("service.containers")
-    endpoint_data = snapshot.layer("endpoint.http")
+    raw: dict[str, dict] = {}
+    for layer_id in ("runtime.container", "service.containers", "endpoint.http"):
+        layer = snapshot.layer(layer_id)
+        if layer is not None:
+            raw[layer_id] = layer.data
 
-    # TODO: full mapping once layer schemas stabilise
-    return InfraState(
-        runtime=runtime_data.data if runtime_data else {},
-        services=service_data.data if service_data else {},
-        endpoints=endpoint_data.data if endpoint_data else {},
-    )
+    return InfraState(host=host, raw=raw)
 
 
 def snapshot_to_hardware_info(snapshot: "Snapshot") -> "HardwareInfo":
     """Convert opstree.Snapshot -> redeploy.HardwareInfo."""
-    from redeploy.models import HardwareInfo, DrmOutput, BacklightInfo
+    from redeploy.models import HardwareInfo, DrmOutput, BacklightInfo, I2CBusInfo
 
     physical = snapshot.layer("physical.display")
     os_kernel = snapshot.layer("os.kernel")
@@ -154,11 +91,10 @@ def snapshot_to_hardware_info(snapshot: "Snapshot") -> "HardwareInfo":
     if physical is None:
         return HardwareInfo()
 
-    # Map DRM outputs (op3 field names differ slightly from redeploy)
-    drm_raw = physical.data.get("drm_outputs", [])
-    drm_outputs = []
-    for d in drm_raw:
-        drm_outputs.append(DrmOutput(
+    pdata = physical.data
+
+    drm_outputs = [
+        DrmOutput(
             name=d.get("name", ""),
             connector=d.get("connector", ""),
             status=d.get("status", "unknown"),
@@ -168,29 +104,104 @@ def snapshot_to_hardware_info(snapshot: "Snapshot") -> "HardwareInfo":
             position=d.get("position", "0,0"),
             scale=d.get("scale", "1.0"),
             edid_bytes=d.get("edid_bytes", 0),
-            power_state=d.get("dpms"),
-            sysfs_path=f"/sys/class/drm/{d.get('name', '')}",
-        ))
+            power_state=d.get("power_state") or d.get("dpms"),
+            sysfs_path=d.get("sysfs_path", f"/sys/class/drm/{d.get('name', '')}"),
+        )
+        for d in pdata.get("drm_outputs", [])
+    ]
 
-    # Map backlights
-    bl_raw = physical.data.get("backlights", [])
-    backlights = []
-    for b in bl_raw:
-        backlights.append(BacklightInfo(
+    backlights = [
+        BacklightInfo(
             name=b.get("name", ""),
             brightness=b.get("brightness", 0),
             max_brightness=b.get("max_brightness", 255),
             bl_power=b.get("bl_power", 0),
             display_name=b.get("display_name"),
-            sysfs_path=f"/sys/class/backlight/{b.get('name', '')}",
-        ))
+            sysfs_path=b.get("sysfs_path", f"/sys/class/backlight/{b.get('name', '')}"),
+        )
+        for b in pdata.get("backlights", [])
+    ]
+
+    i2c_buses = [
+        I2CBusInfo(
+            bus=b.get("bus", 0),
+            devices=b.get("devices", []),
+            sysfs_path=b.get("sysfs_path", f"/dev/i2c-{b.get('bus', 0)}"),
+        )
+        for b in pdata.get("i2c_buses", [])
+    ]
 
     return HardwareInfo(
-        board=physical.data.get("board_model"),
-        kernel=os_kernel.data.get("version") if os_kernel else None,
-        config_txt=os_config.data.get("config_txt", "") if os_config else "",
-        config_txt_path=os_config.data.get("config_txt_path", "/boot/firmware/config.txt") if os_config else "/boot/firmware/config.txt",
+        board=pdata.get("board_model"),
+        kernel=pdata.get("kernel") or (os_kernel.data.get("version") if os_kernel else None),
+        config_txt=pdata.get("config_txt", "") or (os_config.data.get("config_txt", "") if os_config else ""),
+        config_txt_path=pdata.get("config_txt_path", "/boot/firmware/config.txt"),
+        dsi_overlays=pdata.get("dsi_overlays", []),
         drm_outputs=drm_outputs,
+        wlr_outputs=pdata.get("wlr_outputs", []),
         backlights=backlights,
-        framebuffers=physical.data.get("framebuffers", []),
+        framebuffers=pdata.get("framebuffers", []),
+        i2c_buses=i2c_buses,
+        dsi_dmesg=pdata.get("dsi_dmesg", []),
+        dsi_dmesg_errors=pdata.get("dsi_dmesg_errors", []),
+        kernel_modules=pdata.get("kernel_modules", []),
+        wayland_sockets=pdata.get("wayland_sockets", []),
+        compositor_processes=pdata.get("compositor_processes", {}),
+    )
+
+def diagnostics_to_hardware_diagnostics(
+    diagnostics: list,
+) -> list:
+    """Convert op3 :class:`opstree.diagnostics.Diagnostic` -> redeploy :class:`redeploy.models.HardwareDiagnostic`."""
+    from redeploy.models import HardwareDiagnostic
+
+    result: list = []
+    for d in diagnostics:
+        # d may be an opstree.diagnostics.Diagnostic dataclass instance or dict
+        if isinstance(d, dict):
+            result.append(HardwareDiagnostic(**d))
+        else:
+            result.append(HardwareDiagnostic(
+                component=getattr(d, "component", "unknown"),
+                severity=getattr(d, "severity", "warning"),
+                message=getattr(d, "message", ""),
+                fix=getattr(d, "fix", None),
+            ))
+    return result
+
+
+def snapshot_to_device_map(
+    snapshot: "Snapshot",
+    host: str,
+    tags: "Optional[Sequence[str]]" = None,
+) -> "DeviceMap":
+    """Convert opstree.Snapshot -> redeploy.DeviceMap.
+
+    Pulls the hardware and infra layers already mapped by
+    :func:`snapshot_to_hardware_info` and :func:`snapshot_to_infra_state`,
+    then wraps them in a :class:`DeviceMap` with a UTC timestamp.
+    """
+    from datetime import datetime, timezone
+    from redeploy.models import DeviceMap
+
+    hw = snapshot_to_hardware_info(snapshot)
+    infra = snapshot_to_infra_state(snapshot, host=host)
+
+    # op3 snapshots expose *probed_at* on individual LayerData entries;
+    # fall back to the snapshot-level timestamp when available.
+    probed_at = getattr(snapshot, "timestamp", None)
+    if probed_at is None and hasattr(snapshot, "layers"):
+        for layer in snapshot.layers:
+            if getattr(layer, "probed_at", None):
+                probed_at = layer.probed_at
+                break
+    timestamp = probed_at or datetime.now(timezone.utc)
+
+    return DeviceMap(
+        id=host.replace("@", "_at_").replace(":", "_"),
+        host=host,
+        scanned_at=timestamp,
+        hardware=hw,
+        infra=infra,
+        tags=list(tags) if tags else [],
     )

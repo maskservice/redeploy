@@ -60,8 +60,31 @@ def extract_blueprint(
         SSH target used when ``detect_live=True``.
     """
     if detect_live and host and not infra:
-        from ..detect import Detector
-        infra = infra or Detector(host).run()
+        from ..integrations.op3_bridge import should_use_op3
+        if should_use_op3():
+            from ..integrations.op3_bridge import (
+                make_scanner,
+                make_ssh_context,
+                snapshot_to_device_map,
+            )
+            scanner = make_scanner(
+                [
+                    "physical.display",
+                    "os.kernel",
+                    "os.config",
+                    "runtime.container",
+                    "service.containers",
+                    "endpoint.http",
+                    "business.health",
+                ]
+            )
+            ctx = make_ssh_context(target=host)
+            snapshot = scanner.scan(host, ctx.execute)
+            device_map = snapshot_to_device_map(snapshot, host=host, tags=tags)
+            infra = device_map.infra
+        else:
+            from ..detect import Detector
+            infra = infra or Detector(host).run()
 
     from .sources.compose import merge_compose_files
     from .sources.hardware import build_hw_requirements

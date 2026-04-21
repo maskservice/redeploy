@@ -1,6 +1,6 @@
 spec_path: /home/tom/github/maskservice/c2004/redeploy/pi109/migration.md
 host: local
-total_steps: 20
+total_steps: 12
 completed_step_ids:
 - mkdir_remote
 failed_step_id: sync_env
@@ -9,4 +9,4 @@ failed_error: '[sync_env] scp failed: cp: cannot create regular file ''~/c2004/.
 
   '
 started_at: '2026-04-21T13:52:15+00:00'
-updated_at: '2026-04-21T14:01:08+00:00'
+updated_at: '2026-04-21T18:05:31+00:00'

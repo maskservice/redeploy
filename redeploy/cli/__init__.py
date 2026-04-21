@@ -55,6 +55,8 @@ from .commands.blueprint import blueprint_cmd
 from .commands.init import init
 from .commands.status import status
 from .commands.bump_fix import bump_cmd, fix_cmd
+from .commands.prompt_cmd import prompt_cmd
+from .commands.mcp_cmd import mcp_cmd
 
 # Register commands
 cli.add_command(audit)
@@ -89,6 +91,8 @@ cli.add_command(version_cmd)
 cli.add_command(workflow_cmd)
 cli.add_command(bump_cmd, name="bump")
 cli.add_command(fix_cmd, name="fix")
+cli.add_command(prompt_cmd, name="prompt")
+cli.add_command(mcp_cmd, name="mcp")
 
 
 # Backward compatibility: _resolve_device for tests

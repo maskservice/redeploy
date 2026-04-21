@@ -5,8 +5,8 @@ Public API::
     from redeploy.iac import parse_file, parse_dir, parser_registry
     from redeploy.iac import ParsedSpec, ParserRegistry
 
-Each registered parser handles one external format (docker-compose, GitHub
-Actions, Kubernetes, …) and returns a ``ParsedSpec`` — a common intermediate
+Each registered parser handles one external format (docker-compose, Dockerfile,
+GitHub Actions, Kubernetes, Terraform, TOML/Vite, nginx, …) and returns a ``ParsedSpec`` — a common intermediate
 representation that the ``Converter`` can translate into a ``MigrationSpec``.
 
 Zero new runtime dependencies for Tier 1 + Tier 2 parsers (PyYAML already
@@ -21,6 +21,11 @@ Usage example::
     # Or let the registry auto-detect format:
     from redeploy.iac import parse_dir
     specs = parse_dir(Path("."))
+
+Plugin loading:
+    - Python entry points group: ``redeploy.iac.parsers``
+    - Local parser modules: ``./redeploy_iac_parsers/*.py``
+    - User parser modules: ``~/.redeploy/iac_parsers/*.py``
 """
 from .base import (  # noqa: F401
     ParsedSpec,
