@@ -13,9 +13,10 @@ from rich.table import Table
 @click.command()
 @click.option("--tag", default=None, help="Filter by tag")
 @click.option("--strategy", default=None, help="Filter by strategy")
+@click.option("--rpi", is_flag=True, help="Show only Raspberry Pi devices")
 @click.option("--reachable", is_flag=True, help="Show only recently-seen devices")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
-def devices(tag, strategy, reachable, as_json):
+def devices(tag, strategy, rpi, reachable, as_json):
     """List known devices from ~/.config/redeploy/devices.yaml.
 
     \b
@@ -35,6 +36,8 @@ def devices(tag, strategy, reachable, as_json):
         devs = [d for d in devs if tag in d.tags]
     if strategy:
         devs = [d for d in devs if d.strategy == strategy]
+    if rpi:
+        devs = [d for d in devs if "raspberry-pi" in d.tags]
     if reachable:
         devs = [d for d in devs if d.is_reachable]
 
@@ -64,12 +67,16 @@ def devices(tag, strategy, reachable, as_json):
     for d in devs:
         seen = d.last_seen.strftime("%m-%d %H:%M") if d.last_seen else "never"
         ssh = "[green]✓[/green]" if d.last_ssh_ok else "[red]✗[/red]"
+        tags_str = ",".join(d.tags) or "—"
+        # Highlight raspberry-pi tag
+        if "raspberry-pi" in d.tags:
+            tags_str = tags_str.replace("raspberry-pi", "[bold magenta]raspberry-pi[/bold magenta]")
         t.add_row(
             d.id,
             d.host,
             d.strategy,
             d.app or "—",
-            ",".join(d.tags) or "—",
+            tags_str,
             seen,
             ssh,
         )
@@ -130,17 +137,20 @@ def scan(subnet, ssh_users, ssh_port, ping, no_mdns, timeout, no_save):
     )
 
     ssh_ok = [h for h in found if h.ssh_ok]
-    console.print(f"  found {len(found)} host(s), {len(ssh_ok)} SSH-accessible\n")
+    rpi_count = sum(1 for h in found if h.is_raspberry_pi)
+    console.print(f"  found {len(found)} host(s), {len(ssh_ok)} SSH-accessible, {rpi_count} Raspberry Pi\n")
 
     t = Table(show_header=True, box=None, padding=(0, 2))
     t.add_column("IP")
     t.add_column("Hostname", style="dim")
     t.add_column("MAC", style="dim")
     t.add_column("SSH user", style="cyan")
+    t.add_column("RPi", style="bold magenta")
     t.add_column("Source", style="dim")
     for h in found:
         ssh_col = f"[green]{h.ssh_user}[/green]" if h.ssh_ok else "[red]✗[/red]"
-        t.add_row(h.ip, h.hostname or "—", h.mac or "—", ssh_col, h.source)
+        rpi_col = "🍓" if h.is_raspberry_pi else "—"
+        t.add_row(h.ip, h.hostname or "—", h.mac or "—", ssh_col, rpi_col, h.source)
     console.print(t)
 
     if not no_save and ssh_ok:

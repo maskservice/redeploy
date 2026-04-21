@@ -38,6 +38,24 @@ class DiscoveredHost:
     ssh_user: str = ""
     source: str = "unknown"
     ports_open: list[int] = field(default_factory=list)
+    is_raspberry_pi: bool = False
+
+
+# ── Raspberry Pi identification ─────────────────────────────────────────────────
+
+_RPI_MAC_PREFIXES = [
+    "b8:27:eb",  # Raspberry Pi Foundation
+    "dc:a6:32",  # Raspberry Pi Trading
+    "e4:5f:01",  # Raspberry Pi Trading
+    "28:cd:c1",  # Raspberry Pi 5
+]
+
+def _is_raspberry_pi_mac(mac: str) -> bool:
+    """Check if MAC address belongs to Raspberry Pi."""
+    if not mac:
+        return False
+    mac_prefix = mac[:8].lower()
+    return mac_prefix in _RPI_MAC_PREFIXES
 
 
 # ── Individual scanners ───────────────────────────────────────────────────────
@@ -89,7 +107,12 @@ def _scan_arp_cache() -> list[DiscoveredHost]:
             parts = line.split()
             if len(parts) >= 5 and re.match(r"\d+\.\d+\.\d+\.\d+", parts[0]):
                 mac = parts[4] if len(parts) > 4 else ""
-                results.append(DiscoveredHost(ip=parts[0], mac=mac, source="arp"))
+                results.append(DiscoveredHost(
+                    ip=parts[0], 
+                    mac=mac, 
+                    source="arp",
+                    is_raspberry_pi=_is_raspberry_pi_mac(mac)
+                ))
         if results:
             logger.debug(f"arp (ip neigh): {len(results)} hosts")
             return results
@@ -101,7 +124,13 @@ def _scan_arp_cache() -> list[DiscoveredHost]:
             # ? (192.168.1.1) at aa:bb:cc:dd:ee:ff [ether] on eth0
             m = re.search(r"\((\d+\.\d+\.\d+\.\d+)\).*?([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f:]+)", line, re.I)
             if m:
-                results.append(DiscoveredHost(ip=m.group(1), mac=m.group(2), source="arp"))
+                mac = m.group(2)
+                results.append(DiscoveredHost(
+                    ip=m.group(1), 
+                    mac=mac, 
+                    source="arp",
+                    is_raspberry_pi=_is_raspberry_pi_mac(mac)
+                ))
     logger.debug(f"arp: {len(results)} hosts")
     return results
 
@@ -250,6 +279,8 @@ def _merge(hosts: list[DiscoveredHost]) -> list[DiscoveredHost]:
                 existing.ssh_user = existing.ssh_user or h.ssh_user
             if existing.source == "unknown":
                 existing.source = h.source
+            if h.is_raspberry_pi:
+                existing.is_raspberry_pi = True
         else:
             by_ip[h.ip] = h
     return list(by_ip.values())
@@ -302,6 +333,11 @@ def discover(
 
     found = _merge(found)
 
+    # Log Raspberry Pi devices
+    rpi_devices = [h for h in found if h.is_raspberry_pi]
+    if rpi_devices:
+        logger.info(f"Found {len(rpi_devices)} Raspberry Pi device(s): {', '.join(h.ip for h in rpi_devices)}")
+
     # SSH probe
     if probe_ssh and found:
         logger.info(f"SSH probe: {len(found)} hosts ({timeout}s timeout each)")
@@ -339,9 +375,14 @@ def update_registry(
                 existing.hostname = h.hostname
             if h.ssh_ok:
                 existing.last_ssh_ok = now
+            if h.is_raspberry_pi and "raspberry-pi" not in existing.tags:
+                existing.tags.append("raspberry-pi")
             reg.upsert(existing)
         elif h.ssh_ok:
             # Only auto-add SSH-accessible devices
+            tags = ["discovered"]
+            if h.is_raspberry_pi:
+                tags.append("raspberry-pi")
             reg.upsert(KnownDevice(
                 id=device_id,
                 host=device_id,
@@ -352,7 +393,7 @@ def update_registry(
                 last_seen=now,
                 last_ssh_ok=now,
                 source=h.source,
-                tags=["discovered"],
+                tags=tags,
             ))
 
     if save:

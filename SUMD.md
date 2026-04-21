@@ -21,11 +21,11 @@ Infrastructure migration toolkit: detect → plan → apply
 ## Metadata
 
 - **name**: `redeploy`
-- **version**: `0.1.3`
+- **version**: `0.2.29`
 - **python_requires**: `>=3.11`
 - **ai_model**: `openrouter/qwen/qwen3-coder-next`
 - **ecosystem**: SUMD + DOQL + testql + taskfile
-- **generated_from**: pyproject.toml, Makefile, goal.yaml, .env.example, src(10 mod), project/(2 analysis files)
+- **generated_from**: pyproject.toml, Makefile, goal.yaml, .env.example, src(14 mod), project/(2 analysis files)
 
 ## Architecture
 
@@ -35,12 +35,16 @@ SUMD (description) → DOQL/source (code) → taskfile (automation) → testql (
 
 ### Source Modules
 
+- `redeploy.audit`
 - `redeploy.cli`
 - `redeploy.data_sync`
 - `redeploy.discovery`
 - `redeploy.fleet`
 - `redeploy.models`
+- `redeploy.observe`
 - `redeploy.parse`
+- `redeploy.patterns`
+- `redeploy.spec_loader`
 - `redeploy.ssh`
 - `redeploy.steps`
 - `redeploy.verify`
@@ -57,7 +61,7 @@ SUMD (description) → DOQL/source (code) → taskfile (automation) → testql (
 ```yaml
 project:
   name: redeploy
-  version: 0.1.3
+  version: 0.2.29
   env: local
 ```
 
@@ -68,6 +72,7 @@ project:
 ```text markpact:deps python
 pydantic>=2.0
 pyyaml>=6.0
+markdown-it-py>=3.0
 click>=8.0
 loguru>=0.7
 paramiko>=3.0
@@ -266,6 +271,165 @@ Arg...
 
 *Top 5 modules by symbol density — signatures for LLM orientation.*
 
+### `redeploy.audit` (`redeploy/audit.py`)
+
+```python
+def _extract_port(url)  # CC=5, fan=5
+def _normalize_path(path)  # CC=3, fan=4
+def _strip_remote_dir(path)  # CC=5, fan=3
+def audit_spec(spec_path)  # CC=1, fan=3
+class AuditCheck:  # Outcome of a single audit probe.
+    def ok()  # CC=1
+class AuditReport:
+    def add(check)  # CC=1
+    def passed()  # CC=3
+    def failed()  # CC=3
+    def warned()  # CC=3
+    def skipped()  # CC=3
+    def ok()  # CC=1
+    def summary()  # CC=1
+    def to_dict()  # CC=2
+class _Expect:
+    def extras()  # CC=1
+class _Extractor:  # Walk a MigrationSpec and emit Expect tuples.
+    def __init__(spec)  # CC=4
+    def collect()  # CC=4
+    def _from_target()  # CC=7
+    def _from_step(raw)  # CC=12 ⚠
+    def _from_command(cmd, sid)  # CC=14 ⚠
+class _Probe:  # Thin wrapper around SshClient with sensible audit timeouts.
+    def __init__(client)  # CC=4
+    def has_binary(name)  # CC=3
+    def has_path(path)  # CC=3
+    def port_listening(port)  # CC=4
+    def has_image(ref)  # CC=4
+    def has_systemd_unit(unit)  # CC=4
+    def apt_package(name)  # CC=3
+    def disk_free_gib(path)  # CC=3
+class Auditor:  # Compare a MigrationSpec's expectations against a live target
+    def __init__(spec, spec_path)  # CC=4
+    def run()  # CC=5
+    def _dispatch(exp, report)  # CC=1
+    def _probe_one(exp)  # CC=10 ⚠
+    def _probe_binary(exp)  # CC=4
+    def _probe_directory(exp)  # CC=4
+    def _probe_file(exp)  # CC=4
+    def _probe_local_file(exp)  # CC=3
+    def _probe_port_listening(exp)  # CC=4
+    def _probe_container_image(exp)  # CC=4
+    def _probe_systemd_unit(exp, user)  # CC=4
+    def _probe_apt_package(exp)  # CC=4
+```
+
+### `redeploy.observe` (`redeploy/observe.py`)
+
+```python
+class AuditEntry:  # Single audit log entry — immutable snapshot of one deploymen
+    def __init__(data)  # CC=1
+    def ts()  # CC=1
+    def host()  # CC=1
+    def app()  # CC=1
+    def from_strategy()  # CC=1
+    def to_strategy()  # CC=1
+    def ok()  # CC=1
+    def elapsed_s()  # CC=1
+    def steps_total()  # CC=1
+    def steps_ok()  # CC=1
+    def steps_failed()  # CC=1
+    def pattern()  # CC=1
+    def version()  # CC=1
+    def dry_run()  # CC=1
+    def steps()  # CC=1
+    def error()  # CC=1
+    def to_dict()  # CC=1
+    def __repr__()  # CC=2
+class DeployAuditLog:  # Persistent audit log — newline-delimited JSON at ``path``.
+    def __init__(path)  # CC=1
+    def record(plan, completed_steps)  # CC=11 ⚠
+    def _append(entry)  # CC=1
+    def load(limit)  # CC=5
+    def tail(n)  # CC=1
+    def filter(host, app, ok, since)  # CC=12 ⚠
+    def clear()  # CC=2
+class DeployReport:  # Human-readable post-deploy report from an AuditEntry.
+    def __init__(entry)  # CC=1
+    def text()  # CC=8
+    def yaml()  # CC=1
+    def summary_line()  # CC=2
+```
+
+### `redeploy.fleet` (`redeploy/fleet.py`)
+
+```python
+class DeviceArch:
+class Stage:
+class DeviceExpectation:  # Declarative assertions about required infrastructure on a de
+class FleetDevice:  # Generic device descriptor — superset of ``deploy``'s DeviceC
+    def ssh_user()  # CC=2
+    def ssh_ip()  # CC=2
+    def is_local()  # CC=1
+    def is_prod()  # CC=2
+    def has_tag(tag)  # CC=1
+    def has_expectation(exp)  # CC=1
+    def verify_expectations(state)  # CC=25 ⚠
+class FleetConfig:  # Top-level fleet manifest — list of devices with stage / tag 
+    def get_device(device_id)  # CC=3
+    def by_tag(tag)  # CC=3
+    def by_stage(stage)  # CC=3
+    def by_strategy(strategy)  # CC=3
+    def prod_devices()  # CC=1
+    def from_file(cls, path, workspace_root)  # CC=1
+class Fleet:  # Unified first-class fleet — wraps FleetConfig and/or DeviceR
+    def __init__(devices)  # CC=1
+    def from_file(cls, path)  # CC=1
+    def from_registry(cls, path)  # CC=6
+    def from_config(cls, config)  # CC=1
+    def devices()  # CC=1
+    def get(device_id)  # CC=3
+    def by_tag(tag)  # CC=3
+    def by_stage(stage)  # CC=3
+    def by_strategy(strategy)  # CC=3
+    def prod()  # CC=1
+    def reachable(within_seconds)  # CC=5
+    def merge(other)  # CC=3
+    def __len__()  # CC=1
+    def __iter__()  # CC=1
+    def __repr__()  # CC=1
+```
+
+### `redeploy.discovery` (`redeploy/discovery.py`)
+
+```python
+def _is_raspberry_pi_mac(mac)  # CC=2, fan=1
+def _scan_known_hosts(ssh_user)  # CC=10, fan=15 ⚠
+def _scan_arp_cache()  # CC=10, fan=12 ⚠
+def _scan_mdns(timeout)  # CC=7, fan=10
+def _ping_sweep(subnet, timeout)  # CC=6, fan=14
+def _probe_ssh(hosts, users, port, timeout, max_workers)  # CC=1, fan=6
+def _detect_local_subnet()  # CC=9, fan=11
+def _merge(hosts)  # CC=11, fan=2 ⚠
+def discover(subnet, ssh_users, ssh_port, ping, mdns, probe_ssh, timeout)  # CC=14, fan=16 ⚠
+def update_registry(hosts, registry, save)  # CC=17, fan=7 ⚠
+def _run(cmd, timeout)  # CC=2, fan=1
+def _is_ip(s)  # CC=1, fan=2
+def _collect_ssh_keys()  # CC=14, fan=11 ⚠
+def _tcp_reachable(ip, port, timeout)  # CC=2, fan=1
+def _try_ssh_credentials(ip, users, keys, port, timeout)  # CC=14, fan=12 ⚠
+def _detect_strategy_remote(host, key, port, timeout)  # CC=3, fan=5
+def _build_probe_command()  # CC=1, fan=0
+def _build_ssh_command(host, port, timeout, key_opts, probe_cmd)  # CC=1, fan=1
+def _run_ssh_probe(cmd, timeout)  # CC=3, fan=1
+def _parse_probe_output(out)  # CC=16, fan=6 ⚠
+def _infer_strategy(info, services)  # CC=8, fan=2
+def _parse_probe_input(ip_or_host, users)  # CC=4, fan=1
+def _detect_app_from_services(services, app_hint)  # CC=5, fan=1
+def _update_existing_device(existing, result, ssh_user, ssh_key, ip, host_str, port, now)  # CC=5, fan=0
+def _create_new_device(result, ssh_user, ssh_key, ip, host_str, port, now)  # CC=2, fan=1
+def auto_probe(ip_or_host, users, port, timeout, app_hint, save)  # CC=7, fan=19
+class DiscoveredHost:
+class ProbeResult:  # Full autonomous probe result for a single host.
+```
+
 ### `redeploy.ssh` (`redeploy/ssh.py`)
 
 ```python
@@ -298,124 +462,6 @@ class RemoteExecutor:  # Thin wrapper kept for deploy.core compatibility.
     def ssh_target()  # CC=1
     def ssh_opts()  # CC=1
     def scp_opts()  # CC=1
-```
-
-### `redeploy.cli` (`redeploy/cli.py`)
-
-```python
-def _print_plan_table(console, migration)  # CC=4, fan=6
-def _run_apply(console, migration, dry_run, output, ssh_key)  # CC=4, fan=6
-def _setup_logging(verbose)  # CC=2, fan=2
-def cli(ctx, verbose)  # CC=1, fan=5
-def _run_detect_workflow(console, hosts, manifest, app, scan_subnet, deep, save_yaml)  # CC=18, fan=14 ⚠
-def detect(ctx, host, app, domain, output, run_workflow, scan_subnet, no_deep, save_yaml)  # CC=24, fan=22 ⚠
-def plan(ctx, infra, target, strategy, domain, target_version, compose, env_file, output)  # CC=11, fan=17 ⚠
-def apply(ctx, plan_file, dry_run, step, output)  # CC=9, fan=12
-def migrate(ctx, host, app, domain, target, strategy, target_version, compose, env_file, dry_run, infra_out, plan_out)  # CC=13, fan=18 ⚠
-def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output, env_name)  # CC=17, fan=24 ⚠
-def _find_manifest_path()  # CC=3, fan=4
-def _resolve_device(console, device_id)  # CC=5, fan=6
-def _load_spec_with_manifest(console, spec_file, dev)  # CC=5, fan=8
-def _overlay_device_onto_spec(spec, dev, console)  # CC=10, fan=2 ⚠
-def _run_detect_for_spec(console, spec, do_detect)  # CC=3, fan=7
-def init(host, app, domain, strategy, force)  # CC=10, fan=8 ⚠
-def status(spec_file)  # CC=12, fan=16 ⚠
-def devices(tag, strategy, reachable, as_json)  # CC=18, fan=14 ⚠
-def scan(subnet, ssh_users, ssh_port, ping, no_mdns, timeout, no_save)  # CC=11, fan=12 ⚠
-def device_add(host, device_id, name, tags, strategy, app, ssh_port, ssh_key)  # CC=7, fan=13
-def device_rm(device_id)  # CC=2, fan=7
-def target(device_id, spec_file, dry_run, plan_only, do_detect, plan_out)  # CC=10, fan=18 ⚠
-def probe(hosts, subnet, users, ssh_port, app_hint, timeout, no_save, as_json)  # CC=27, fan=22 ⚠
-```
-
-### `redeploy.models` (`redeploy/models.py`)
-
-```python
-class ConflictSeverity:
-class StepAction:
-class StepStatus:
-class DeployStrategy:
-class ServiceInfo:
-class PortInfo:
-class ConflictInfo:
-class RuntimeInfo:
-class AppHealthInfo:
-class InfraState:  # Full detected state of infrastructure — output of `detect`.
-class TargetConfig:  # Desired infrastructure state — input to `plan`.
-class MigrationStep:
-class InfraSpec:  # Declarative description of one infrastructure state (from OR
-class MigrationSpec:  # Single YAML file describing full migration: from-state → to-
-    def from_file(cls, path)  # CC=1
-    def to_infra_state()  # CC=4
-    def to_target_config()  # CC=2
-class MigrationPlan:  # Full migration plan — output of `plan`, input to `apply`.
-class EnvironmentConfig:  # One named environment (prod / dev / rpi5 / staging …) in red
-class ProjectManifest:  # Per-project redeploy.yaml — replaces repetitive Makefile var
-    def find_and_load(cls, start)  # CC=3
-    def env(name)  # CC=1
-    def resolve_env(name)  # CC=9
-    def from_dotenv(cls, project_dir)  # CC=12 ⚠
-    def apply_to_spec(spec, env_name)  # CC=19 ⚠
-class DeployRecord:  # Single deployment event recorded for a device.
-class KnownDevice:  # Device known to redeploy — persisted in ~/.config/redeploy/d
-    def last_deploy()  # CC=2
-    def is_reachable()  # CC=2
-    def record_deploy(record)  # CC=1
-class DeviceRegistry:  # Persistent device registry — stored at ~/.config/redeploy/de
-    def get(device_id)  # CC=3
-    def upsert(device)  # CC=3
-    def remove(device_id)  # CC=3
-    def by_tag(tag)  # CC=3
-    def by_strategy(strategy)  # CC=3
-    def reachable()  # CC=3
-    def default_path(cls)  # CC=1
-    def load(cls, path)  # CC=5
-    def save(path)  # CC=4
-```
-
-### `redeploy.discovery` (`redeploy/discovery.py`)
-
-```python
-def _scan_known_hosts(ssh_user)  # CC=10, fan=15 ⚠
-def _scan_arp_cache()  # CC=10, fan=11 ⚠
-def _scan_mdns(timeout)  # CC=7, fan=10
-def _ping_sweep(subnet, timeout)  # CC=6, fan=14
-def _probe_ssh(hosts, users, port, timeout, max_workers)  # CC=1, fan=6
-def _detect_local_subnet()  # CC=9, fan=11
-def _merge(hosts)  # CC=10, fan=2 ⚠
-def discover(subnet, ssh_users, ssh_port, ping, mdns, probe_ssh, timeout)  # CC=10, fan=15 ⚠
-def update_registry(hosts, registry, save)  # CC=14, fan=6 ⚠
-def _run(cmd, timeout)  # CC=2, fan=1
-def _is_ip(s)  # CC=1, fan=2
-def _collect_ssh_keys()  # CC=14, fan=11 ⚠
-def _try_ssh_credentials(ip, users, keys, port, timeout)  # CC=10, fan=3 ⚠
-def _detect_strategy_remote(host, key, port, timeout)  # CC=26, fan=10 ⚠
-def auto_probe(ip_or_host, users, port, timeout, app_hint, save)  # CC=20, fan=18 ⚠
-class DiscoveredHost:
-class ProbeResult:  # Full autonomous probe result for a single host.
-```
-
-### `redeploy.fleet` (`redeploy/fleet.py`)
-
-```python
-class DeviceArch:
-class Stage:
-class DeviceExpectation:  # Declarative assertions about required infrastructure on a de
-class FleetDevice:  # Generic device descriptor — superset of ``deploy``'s DeviceC
-    def ssh_user()  # CC=2
-    def ssh_ip()  # CC=2
-    def is_local()  # CC=1
-    def is_prod()  # CC=2
-    def has_tag(tag)  # CC=1
-    def has_expectation(exp)  # CC=1
-    def verify_expectations(state)  # CC=25 ⚠
-class FleetConfig:  # Top-level fleet manifest — list of devices with stage / tag 
-    def get_device(device_id)  # CC=3
-    def by_tag(tag)  # CC=3
-    def by_stage(stage)  # CC=3
-    def by_strategy(strategy)  # CC=3
-    def prod_devices()  # CC=1
-    def from_file(cls, path, workspace_root)  # CC=13 ⚠
 ```
 
 ## Call Graph
