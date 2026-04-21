@@ -50,10 +50,16 @@ from rich.table import Table
 @click.option("--apply-config", "apply_config", default=None,
               type=click.Path(exists=True, dir_okay=False),
               help="Apply hardware/infra settings from YAML config file to the remote host")
+@click.option(
+    "--query", "query_expr",
+    default=None,
+    metavar="EXPR",
+    help="Extract specific values using JMESPath query (e.g. 'hardware.drm_outputs[0].transform', 'host')",
+)
 @click.option("--ssh-key", default=None, type=click.Path(), help="SSH private key path")
 def device_map_cmd(
     host, name, tags, save, out_path, output_fmt,
-    no_infra, list_saved, show_file, diff_files, ssh_key, apply_config,
+    no_infra, list_saved, show_file, diff_files, ssh_key, apply_config, query_expr,
 ):
     """Generate a full standardized device snapshot (hardware + infra + diagnostics).
 
@@ -104,6 +110,11 @@ def device_map_cmd(
     if not host:
         console.print("[red]✗ HOST required (or use --list / --show / --diff)[/red]")
         sys.exit(1)
+
+    # ── --apply-config ─────────────────────────────────────────────────────────
+    if apply_config:
+        _apply_config_from_file(console, apply_config, ssh_key)
+        return
 
     # ── probe ─────────────────────────────────────────────────────────────────
     from ...detect.hardware import probe_hardware
@@ -195,7 +206,7 @@ def _apply_config_from_file(console, config_path, ssh_key):
     import yaml
     import json as _json
 
-    from ...remote import Remote
+    from ...detect.remote import RemoteProbe
 
     with open(config_path) as f:
         raw = f.read()
@@ -214,7 +225,7 @@ def _apply_config_from_file(console, config_path, ssh_key):
     console.print(f"[cyan]→ Applying config from {config_path} to {host}[/cyan]")
 
     # Connect to remote
-    p = Remote(host, ssh_key=ssh_key)
+    p = RemoteProbe(host, ssh_key=ssh_key)
 
     applied = 0
 
@@ -319,6 +330,30 @@ def _update_kanshi_from_cfg(console, p, dsi_outputs: list):
     if write_r.ok:
         console.print(f"[green]  ✓ kanshi config updated ({kanshi_cfg_path})[/green]")
     p.run("pkill -SIGUSR1 kanshi 2>/dev/null || true")
+
+
+def _execute_query_device_map(console, dm, query_expr, output_fmt):
+    """Execute JMESPath query on DeviceMap model and output result."""
+    import jmespath
+    import json as _json
+
+    data = dm.model_dump(mode="json")
+
+    try:
+        result = jmespath.search(query_expr, data)
+    except jmespath.exceptions.JMESPathError as e:
+        console.print(f"[red]✗ JMESPath error:[/red] {e}")
+        sys.exit(1)
+
+    if result is None:
+        console.print("[dim]No match found for query[/dim]")
+        return
+
+    if output_fmt == "json":
+        click.echo(_json.dumps(result, indent=2, default=str))
+    else:
+        import yaml
+        click.echo(yaml.safe_dump(result, sort_keys=False, default_flow_style=False))
 
 
 # ── rendering helpers ─────────────────────────────────────────────────────────
