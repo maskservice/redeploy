@@ -7,7 +7,7 @@ Public API (stable from 0.2.0, semver guaranteed)::
 
 Everything not listed in ``__all__`` is internal and may change without notice.
 """
-__version__ = "0.2.57"
+__version__ = "0.2.58"
 
 # ── Core models ───────────────────────────────────────────────────────────────
 from .models import (  # noqa: F401
