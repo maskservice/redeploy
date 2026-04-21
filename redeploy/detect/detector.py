@@ -7,7 +7,8 @@ from typing import Optional
 import yaml
 from loguru import logger
 
-from ..models import InfraState
+from ..models import HardwareInfo, InfraState
+from .hardware import probe_hardware
 from .probes import (
     detect_conflicts, detect_strategy, probe_docker_services,
     probe_health, probe_iptables_dnat, probe_k3s_services,
@@ -94,3 +95,10 @@ class Detector:
         data = state.model_dump(mode="json")
         output.write_text(yaml.dump(data, default_flow_style=False, allow_unicode=True))
         logger.info(f"InfraState saved to {output}")
+
+    def probe_hardware(self) -> HardwareInfo:
+        """Probe hardware state (display, DSI, backlight, I2C, overlays)."""
+        if not self.probe.is_reachable():
+            raise ConnectionError(f"Host {self.host} is not reachable via SSH")
+        logger.info(f"Probing hardware on {self.host}")
+        return probe_hardware(self.probe)

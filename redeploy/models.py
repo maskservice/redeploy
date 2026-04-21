@@ -120,6 +120,92 @@ class AppHealthInfo(BaseModel):
     response_ms: Optional[float] = None
 
 
+# ── Hardware (output of hardware probe) ───────────────────────────────────────
+
+class DrmOutput(BaseModel):
+    """One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1)."""
+    name: str                           # e.g. "card1-DSI-2"
+    connector: str                      # e.g. "DSI-2", "HDMI-A-1"
+    status: str = "unknown"             # connected / disconnected
+    enabled: str = "unknown"            # enabled / disabled
+    modes: list[str] = Field(default_factory=list)    # e.g. ["1280x800@60"]
+    transform: str = "normal"
+    position: str = "0,0"
+    scale: str = "1.0"
+
+
+class BacklightInfo(BaseModel):
+    """Sysfs backlight device."""
+    name: str                           # e.g. "11-0045"
+    brightness: int = 0
+    max_brightness: int = 255
+    bl_power: int = 0                   # 0=on, 4=off
+    display_name: Optional[str] = None  # e.g. "DSI-2"
+
+
+class I2CBusInfo(BaseModel):
+    bus: int
+    devices: list[str] = Field(default_factory=list)  # hex addresses found
+
+
+class HardwareDiagnostic(BaseModel):
+    """Problem found during hardware probe."""
+    component: str                      # "dsi", "backlight", "i2c", "gpio", "overlay"
+    severity: str = "warning"           # info / warning / error / critical
+    message: str
+    fix: Optional[str] = None          # suggested fix command or action
+
+
+class HardwareInfo(BaseModel):
+    """Hardware state produced by hardware probe."""
+    board: Optional[str] = None         # e.g. "Raspberry Pi 5 Model B Rev 1.0"
+    kernel: Optional[str] = None        # uname -r
+    config_txt: str = ""                # full /boot/firmware/config.txt
+
+    # Display
+    drm_outputs: list[DrmOutput] = Field(default_factory=list)
+    backlights: list[BacklightInfo] = Field(default_factory=list)
+    framebuffers: list[str] = Field(default_factory=list)   # /dev/fb* names
+    wlr_outputs: list[dict] = Field(default_factory=list)   # raw wlr-randr output
+
+    # DSI specific
+    dsi_overlays: list[str] = Field(default_factory=list)   # active dtoverlay lines
+    dsi_dmesg: list[str] = Field(default_factory=list)      # relevant dmesg lines
+
+    # I2C
+    i2c_buses: list[I2CBusInfo] = Field(default_factory=list)
+
+    # GPIO header
+    gpio_4pin_detected: Optional[bool] = None  # 5V/GND/SDA/SCL header present
+
+    # Diagnostics
+    diagnostics: list[HardwareDiagnostic] = Field(default_factory=list)
+
+    @property
+    def has_dsi(self) -> bool:
+        return any("DSI" in o.name for o in self.drm_outputs)
+
+    @property
+    def dsi_connected(self) -> bool:
+        return any("DSI" in o.name and o.status == "connected" for o in self.drm_outputs)
+
+    @property
+    def dsi_enabled(self) -> bool:
+        return any("DSI" in o.name and o.enabled == "enabled" for o in self.drm_outputs)
+
+    @property
+    def backlight_on(self) -> bool:
+        return any(b.bl_power == 0 and b.brightness > 0 for b in self.backlights)
+
+    @property
+    def errors(self) -> list[HardwareDiagnostic]:
+        return [d for d in self.diagnostics if d.severity in ("error", "critical")]
+
+    @property
+    def warnings(self) -> list[HardwareDiagnostic]:
+        return [d for d in self.diagnostics if d.severity == "warning"]
+
+
 class InfraState(BaseModel):
     """Full detected state of infrastructure — output of `detect`."""
     host: str                             # "root@1.2.3.4" or "local"
