@@ -12,6 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecate legacy `post_deploy` and `pre_deploy` fields in migration specs.
 - Keep backward compatibility: legacy `post_deploy`/`pre_deploy` are auto-converted to `hooks` during spec loading.
 
+## [0.2.62] - 2026-04-23
+
+### Docs
+- Update README.md
+
+### Other
+- Update .idea/.gitignore
+- Update .idea/vcs.xml
+- Update .redeploy/state/infra-local-9dd2f59b.yaml
+- Update redeploy/analyze/__init__.py
+- Update redeploy/analyze/checkers/__init__.py
+- Update redeploy/analyze/spec_analyzer.py
+- Update redeploy/cli/__init__.py
+- Update redeploy/cli/commands/lint.py
+- Update redeploy/cli/commands/plan_apply.py
+- Update redeploy/tests/test_cli.py
+
 ## [0.2.61] - 2026-04-21
 
 ### Docs

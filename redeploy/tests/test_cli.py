@@ -163,7 +163,7 @@ class TestRunPlanOnly:
         spec = tmp_path / "migration.md"
         spec.write_text(_migration_markdown_supported(), encoding="utf-8")
 
-        result = _runner().invoke(cli, ["run", str(spec), "--plan-only"])
+        result = _runner().invoke(cli, ["run", str(spec), "--plan-only", "--no-lint"])
 
         assert result.exit_code == 0, result.output
         assert "markdown migration" in result.output

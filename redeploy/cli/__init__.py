@@ -57,10 +57,12 @@ from .commands.status import status
 from .commands.bump_fix import bump_cmd, fix_cmd
 from .commands.prompt_cmd import prompt_cmd
 from .commands.mcp_cmd import mcp_cmd
+from .commands.lint import lint
 
 # Register commands
 cli.add_command(audit)
 cli.add_command(detect)
+cli.add_command(lint)
 cli.add_command(devices)
 cli.add_command(scan)
 cli.add_command(device_add)

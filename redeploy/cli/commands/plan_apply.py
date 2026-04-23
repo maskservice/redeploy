@@ -264,10 +264,14 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
     "--max-heal-retries", default=3, show_default=True,
     help="Maximum number of LLM self-healing attempts."
 )
+@click.option(
+    "--lint/--no-lint", default=True, show_default=True,
+    help="Run static analysis before deployment to catch missing files, broken references, and external path issues."
+)
 @click.pass_context
 def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
         env_name, progress_yaml, resume, from_step, state_file, no_state,
-        heal, fix_hint, max_heal_retries):
+        heal, fix_hint, max_heal_retries, lint):
     """Execute migration from a single YAML spec (source + target in one file).
 
     SPEC defaults to migration.yaml (or value from redeploy.yaml manifest).
@@ -304,6 +308,28 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
     # Overlay manifest values
     _apply_manifest_to_spec(console, manifest, spec, env_name)
     _print_spec_summary(console, spec)
+
+    # Static analysis (lint)
+    if lint:
+        from ...analyze import SpecAnalyzer, IssueSeverity
+        analyzer = SpecAnalyzer(base_dir=Path(resolved_spec).parent)
+        _, lint_result = analyzer.analyze_file(Path(resolved_spec))
+        if lint_result.issues:
+            console.print(f"\n[bold]lint[/bold]")
+            for i in lint_result.issues:
+                color = "red" if i.severity == IssueSeverity.ERROR else "yellow"
+                prefix = f"[{color}]{i.severity.value}[/{color}]"
+                step = f" ({i.step_id})" if i.step_id else ""
+                console.print(f"  {prefix}{step} {i.category}: {i.message}")
+                if i.suggestion:
+                    console.print(f"      [dim]→ {i.suggestion}[/dim]")
+            if not lint_result.passed:
+                console.print("\n[red]✗ lint failed — fix errors above or use --no-lint to skip.[/red]")
+                sys.exit(1)
+            else:
+                console.print(f"[yellow]⚠ lint passed with {len(lint_result.warnings())} warning(s)[/yellow]")
+        else:
+            console.print("[green]  ✓ lint passed[/green]")
 
     # Optional live detect
     if do_detect:
