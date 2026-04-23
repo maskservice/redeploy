@@ -312,7 +312,7 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
     # Static analysis (lint)
     if lint:
         from ...analyze import SpecAnalyzer, IssueSeverity
-        analyzer = SpecAnalyzer(base_dir=Path(resolved_spec).parent)
+        analyzer = SpecAnalyzer(base_dir=Path.cwd())
         _, lint_result = analyzer.analyze_file(Path(resolved_spec))
         if lint_result.issues:
             console.print(f"\n[bold]lint[/bold]")

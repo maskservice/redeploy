@@ -119,6 +119,9 @@ class _CommandPathChecker(_Checker):
             cmd = step.get("command") or ""
             for match in self.EXTERNAL_RE.finditer(cmd):
                 path_str = match.group(1)
+                # Skip remote target paths (ssh_cmd / inline_script running remotely)
+                if path_str.startswith("~/"):
+                    continue
                 # Ignore paths inside the project tree
                 resolved = self._resolve(path_str, base_dir)
                 if resolved and self._is_inside(resolved, base_dir):
@@ -161,7 +164,9 @@ class _ReferenceChecker(_Checker):
     """Ensure command_ref and insert_before point to existing things."""
 
     def check(self, spec, document, base_dir, result):
+        from redeploy.steps import StepLibrary
         step_ids = {s.get("id") for s in spec.extra_steps if s.get("id")}
+        step_ids |= set(StepLibrary.list())
         ref_ids = set()
         if document:
             for block in document.blocks:
@@ -181,10 +186,10 @@ class _ReferenceChecker(_Checker):
             ib = step.get("insert_before")
             if ib and ib not in step_ids:
                 result.add(
-                    IssueSeverity.ERROR, "references",
+                    IssueSeverity.WARNING, "references",
                     f"Step '{sid}' insert_before points to unknown step '{ib}'",
                     sid,
-                    suggestion=f"Available step ids: {', '.join(sorted(step_ids)) or 'none'}"
+                    suggestion="This may be a runtime-generated step; verify the generated plan."
                 )
 
 
@@ -374,6 +379,5 @@ class SpecAnalyzer:
                 return None, result
 
         if spec:
-            self.base_dir = spec_path.parent
             result = self.analyze(spec, document)
         return spec, result

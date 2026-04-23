@@ -112,7 +112,7 @@ def run_docker_health_wait(
             status_str = ", ".join(f"{n}:{s}" for n, s in statuses)
 
             if status_str != last_status:
-                logger.debug(f"    [{elapsed}s] containers: {status_str}")
+                logger.info(f"    [{elapsed}s] containers: {status_str}")
                 last_status = status_str
 
             if _all_containers_healthy(statuses):

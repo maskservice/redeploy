@@ -41,7 +41,7 @@ def lint(ctx, spec_file, env_name, as_json, exit_zero):
             console.print(f"[yellow]⚠ env '{env_name}' not in redeploy.yaml[/yellow]")
         manifest.apply_to_spec(spec, env_name=env_name)
 
-    analyzer = SpecAnalyzer(base_dir=Path(resolved).parent)
+    analyzer = SpecAnalyzer(base_dir=Path.cwd())
     _, result = analyzer.analyze_file(Path(resolved))
 
     if as_json:
