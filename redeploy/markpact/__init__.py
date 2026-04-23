@@ -7,6 +7,7 @@ from .parser import (
     parse_markpact_file,
     parse_markpact_file_with_refs,
     parse_markpact_text,
+    resolve_script_ref,
 )
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "parse_markpact_file",
     "parse_markpact_file_with_refs",
     "parse_markpact_text",
+    "resolve_script_ref",
 ]

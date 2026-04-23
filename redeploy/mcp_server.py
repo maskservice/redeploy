@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -44,6 +45,20 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+_SAFE_HOST_RE = re.compile(r"^[A-Za-z0-9_.@:-]+$")
+_UNSAFE_SSH_TOKENS = (
+    "&&",
+    "||",
+    ";",
+    "|",
+    "`",
+    "$(",
+    ">",
+    "<",
+    "\n",
+    "\r",
+)
 
 def _redeploy_bin() -> str:
     """Resolve the redeploy binary path (same venv as this process)."""
@@ -78,6 +93,24 @@ def _run(*args: str, cwd: str | None = None, timeout: int = 120) -> dict:
         return {"returncode": -1, "stdout": "", "stderr": "Timeout", "success": False}
     except Exception as exc:
         return {"returncode": -1, "stdout": "", "stderr": str(exc), "success": False}
+
+
+def _validate_exec_ssh_inputs(host: str, command: str) -> str | None:
+    """Return validation error message for unsafe exec_ssh inputs, or None."""
+    if not _SAFE_HOST_RE.match(host):
+        return f"Unsafe host format: {host!r}"
+
+    # Allow opting out explicitly for trusted environments.
+    if os.getenv("REDEPLOY_MCP_ALLOW_UNSAFE_SSH", "").lower() in {"1", "true", "yes"}:
+        return None
+
+    for token in _UNSAFE_SSH_TOKENS:
+        if token in command:
+            return (
+                "Unsafe command token detected "
+                f"({token!r}). Set REDEPLOY_MCP_ALLOW_UNSAFE_SSH=1 to bypass explicitly."
+            )
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -218,6 +251,15 @@ def exec_ssh(
     Returns stdout, stderr and return code.
     CAUTION: this executes arbitrary commands — confirm with user before use.
     """
+    validation_error = _validate_exec_ssh_inputs(host, command)
+    if validation_error:
+        return {
+            "returncode": -1,
+            "stdout": "",
+            "stderr": validation_error,
+            "success": False,
+        }
+
     try:
         proc = subprocess.run(
             ["ssh", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes", host, command],

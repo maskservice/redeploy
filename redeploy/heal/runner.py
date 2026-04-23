@@ -228,8 +228,25 @@ class HealRunner:
             if decision.action is Action.ABORT:
                 break
             if decision.action is Action.SKIP:
-                # TODO: mark step as skipped in executor state and continue
-                break
+                if not failed_step or executor.state is None:
+                    self.console.print(
+                        "  [yellow]cannot skip without checkpointed state; aborting heal loop[/yellow]"
+                    )
+                    break
+
+                executor.state.mark_done(failed_step)
+                self.console.print(
+                    f"  [yellow]marking step as skipped in checkpoint:[/yellow] `{failed_step}`"
+                )
+
+                executor = self._make_executor(resume=True)
+                ok = executor.run()
+                self.console.print(f"\n{executor.summary()}")
+                if ok:
+                    self._loop_detector.reset_all()
+                    write_repair_log(self.spec_path, self.version, self.repairs)
+                    return True
+                continue
 
             # Retry
             executor = self._make_executor(resume=True)

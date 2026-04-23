@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 from typing import Optional
 
 from ..models import (
@@ -10,6 +11,9 @@ from ..models import (
     PortInfo, RuntimeInfo, ServiceInfo,
 )
 from .remote import RemoteProbe
+
+
+_SAFE_K8S_NS_RE = re.compile(r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
 
 
 def probe_runtime(p: RemoteProbe) -> RuntimeInfo:
@@ -126,8 +130,10 @@ def probe_k3s_services(p: RemoteProbe, namespaces: list[str]) -> list[ServiceInf
     for ns in namespaces:
         if ns in ("kube-system", "kube-public", "kube-node-lease", "cert-manager"):
             continue
+        if not _SAFE_K8S_NS_RE.match(ns):
+            continue
         r = p.run(
-            f"k3s kubectl get pods -n {ns} --no-headers 2>/dev/null"
+            f"k3s kubectl get pods -n {shlex.quote(ns)} --no-headers 2>/dev/null"
             " | awk '{print $1\"|\"$2\"|\"$3}'"
         )
         if not r.ok:

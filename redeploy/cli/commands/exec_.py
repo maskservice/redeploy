@@ -202,19 +202,12 @@ def _extract_all_scripts(md_path, ref_list, console) -> list[tuple[str, str, str
 
 def _extract_script_for_ref(md_content, ref_id) -> tuple[str, str] | None:
     """Extract script for a single ref."""
-    from ...markpact.parser import extract_script_from_markdown, extract_script_by_ref
+    from ...markpact import resolve_script_ref
 
-    # Try markpact:ref first
-    script = extract_script_by_ref(md_content, ref_id, language="bash")
-    lookup_method = "markpact:ref"
-
-    if script is None and ref_id.startswith("#"):
-        script = extract_script_from_markdown(md_content, ref_id[1:], language="bash")
-        lookup_method = "section"
-
-    if script is None:
+    result = resolve_script_ref(md_content, ref_id, language="bash")
+    if result is None:
         return None
-    return script, lookup_method
+    return result
 
 
 def _execute_single_script(ref_id, script, host, timeout) -> bool:

@@ -12,6 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecate legacy `post_deploy` and `pre_deploy` fields in migration specs.
 - Keep backward compatibility: legacy `post_deploy`/`pre_deploy` are auto-converted to `hooks` during spec loading.
 
+## [0.2.71] - 2026-04-23
+
+### Docs
+- Update README.md
+
+### Other
+- Update redeploy/apply/handlers.py
+- Update redeploy/cli/commands/exec_.py
+- Update redeploy/config_apply/handlers/display.py
+- Update redeploy/detect/probes.py
+- Update redeploy/heal/runner.py
+- Update redeploy/markpact/__init__.py
+- Update redeploy/markpact/parser.py
+- Update redeploy/mcp_server.py
+- Update redeploy/tests/test_heal.py
+- Update redeploy/tests/test_security_hardening.py
+
 ## [0.2.70] - 2026-04-23
 
 ### Docs

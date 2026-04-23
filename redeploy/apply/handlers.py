@@ -350,7 +350,7 @@ def _resolve_command_ref(command_ref: str, step: MigrationStep, plan: MigrationP
     - "#section-id" - script from section in current spec file
     - "#kiosk-browser-configuration-script" - markpact:ref block
     """
-    from ..markpact.parser import extract_script_from_markdown, extract_script_by_ref
+    from ..markpact import resolve_script_ref
 
     # Parse command_ref
     if "#" in command_ref:
@@ -367,21 +367,15 @@ def _resolve_command_ref(command_ref: str, step: MigrationStep, plan: MigrationP
     if not file_path.exists():
         raise StepError(step, f"Command ref file not found: {file_path}")
 
-    # Extract script from markdown - try both methods:
-    # 1. First try markpact:ref codeblock (new format)
-    # 2. Then try section heading (old format)
     markdown_content = file_path.read_text(encoding="utf-8")
+    result = resolve_script_ref(markdown_content, section_id, language="bash")
 
-    # Try markpact:ref format first
-    script = extract_script_by_ref(markdown_content, section_id, language="bash")
-
-    # Fallback to section heading format
-    if script is None:
-        script = extract_script_from_markdown(markdown_content, section_id, language="bash")
-
-    if script is None:
-        raise StepError(step, f"Could not find bash script for ref '{section_id}' in {file_path} (tried markpact:ref and section heading)")
-
+    if result is None:
+        raise StepError(
+            step,
+            f"Could not find bash script for ref '{section_id}' in {file_path} (tried markpact:ref and section heading)"
+        )
+    script, _ = result
     return script
 
 

@@ -2,12 +2,34 @@
 from __future__ import annotations
 
 import re
+import shlex
 import sys
 
 from rich.console import Console
 
 from ...detect.remote import RemoteProbe
-from ...hardware.kiosk.compositors import DSI_OUTPUT_NAME
+
+
+_SAFE_OUTPUT_RE = re.compile(r"^[A-Za-z0-9_.:-]+$")
+_ALLOWED_TRANSFORMS = {
+    "normal",
+    "90",
+    "180",
+    "270",
+    "flipped",
+    "flipped-90",
+    "flipped-180",
+    "flipped-270",
+}
+
+
+def _validate_display_inputs(output_name: str, transform: str) -> None:
+    if not _SAFE_OUTPUT_RE.match(output_name):
+        raise ValueError(f"Unsafe display output name: {output_name!r}")
+    if transform not in _ALLOWED_TRANSFORMS:
+        raise ValueError(
+            f"Unsupported transform: {transform!r}. Allowed: {sorted(_ALLOWED_TRANSFORMS)}"
+        )
 
 
 def apply_display_transform(
@@ -30,12 +52,15 @@ def apply_display_transform(
         One of the wlr-randr transforms (``normal``, ``90``, ``180``, ``270``,
         ``flipped``, …).
     """
+    _validate_display_inputs(output_name, transform)
+
     console.print(f"[cyan]→ Setting transform {transform} on {output_name}[/cyan]")
 
     # 1. Apply immediately via wlr-randr
     wlr_cmd = (
         f"WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) "
-        f"wlr-randr --output {output_name} --transform {transform} 2>&1"
+        f"wlr-randr --output {shlex.quote(output_name)} "
+        f"--transform {shlex.quote(transform)} 2>&1"
     )
     r = probe.run(wlr_cmd)
     if r.ok:
@@ -48,7 +73,8 @@ def apply_display_transform(
 
     # 2. Persist in kanshi config — update or create transform line
     kanshi_cfg_path = "~/.config/kanshi/config"
-    read_r = probe.run(f"cat {kanshi_cfg_path} 2>/dev/null")
+    quoted_cfg_path = shlex.quote(kanshi_cfg_path)
+    read_r = probe.run(f"cat {quoted_cfg_path} 2>/dev/null")
 
     if read_r.ok and read_r.out.strip():
         current = read_r.out
@@ -77,7 +103,7 @@ def apply_display_transform(
     # Write updated config
     escaped = new_cfg.replace("'", "'\\''")
     write_r = probe.run(
-        f"mkdir -p ~/.config/kanshi && printf '%s' '{escaped}' > {kanshi_cfg_path}"
+        f"mkdir -p ~/.config/kanshi && printf '%s' '{escaped}' > {quoted_cfg_path}"
     )
     if write_r.ok:
         console.print(f"[green]  ✓ kanshi config updated ({kanshi_cfg_path})[/green]")

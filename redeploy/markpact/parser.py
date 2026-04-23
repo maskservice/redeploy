@@ -278,3 +278,33 @@ def _handle_fence_line(
                 return None, script_lines, True, "\n".join(script_lines)
             return None, script_lines, False, None
     return code_block_lang, script_lines, False, None
+
+
+def resolve_script_ref(
+    md_content: str,
+    ref_id: str,
+    language: str = "bash",
+) -> tuple[str, str] | None:
+    """Resolve a script reference in markdown, trying markpact:ref then section heading.
+
+    Returns ``(script_text, lookup_method)`` or ``None`` if not found.
+    """
+    script = extract_script_by_ref(md_content, ref_id, language=language)
+    if script is not None:
+        return script, "markpact:ref"
+
+    # Try section heading fallback (ref may already have # stripped)
+    section_name = ref_id[1:] if ref_id.startswith("#") else ref_id
+    script = extract_script_from_markdown(md_content, section_name, language=language)
+    if script is not None:
+        return script, "section"
+
+    # Kebab-case fallback: "test-script-section" -> "Test Script Section"
+    if "-" in section_name:
+        script = extract_script_from_markdown(
+            md_content, section_name.replace("-", " "), language=language
+        )
+        if script is not None:
+            return script, "section"
+
+    return None
