@@ -19,11 +19,32 @@ from typing import Any, Optional
 
 from ..models import MigrationStep
 
-from . import builtins, kiosk
+from . import (
+    docker,
+    generic,
+    hardware,
+    k3s,
+    kiosk,
+    podman,
+    process,
+    scm,
+    transfer,
+)
 
 # Merge domain modules into a single flat registry.
+_ALL_MODULES = (
+    docker.ALL
+    + generic.ALL
+    + hardware.ALL
+    + k3s.ALL
+    + kiosk.ALL
+    + podman.ALL
+    + process.ALL
+    + scm.ALL
+    + transfer.ALL
+)
 _LIBRARY: dict[str, MigrationStep] = {
-    s.id: s for s in (builtins.ALL + kiosk.ALL)
+    s.id: s for s in _ALL_MODULES
 }
 
 

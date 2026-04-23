@@ -12,6 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecate legacy `post_deploy` and `pre_deploy` fields in migration specs.
 - Keep backward compatibility: legacy `post_deploy`/`pre_deploy` are auto-converted to `hooks` during spec loading.
 
+## [0.2.69] - 2026-04-23
+
+### Docs
+- Update README.md
+
+### Other
+- Update .redeploy/preflight-schema.yaml
+- Update redeploy/cli/commands/blueprint.py
+- Update redeploy/steps/__init__.py
+- Update redeploy/steps/builtins.py
+- Update redeploy/steps/docker.py
+- Update redeploy/steps/generic.py
+- Update redeploy/steps/hardware.py
+- Update redeploy/steps/k3s.py
+- Update redeploy/steps/podman.py
+- Update redeploy/steps/process.py
+- ... and 3 more files
+
 ## [0.2.68] - 2026-04-23
 
 ### Docs

@@ -212,6 +212,12 @@ def show(blueprint_file, fmt, apply_config, query_expr):
     from ...models import DeviceBlueprint
 
     bp = DeviceBlueprint.load(Path(blueprint_file))
+
+    # --query: extract specific values with JMESPath
+    if query_expr is not None:
+        _execute_query_blueprint(bp, query_expr, fmt)
+        return
+
     if fmt == "json":
         import json as _json
         click.echo(_json.dumps(bp.model_dump(mode="json"), indent=2))
