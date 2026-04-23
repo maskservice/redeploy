@@ -369,3 +369,53 @@ def test_parse_llm_response_preserves_newlines():
     
     result = _parse_llm_response(response_with_whitespace)
     assert "Line 1\nLine 2\rLine 3\tTabbed" in result["thought"]
+
+
+def test_parse_llm_response_handles_trailing_commas():
+    """_parse_llm_response must repair trailing commas before } or ]."""
+    from redeploy.cli.commands.prompt_cmd import _parse_llm_response
+    
+    response_with_trailing_comma = '''{
+  "thought": "test",
+  "argv": ["redeploy", "status",],
+  "confirm": false,
+  "human_summary": "Status check",
+}'''
+    
+    result = _parse_llm_response(response_with_trailing_comma)
+    assert result["argv"] == ["redeploy", "status"]
+    assert result["confirm"] is False
+
+
+def test_parse_llm_response_handles_raw_newlines_in_strings():
+    """_parse_llm_response must escape raw newlines that appear inside JSON strings."""
+    from redeploy.cli.commands.prompt_cmd import _parse_llm_response
+    
+    response_with_raw_newlines = '''{
+  "thought": "Line one
+Line two",
+  "argv": ["redeploy", "status"],
+  "confirm": false,
+  "human_summary": "Status check"
+}'''
+    
+    result = _parse_llm_response(response_with_raw_newlines)
+    assert "Line one\nLine two" in result["thought"]
+
+
+def test_parse_llm_response_extracts_json_from_surrounding_text():
+    """_parse_llm_response must find the JSON object if the LLM adds extra text."""
+    from redeploy.cli.commands.prompt_cmd import _parse_llm_response
+    
+    response_with_extra_text = '''Here is the JSON you requested:
+{
+  "thought": "test",
+  "argv": ["redeploy", "status"],
+  "confirm": false,
+  "human_summary": "Status check"
+}
+Hope that helps!'''
+    
+    result = _parse_llm_response(response_with_extra_text)
+    assert result["argv"] == ["redeploy", "status"]
+    assert result["confirm"] is False

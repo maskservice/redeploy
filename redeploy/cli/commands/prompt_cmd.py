@@ -121,6 +121,8 @@ def _call_llm(schema: dict, user_prompt: str) -> str:
 
 def _parse_llm_response(raw: str) -> dict:
     """Parse JSON from LLM response, strip accidental fences and escape control characters."""
+    import re
+
     # Strip ```json ... ``` if present
     clean = raw.strip()
     if clean.startswith("```"):
@@ -129,18 +131,92 @@ def _parse_llm_response(raw: str) -> dict:
             line for line in lines
             if not line.strip().startswith("```")
         )
+
+    # Extract innermost balanced {...} if extra text surrounds it
+    def _extract_json(text: str) -> str:
+        start = text.find("{")
+        if start == -1:
+            return text
+        depth = 0
+        for i, ch in enumerate(text[start:], start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start : i + 1]
+        return text
+
+    clean = _extract_json(clean)
+
     # Escape control characters (except \n, \r, \t) for JSON safety
     def escape_control_char(match):
         char = match.group(0)
-        # Keep allowed whitespace, escape others as \uXXXX
         if char in "\n\r\t":
             return char
         return f"\\u{ord(char):04x}"
-    
-    # Match any control character (ord < 32) except \n, \r, \t
-    import re
+
     clean = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", escape_control_char, clean)
-    return json.loads(clean)
+
+    # Try strict parse first
+    try:
+        return json.loads(clean)
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: try ujson (more lenient with some LLM quirks) if available
+    try:
+        import ujson
+        return ujson.loads(clean)
+    except Exception:
+        pass
+
+    # Repair trailing commas before ] or }
+    repaired = re.sub(r",(\s*[}\]])", r"\1", clean)
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError:
+        pass
+
+    # Repair raw newlines inside string values by escaping them
+    def _escape_newlines_in_strings(text: str) -> str:
+        result = []
+        in_string = False
+        escape = False
+        for ch in text:
+            if escape:
+                result.append(ch)
+                escape = False
+                continue
+            if ch == "\\":
+                result.append(ch)
+                escape = True
+                continue
+            if ch == '"' and not in_string:
+                in_string = True
+                result.append(ch)
+                continue
+            if ch == '"' and in_string:
+                in_string = False
+                result.append(ch)
+                continue
+            if ch == "\n" and in_string:
+                result.append("\\n")
+                continue
+            if ch == "\r" and in_string:
+                result.append("\\r")
+                continue
+            result.append(ch)
+        return "".join(result)
+
+    repaired = _escape_newlines_in_strings(clean)
+    try:
+        return json.loads(repaired)
+    except json.JSONDecodeError:
+        pass
+
+    # Last resort: raise original error with cleaned text for debugging
+    raise json.JSONDecodeError("Failed to parse LLM JSON after all repairs", clean, 0)
 
 
 # ---------------------------------------------------------------------------
