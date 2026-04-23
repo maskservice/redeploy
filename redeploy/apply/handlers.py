@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import base64
+import os
+import shlex
 import subprocess
 import threading
 import time
@@ -41,8 +43,10 @@ def run_scp(step: MigrationStep, probe: RemoteProbe, plan: MigrationPlan) -> Non
         step.result = "skipped (same file)"
         return
     if probe.is_local:
+        Path(step.dst).parent.mkdir(parents=True, exist_ok=True)
         cmd = ["cp", step.src, step.dst]
     else:
+        _ensure_remote_parent_dir(probe, step.dst)
         cmd = ["scp", "-o", "StrictHostKeyChecking=no",
                step.src, f"{plan.host}:{step.dst}"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
@@ -58,7 +62,9 @@ def run_rsync(step: MigrationStep, probe: RemoteProbe, plan: MigrationPlan) -> N
         raise StepError(step, "rsync requires src and dst")
     if probe.is_local:
         dst = step.dst
+        Path(dst).mkdir(parents=True, exist_ok=True)
     else:
+        _ensure_remote_parent_dir(probe, step.dst)
         dst = f"{plan.host}:{step.dst}"
     cmd = ["rsync", "-az", "--delete"]
     for exc in step.excludes:
@@ -69,6 +75,23 @@ def run_rsync(step: MigrationStep, probe: RemoteProbe, plan: MigrationPlan) -> N
         raise StepError(step, f"rsync failed: {result.stderr[:200]}")
     step.status = StepStatus.DONE
     step.result = "ok"
+
+
+def _ensure_remote_parent_dir(probe: RemoteProbe, remote_dst: str) -> None:
+    """Best-effort mkdir -p for remote transfer destinations."""
+    target = remote_dst.strip()
+    if not target:
+        return
+
+    mkdir_target = target if target.endswith("/") else os.path.dirname(target)
+    if not mkdir_target or mkdir_target == ".":
+        return
+
+    cmd = f"mkdir -p {shlex.quote(mkdir_target)}"
+    r = probe.run(cmd, timeout=30)
+    if not r.ok:
+        # Non-fatal here; scp/rsync call will still provide concrete error if needed.
+        logger.debug("mkdir preflight failed for {}: {}", remote_dst, (r.stderr or "")[:200])
 
 
 def run_docker_build(

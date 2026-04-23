@@ -10,6 +10,8 @@ Scans compiled MigrationSpec + raw markpact blocks for:
 from __future__ import annotations
 
 import re
+import shlex
+import shutil
 import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
@@ -282,6 +284,213 @@ class _ComposeChecker(_Checker):
                                 )
 
 
+class _DockerBuildChecker(_Checker):
+    """Validate docker build commands: Dockerfile exists, context is consistent."""
+
+    DOCKER_BUILD_RE = re.compile(
+        r"docker\s+(?:buildx\s+)?build\s+"
+    )
+    FILE_FLAG_RE = re.compile(r"-f\s+(\S+)|--file[=\s]+(\S+)")
+    CONTEXT_RE = re.compile(r"[^\s]+\s+(\S+)$")  # last non-flag argument
+
+    def check(self, spec, document, base_dir, result):
+        # Collect all sync destinations for context verification
+        sync_dests = set()
+        sync_mappings: list[tuple[str, str]] = []  # (remote dst, local src)
+        for step in spec.extra_steps:
+            sid = step.get("id", "")
+            if sid.startswith("sync_"):
+                dst = step.get("dst", "")
+                src = step.get("src", "")
+                if dst:
+                    sync_dests.add(dst.rstrip("/"))
+                    if src:
+                        sync_mappings.append((dst.rstrip("/"), src))
+
+        for step in spec.extra_steps:
+            cmd = step.get("command", "")
+            if not self.DOCKER_BUILD_RE.search(cmd):
+                continue
+
+            sid = step.get("id", "unknown")
+
+            # Extract -f/--file
+            dockerfile = None
+            for match in self.FILE_FLAG_RE.finditer(cmd):
+                dockerfile = match.group(1) or match.group(2)
+                break
+
+            # Extract context (last non-flag argument)
+            context = "."
+            tokens = cmd.split()
+            # Remove flags and their values to find context
+            i = len(tokens) - 1
+            while i > 0:
+                token = tokens[i]
+                if token.startswith("-"):
+                    i -= 1
+                    continue
+                # Check if previous token is -f or --file
+                if i > 0 and tokens[i-1] in ("-f", "--file"):
+                    i -= 2
+                    continue
+                if tokens[i-1].startswith("--file="):
+                    i -= 1
+                    continue
+                context = token
+                break
+                i -= 1
+
+            # Validate Dockerfile reference
+            if dockerfile and not dockerfile.startswith("/") and not dockerfile.startswith("~"):
+                # Relative Dockerfile path - check in local base_dir
+                df_path = base_dir / dockerfile
+                if not df_path.exists():
+                    result.add(
+                        IssueSeverity.ERROR, "docker_build",
+                        f"Step '{sid}' docker build references missing Dockerfile: {dockerfile}",
+                        sid,
+                        suggestion=f"Create {df_path} or use standard 'Dockerfile' name."
+                    )
+                elif dockerfile not in ("Dockerfile", "dockerfile", "Dockerfile.prod", "Dockerfile.dev"):
+                    # Non-standard Dockerfile name - info
+                    result.add(
+                        IssueSeverity.WARNING, "docker_build",
+                        f"Step '{sid}' uses non-standard Dockerfile name: {dockerfile}",
+                        sid,
+                        suggestion="Consider using standard 'Dockerfile' with multi-arch support."
+                    )
+
+            # Check context path consistency with sync destinations
+            if context.startswith("~/"):
+                # Remote path - check if any sync destination matches
+                context_clean = context.rstrip("/")
+                context_remote = context_clean[2:]  # e.g., "c2004/oqlos/cql"
+                sync_remote_paths = {
+                    d[2:].rstrip("/") for d in sync_dests if d.startswith("~/")
+                }
+                # Context should be exactly a sync dest or a subdirectory of one
+                matched = any(
+                    context_remote == sp or context_remote.startswith(sp + "/")
+                    for sp in sync_remote_paths
+                )
+                if not matched and sync_dests:
+                    result.add(
+                        IssueSeverity.WARNING, "docker_build",
+                        f"Step '{sid}' docker build uses remote context '{context}' that doesn't match any sync destination",
+                        sid,
+                        suggestion=f"Sync destinations: {', '.join(sorted(sync_dests))} — verify context path."
+                    )
+
+                # If context maps to a synced local dir, verify Dockerfile exists locally there too.
+                if dockerfile and matched:
+                    local_src = self._match_local_src(sync_mappings, context_clean)
+                    if local_src:
+                        local_df = self._resolve_local_dockerfile(local_src, dockerfile, base_dir)
+                        if local_df is not None and not local_df.exists():
+                            result.add(
+                                IssueSeverity.ERROR,
+                                "docker_build",
+                                f"Step '{sid}' Dockerfile '{dockerfile}' not found in synced local source '{local_src}'",
+                                sid,
+                                suggestion=f"Ensure {dockerfile} exists under {local_src} before sync/build.",
+                            )
+
+    @staticmethod
+    def _match_local_src(sync_mappings: list[tuple[str, str]], remote_context: str) -> str | None:
+        for remote_dst, local_src in sync_mappings:
+            if not remote_dst.startswith("~/"):
+                continue
+            dst_clean = remote_dst.rstrip("/")
+            if remote_context == dst_clean or remote_context.startswith(dst_clean + "/"):
+                return local_src
+        return None
+
+    @staticmethod
+    def _resolve_local_dockerfile(local_src: str, dockerfile: str, base_dir: Path) -> Path | None:
+        src = local_src.rstrip("/")
+        src_path = Path(src)
+        if not src_path.is_absolute():
+            src_path = (base_dir / src_path).resolve()
+        if dockerfile.startswith("/"):
+            return Path(dockerfile)
+        return src_path / dockerfile
+
+
+class _CommandRefChecker(_Checker):
+    """Validate command_ref references for nested markdown/script dependencies."""
+
+    def check(self, spec, document, base_dir, result):
+        from ..markpact.parser import extract_script_by_ref, extract_script_from_markdown
+
+        in_doc_refs: set[str] = set()
+        if document:
+            for block in document.blocks:
+                if block.kind == "ref" and block.ref_id:
+                    in_doc_refs.add(block.ref_id)
+
+        for step in spec.extra_steps:
+            sid = step.get("id")
+            cref = step.get("command_ref")
+            if not cref:
+                continue
+
+            if "#" in cref:
+                file_part, ref_id = cref.split("#", 1)
+                if file_part:
+                    file_path = self._resolve(file_part, base_dir)
+                    if not file_path.exists():
+                        result.add(
+                            IssueSeverity.ERROR,
+                            "command_ref",
+                            f"Step '{sid}' command_ref file missing: {file_part}",
+                            sid,
+                            suggestion=f"Create or fix path: {file_path}",
+                        )
+                        continue
+                    text = file_path.read_text(encoding="utf-8", errors="replace")
+                    if not (
+                        extract_script_by_ref(text, ref_id, language="bash")
+                        or extract_script_from_markdown(text, ref_id, language="bash")
+                    ):
+                        result.add(
+                            IssueSeverity.ERROR,
+                            "command_ref",
+                            f"Step '{sid}' command_ref '#{ref_id}' not found in {file_part}",
+                            sid,
+                            suggestion="Add a matching markpact:ref bash block or section heading script.",
+                        )
+                else:
+                    if document and ref_id not in in_doc_refs:
+                        result.add(
+                            IssueSeverity.WARNING,
+                            "command_ref",
+                            f"Step '{sid}' command_ref '#{ref_id}' not found as markpact:ref in current spec",
+                            sid,
+                            suggestion="If this is a heading-based script, keep as-is; otherwise add markpact:ref block.",
+                        )
+                continue
+
+            # Simple ref id in current markdown doc.
+            if document and cref not in in_doc_refs:
+                result.add(
+                    IssueSeverity.WARNING,
+                    "command_ref",
+                    f"Step '{sid}' references unknown command_ref '{cref}'",
+                    sid,
+                    suggestion="Define a matching markpact:ref block in this spec.",
+                )
+
+    @staticmethod
+    def _resolve(val: str, base_dir: Path) -> Path:
+        val = val.strip()
+        if val.startswith("~/"):
+            return Path.home() / val[2:]
+        if val.startswith("/"):
+            return Path(val)
+        return base_dir / val
+
+
 class _EnvFileChecker(_Checker):
     """Check that .env referenced by target.env_file exists."""
 
@@ -302,28 +511,71 @@ class _BinaryChecker(_Checker):
 
     def check(self, spec, document, base_dir, result):
         for step in spec.extra_steps:
+            action = str(step.get("action") or "")
+            if action in {"ensure_kanshi_profile"}:
+                # This action uses declarative profile syntax, not shell commands.
+                continue
             cmd = step.get("command") or ""
-            for word in cmd.split():
-                word = word.strip(";|&`'\"()")
-                if "/" in word or word in ("if", "then", "else", "fi", "for", "do", "done", "echo", "true", "false"):
+            for binary in self._extract_binaries(cmd):
+                if not self._which(binary):
+                    result.add(
+                        IssueSeverity.WARNING,
+                        "binaries",
+                        f"Step '{step.get('id')}' command uses binary not found locally: '{binary}'",
+                        step.get("id"),
+                        suggestion=f"Install '{binary}' locally for lint parity, or ignore if it exists only on remote host.",
+                    )
+
+    @staticmethod
+    def _extract_binaries(cmd: str) -> list[str]:
+        wrappers = {"sudo", "env", "command", "nohup", "time", "exec"}
+        keywords = {
+            "if", "then", "else", "fi", "for", "do", "done", "while", "case", "esac",
+            "function", "in", "until", "select", "echo", "true", "false", "test", "[", "[[",
+        }
+        separators = {"&&", "||", "|", ";", "(" , ")", "{" , "}"}
+
+        try:
+            tokens = shlex.split(cmd, posix=True)
+        except ValueError:
+            # Keep lint robust on malformed shell snippets.
+            tokens = cmd.split()
+
+        out: list[str] = []
+        expect_cmd = True
+        i = 0
+        while i < len(tokens):
+            tok = tokens[i]
+
+            if tok in separators:
+                expect_cmd = True
+                i += 1
+                continue
+
+            if expect_cmd:
+                if tok in keywords or tok.startswith("$"):
+                    if tok == "for":
+                        # `for <var> in ...` — skip variable token.
+                        i += 1
+                    i += 1
+                    expect_cmd = False
                     continue
-                if not self._which(word):
-                    # Only warn for likely commands (simple words, not variable names)
-                    if re.match(r"^[a-zA-Z][a-zA-Z0-9_-]+$", word):
-                        result.add(
-                            IssueSeverity.WARNING, "binaries",
-                            f"Step '{step.get('id')}' command uses binary not found locally: '{word}'",
-                            step.get("id"),
-                            suggestion=f"Install '{word}' or ensure it exists on target host."
-                        )
+                if "=" in tok and not tok.startswith("--") and "/" not in tok:
+                    # shell assignment prefix: FOO=bar cmd
+                    i += 1
+                    continue
+                if tok in wrappers:
+                    i += 1
+                    continue
+                if re.match(r"^[a-zA-Z_][a-zA-Z0-9_.-]*$", tok) and len(tok) > 1:
+                    out.append(tok)
+                expect_cmd = False
+            i += 1
+        return out
 
     @staticmethod
     def _which(cmd: str) -> bool:
-        try:
-            subprocess.run(["which", cmd], capture_output=True, check=True)
-            return True
-        except Exception:
-            return False
+        return shutil.which(cmd) is not None
 
 
 class SpecAnalyzer:
@@ -332,6 +584,8 @@ class SpecAnalyzer:
     DEFAULT_CHECKERS: list[_Checker] = [
         _PathChecker(),
         _CommandPathChecker(),
+        _DockerBuildChecker(),
+        _CommandRefChecker(),
         _ReferenceChecker(),
         _ComposeChecker(),
         _EnvFileChecker(),

@@ -238,8 +238,14 @@ class Planner:
             description=f"Install Quadlet unit files to {quadlet_dst}/",
             command=(
                 f"mkdir -p {quadlet_dst} && "
-                f"cp {quadlet_src}/*.container {quadlet_src}/*.network "
-                f"{quadlet_src}/*.volume {quadlet_dst}/ 2>/dev/null || true"
+                f"SRC={quadlet_src} && "
+                f"if [ -d {quadlet_src}/http ]; then SRC={quadlet_src}/http; "
+                f"elif [ -d {quadlet_src}/traefik ]; then SRC={quadlet_src}/traefik; fi && "
+                f"rm -f {quadlet_dst}/c2004*.container {quadlet_dst}/c2004*.network {quadlet_dst}/c2004*.volume && "
+                f"for ext in container network volume; do "
+                f"for f in $SRC/*.$ext; do "
+                f"[ -e \"$f\" ] || continue; cp \"$f\" {quadlet_dst}/; "
+                f"done; done"
             ),
             risk=ConflictSeverity.LOW,
             rollback_command=f"{systemctl} stop {app} || true",

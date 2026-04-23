@@ -1,0 +1,78 @@
+schema_version: '1.0'
+generated_at: '2026-04-23T13:09:06.699986+00:00'
+spec:
+  path: /tmp/pytest-of-tom/pytest-38/test_run_plan_only_supports_ma0/migration.md
+  name: markdown migration
+  source_strategy: docker_full
+  target_strategy: docker_full
+  host: local
+plan:
+  steps_total: 7
+  risk: low
+  estimated_downtime: rolling (no downtime)
+  steps:
+  - id: sync_env
+    action: scp
+    description: Copy env file to remote
+    has_command_ref: false
+    insert_before: null
+  - id: docker_build_pull
+    action: docker_build
+    description: Build Docker images on remote
+    has_command_ref: false
+    insert_before: null
+  - id: docker_compose_up
+    action: docker_compose_up
+    description: Start Docker Compose stack
+    has_command_ref: false
+    insert_before: null
+  - id: wait_healthy
+    action: docker_health_wait
+    description: Wait until all containers are healthy/running
+    has_command_ref: false
+    insert_before: null
+  - id: container_logs
+    action: container_log_tail
+    description: Tail container logs after startup
+    has_command_ref: false
+    insert_before: null
+  - id: http_health_check
+    action: http_check
+    description: Verify backend health endpoint
+    has_command_ref: false
+    insert_before: null
+  - id: version_check
+    action: version_check
+    description: Verify deployed version = 1.0.1
+    has_command_ref: false
+    insert_before: null
+checks:
+  lint:
+    enabled: false
+    errors: 0
+    warnings: 0
+    issues: []
+  command_refs: []
+  local_artifacts:
+  - kind: env_file
+    path: .env
+    resolved: /home/tom/github/maskservice/redeploy/.env
+    exists: true
+    steps: []
+  - kind: src
+    path: .env
+    resolved: /home/tom/github/maskservice/redeploy/.env
+    exists: true
+    steps:
+    - sync_env
+  remote:
+    enabled: true
+    host: local
+    reachable: true
+    checks: []
+blockers: []
+summary:
+  blockers: 0
+  local_missing: 0
+  refs_missing: 0
+  remote_failed_checks: 0

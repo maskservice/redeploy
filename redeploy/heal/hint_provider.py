@@ -1,11 +1,17 @@
 """LLM hint generation and spec patching utilities."""
 from __future__ import annotations
 
+import datetime
 import os
 import re
+import sys
 import textwrap
 from pathlib import Path
 from typing import Optional
+
+import yaml
+
+from loguru import logger
 
 # ---------------------------------------------------------------------------
 # Diagnostics catalogue -- targeted SSH commands per failed step ID
@@ -89,8 +95,13 @@ def ask_llm(
     diag: str,
     spec_text: str,
     fix_hint: str = "",
+    log_dir: Path | None = None,
 ) -> str:
-    """Ask LiteLLM to propose a fixed YAML block for the failed step."""
+    """Ask LiteLLM to propose a fixed YAML block for the failed step.
+
+    Saves full prompt + response to *log_dir* (defaults to ``.redeploy/logs/``).
+    Suppresses litellm stdout/stderr spam (e.g. repeated Provider List).
+    """
     try:
         import litellm
     except ImportError:
@@ -101,6 +112,12 @@ def ask_llm(
     api_base = "https://openrouter.ai/api/v1" if "openrouter" in model else None
 
     hint_section = f"\n## User-reported issue:\n{fix_hint}\n" if fix_hint else ""
+    current_step_block = _extract_step_block(spec_text, failed_step)
+    current_step_section = (
+        f"\n### Current step block to fix (keep same id/action shape):\n```yaml\n{current_step_block}\n```\n"
+        if current_step_block
+        else ""
+    )
 
     prompt = textwrap.dedent(f"""
         You are an expert in Raspberry Pi 5 deployments with Podman Quadlet, labwc Wayland compositor and Chromium kiosk.
@@ -122,21 +139,31 @@ def ask_llm(
         {spec_text[:5000]}
         ```
 
+                {current_step_section}
+
         {KNOWN_CONSTRAINTS}
 
         ## Task:
-        Fix ONLY the step `{failed_step}`. Return ONLY the corrected YAML block:
+                Fix ONLY the step `{failed_step}`.
+                Preserve the same `id` and keep the same `action` unless absolutely required.
+                If the current step uses `command_ref`, keep `command_ref` style (do not rewrite to ad-hoc `command` unless strictly necessary).
+                Return ONLY the corrected YAML step block:
 
         ```yaml
-        - id: {failed_step}
-          action: ssh_cmd
-          description: "..."
-          command: |
-            <corrected command>
+                - id: {failed_step}
+                    ...
         ```
 
         Nothing else. No explanation outside the code block.
     """).strip()
+
+    # Ensure log directory exists
+    if log_dir is None:
+        log_dir = Path.cwd() / ".redeploy" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"llm_{timestamp}_{failed_step}.md"
 
     try:
         kwargs: dict = dict(
@@ -150,10 +177,69 @@ def ask_llm(
         if api_base:
             kwargs["api_base"] = api_base
 
-        resp = litellm.completion(**kwargs)
-        return resp.choices[0].message.content.strip()
+        # Suppress litellm stdout/stderr spam (Provider List, etc.)
+        import contextlib
+        import io
+        _stdout, _stderr = sys.stdout, sys.stderr
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
+        try:
+            resp = litellm.completion(**kwargs)
+            content = resp.choices[0].message.content.strip()
+        finally:
+            _captured_out = sys.stdout.getvalue()
+            _captured_err = sys.stderr.getvalue()
+            sys.stdout, sys.stderr = _stdout, _stderr
+            # Log any captured litellm noise for debugging
+            if _captured_err.strip() and "Provider List" not in _captured_err:
+                logger.debug("litellm stderr: {}", _captured_err[:500])
+
+        # Write request/response log
+        _write_llm_log(log_file, model, failed_step, prompt, content)
+        return content
     except Exception as e:
-        return f"# LLM error: {e}"
+        error_msg = f"# LLM error: {e}"
+        _write_llm_log(log_file, model, failed_step, prompt, error_msg, error=str(e))
+        return error_msg
+
+
+def _write_llm_log(
+    path: Path,
+    model: str,
+    failed_step: str,
+    prompt: str,
+    response: str,
+    error: str = "",
+) -> None:
+    """Persist a single LLM call to a markdown file."""
+    from loguru import logger as _logger
+    lines = [
+        f"# LLM call — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"- **model**: `{model}`",
+        f"- **step**: `{failed_step}`",
+    ]
+    if error:
+        lines.append(f"- **error**: `{error}`")
+    lines.extend([
+        "",
+        "## Prompt",
+        "",
+        "```",
+        prompt,
+        "```",
+        "",
+        "## Response",
+        "",
+        "```yaml",
+        response,
+        "```",
+        "",
+    ])
+    try:
+        path.write_text("\n".join(lines), encoding="utf-8")
+        _logger.debug("LLM log written → {}", path)
+    except Exception as exc:
+        _logger.warning("Failed to write LLM log {}: {}", path, exc)
 
 
 def apply_fix_to_spec(spec_path: Path, failed_step: str, llm_response: str) -> bool:
@@ -176,9 +262,47 @@ def apply_fix_to_spec(spec_path: Path, failed_step: str, llm_response: str) -> b
     if not match:
         return False
 
+    old_block = match.group(1)
+    old_step = _parse_step_block(old_block)
+    new_step = _parse_step_block(new_block)
+
+    if old_step and new_step:
+        if str(new_step.get("id", "")) != failed_step:
+            return False
+
+        allow_action_change = os.getenv("REDEPLOY_HEAL_ALLOW_ACTION_CHANGE", "0") == "1"
+        if not allow_action_change and old_step.get("action") and new_step.get("action") != old_step.get("action"):
+            new_step["action"] = old_step["action"]
+
+        allow_ref_drop = os.getenv("REDEPLOY_HEAL_ALLOW_COMMAND_REF_DROP", "0") == "1"
+        if old_step.get("command_ref") and not new_step.get("command_ref") and not allow_ref_drop:
+            new_step["command_ref"] = old_step.get("command_ref")
+            if "command" in new_step:
+                del new_step["command"]
+
+        new_block = yaml.safe_dump([new_step], sort_keys=False, allow_unicode=True).strip()
+
     indented = "\n".join("  " + line if line else "" for line in new_block.splitlines())
     spec_path.write_text(text[: match.start()] + indented + "\n" + text[match.end():])
     return True
+
+
+def _extract_step_block(spec_text: str, step_id: str) -> str:
+    pattern = rf"(  - id: {re.escape(step_id)}\n(?:(?!  - id:).)*)"
+    m = re.search(pattern, spec_text, re.DOTALL)
+    return m.group(1).rstrip() if m else ""
+
+
+def _parse_step_block(block: str) -> dict | None:
+    try:
+        data = yaml.safe_load(block)
+    except Exception:
+        return None
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        return data[0]
+    if isinstance(data, dict):
+        return data
+    return None
 
 
 def parse_failed_step(executor_summary: str, executor=None) -> tuple[Optional[str], str]:

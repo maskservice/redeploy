@@ -1,6 +1,7 @@
 """Self-healing runner — orchestrates detect → LLM fix → retry loop."""
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -133,9 +134,16 @@ class HealRunner:
         )
 
         # Ask LLM
-        self.console.print("  [dim]asking LLM for fix...[/dim]")
+        model = os.getenv("LLM_MODEL", "openrouter/qwen/qwen3-coder-next")
+        self.console.print(
+            f"  [dim]asking LLM ({model}) to fix step `{failed_step}`...[/dim]"
+        )
         spec_text = self.spec_path.read_text()
-        llm_response = ask_llm(failed_step, step_output, diag, spec_text, self.fix_hint)
+        log_dir = self.spec_path.parent / ".redeploy" / "logs"
+        llm_response = ask_llm(
+            failed_step, step_output, diag, spec_text,
+            fix_hint=self.fix_hint, log_dir=log_dir,
+        )
 
         fixed = False
         summary = "manual"

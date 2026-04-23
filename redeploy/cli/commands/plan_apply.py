@@ -268,10 +268,30 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
     "--lint/--no-lint", default=True, show_default=True,
     help="Run static analysis before deployment to catch missing files, broken references, and external path issues."
 )
+@click.option(
+    "--preflight/--no-preflight", default=True, show_default=True,
+    help="Generate operational preflight schema (resolved refs/paths/dependencies) before apply."
+)
+@click.option(
+    "--preflight-schema-out",
+    default=".redeploy/preflight-schema.yaml",
+    show_default=True,
+    type=click.Path(),
+    help="Output path for generated preflight schema snapshot."
+)
+@click.option(
+    "--preflight-remote/--no-preflight-remote", default=True, show_default=True,
+    help="Include best-effort remote host checks (SSH + referenced remote paths) in preflight schema."
+)
+@click.option(
+    "--strict-preflight/--no-strict-preflight", default=True, show_default=True,
+    help="Abort before apply when preflight reports blockers."
+)
 @click.pass_context
 def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
         env_name, progress_yaml, resume, from_step, state_file, no_state,
-        heal, fix_hint, max_heal_retries, lint):
+        heal, fix_hint, max_heal_retries, lint,
+        preflight, preflight_schema_out, preflight_remote, strict_preflight):
     """Execute migration from a single YAML spec (source + target in one file).
 
     SPEC defaults to migration.yaml (or value from redeploy.yaml manifest).
@@ -310,6 +330,7 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
     _print_spec_summary(console, spec)
 
     # Static analysis (lint)
+    lint_result = None
     if lint:
         from ...analyze import SpecAnalyzer, IssueSeverity
         analyzer = SpecAnalyzer(base_dir=Path.cwd())
@@ -346,6 +367,35 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
         console.print(f"  [dim]plan saved → {plan_out}[/dim]")
 
     print_plan_table(console, migration)
+
+    # Operational preflight schema (resolved refs/paths/deps) + optional strict gate
+    if preflight:
+        from ...analyze import generate_preflight_schema, save_preflight_schema
+
+        preflight_result = generate_preflight_schema(
+            spec_path=Path(resolved_spec),
+            spec=spec,
+            migration=migration,
+            lint_result=lint_result,
+            base_dir=Path.cwd(),
+            remote_check=bool(preflight_remote and not dry_run),
+        )
+        save_preflight_schema(preflight_result.schema, Path(preflight_schema_out))
+
+        blockers = len(preflight_result.blockers)
+        console.print(f"\n[bold]preflight[/bold]  [dim]schema saved → {preflight_schema_out}[/dim]")
+        if blockers:
+            console.print(f"[yellow]⚠ preflight blockers: {blockers}[/yellow]")
+            for b in preflight_result.blockers[:10]:
+                sid = f" ({b.get('step_id')})" if b.get("step_id") else ""
+                console.print(f"  [yellow]- {b.get('type')}{sid}: {b.get('message')}[/yellow]")
+            if blockers > 10:
+                console.print(f"  [dim]... and {blockers - 10} more blockers in schema file[/dim]")
+            if strict_preflight:
+                console.print("\n[red]✗ strict preflight failed — aborting before apply[/red]")
+                sys.exit(1)
+        else:
+            console.print("[green]  ✓ preflight passed (no blockers)[/green]")
 
     if plan_only:
         console.print("\n[dim]--plan-only: stopping before apply[/dim]")

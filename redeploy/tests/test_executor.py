@@ -209,7 +209,7 @@ class TestRunScp:
         plan = _make_plan([step])
         exc = _executor(plan)
         exc.probe.is_local = True
-        with patch("subprocess.run") as mock_run:
+        with patch("subprocess.run") as mock_run, patch("pathlib.Path.mkdir"):
             mock_run.return_value = MagicMock(returncode=0)
             exc.run()
         assert mock_run.called
