@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 
 
 def _format_step_output(stdout: str, stderr: str, max_chars: int = 8000) -> str:
-    out = (stdout or "").strip()
-    err = (stderr or "").strip()
+    out = str(stdout or "").strip()
+    err = str(stderr or "").strip()
     chunks: list[str] = []
     if out:
         chunks.append("stdout:\n" + out)

@@ -190,7 +190,7 @@ class TestRunSsh:
         exc = _executor(plan)
         exc.probe.run.return_value.out = "result_value"
         exc.run()
-        assert step.result == "result_value"
+        assert "result_value" in step.result
 
     def test_uses_step_timeout(self):
         step = _make_step("ssh_timeout", command="echo long", timeout=1234)

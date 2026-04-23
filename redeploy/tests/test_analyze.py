@@ -10,6 +10,8 @@ from redeploy.analyze.spec_analyzer import (
     IssueSeverity,
     SpecAnalyzer,
     _DockerBuildChecker,
+    _IgnoreList,
+    ensure_redeployignore,
 )
 from redeploy.models import DeployStrategy, InfraSpec, MigrationSpec
 
@@ -111,6 +113,47 @@ class TestDockerBuildChecker:
         assert not any("doesn't match any sync destination" in w.message for w in result.warnings())
 
 
+class TestIgnoreList:
+    def test_simple_filename_pattern(self, tmp_path: Path):
+        (tmp_path / ".redeployignore").write_text("*.pyc\n")
+        ign = _IgnoreList(tmp_path)
+        assert ign.is_ignored(Path("foo.pyc"))
+        assert not ign.is_ignored(Path("foo.py"))
+
+    def test_directory_pattern(self, tmp_path: Path):
+        (tmp_path / ".redeployignore").write_text("__pycache__/\n")
+        ign = _IgnoreList(tmp_path)
+        assert ign.is_ignored(Path("__pycache__"))
+        assert ign.is_ignored(Path("src/__pycache__"))
+
+    def test_gitignore_and_redeployignore_combined(self, tmp_path: Path):
+        (tmp_path / ".gitignore").write_text("node_modules/\n")
+        (tmp_path / ".redeployignore").write_text("*.log\n")
+        ign = _IgnoreList(tmp_path)
+        assert ign.is_ignored(Path("node_modules"))
+        assert ign.is_ignored(Path("debug.log"))
+        assert not ign.is_ignored(Path("app.py"))
+
+    def test_missing_ignore_files(self, tmp_path: Path):
+        ign = _IgnoreList(tmp_path)
+        assert not ign.is_ignored(Path("anything"))
+
+
+class TestEnsureRedeployignore:
+    def test_creates_file_when_missing(self, tmp_path: Path):
+        ensure_redeployignore(tmp_path)
+        path = tmp_path / ".redeployignore"
+        assert path.exists()
+        content = path.read_text()
+        assert ".git/" in content
+        assert "__pycache__/" in content
+
+    def test_does_not_overwrite_existing(self, tmp_path: Path):
+        (tmp_path / ".redeployignore").write_text("custom\n")
+        ensure_redeployignore(tmp_path)
+        assert (tmp_path / ".redeployignore").read_text() == "custom\n"
+
+
 class TestSpecAnalyzerIntegration:
     def test_analyze_file_markpact(self, tmp_path: Path):
         md = tmp_path / "migration.md"
@@ -138,3 +181,13 @@ class TestSpecAnalyzerIntegration:
         assert spec is not None
         assert not result.passed
         assert any("Dockerfile.rpi5" in i.message for i in result.errors())
+
+    def test_ignored_files_not_reported_as_missing(self, tmp_path: Path):
+        (tmp_path / ".redeployignore").write_text("ignored_file.txt\n")
+        spec = _spec_with_steps([
+            {"id": "sync", "action": "rsync", "src": "ignored_file.txt", "dst": "~/remote/"},
+        ])
+        analyzer = SpecAnalyzer(base_dir=tmp_path, auto_create_redeployignore=False)
+        result = analyzer.analyze(spec)
+        assert result.passed  # should not report ignored_file.txt as missing
+        assert len(result.errors()) == 0

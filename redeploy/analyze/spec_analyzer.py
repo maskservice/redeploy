@@ -293,6 +293,7 @@ class _ComposeChecker(_Checker):
     """Validate docker-compose files declared in spec or found in project."""
 
     def check(self, spec, document, base_dir, result):
+        ign = _IgnoreList(base_dir)
         compose_files = list(spec.target.compose_files or [])
         # Also try to discover common names if none explicitly declared
         if not compose_files:
@@ -310,14 +311,21 @@ class _ComposeChecker(_Checker):
                     suggestion=f"Create {path} or remove from target.compose_files."
                 )
                 continue
-            self._scan_compose(path, base_dir, result)
+            self._scan_compose(path, base_dir, result, ign)
 
-    def _scan_compose(self, path: Path, base_dir: Path, result: AnalysisResult):
+    def _scan_compose(self, path: Path, base_dir: Path, result: AnalysisResult, ign: _IgnoreList):
         try:
             data = yaml.safe_load(path.read_text()) or {}
         except Exception as exc:
             result.add(IssueSeverity.ERROR, "compose", f"Cannot parse {path}: {exc}")
             return
+
+        def _skip_ignored(check_path: Path) -> bool:
+            try:
+                rel = check_path.resolve().relative_to(base_dir.resolve())
+                return ign.is_ignored(rel)
+            except ValueError:
+                return False
 
         services = data.get("services", {})
         for svc_name, svc in services.items():
@@ -337,7 +345,7 @@ class _ComposeChecker(_Checker):
                 dockerfile = build.get("dockerfile")
                 if dockerfile:
                     df_path = ctx_path / dockerfile
-                    if not df_path.exists():
+                    if not df_path.exists() and not _skip_ignored(df_path):
                         result.add(
                             IssueSeverity.ERROR, "compose",
                             f"Service '{svc_name}' Dockerfile missing: {df_path}",
@@ -349,7 +357,7 @@ class _ComposeChecker(_Checker):
                 env_files = [env_files]
             for ef in env_files:
                 ef_path = base_dir / ef if not str(ef).startswith("/") else Path(ef)
-                if not ef_path.exists():
+                if not ef_path.exists() and not _skip_ignored(ef_path):
                     result.add(
                         IssueSeverity.WARNING, "compose",
                         f"Service '{svc_name}' env_file missing: {ef}",
@@ -362,7 +370,7 @@ class _ComposeChecker(_Checker):
                         host_part = vol.split(":", 1)[0]
                         # Skip named volumes and relative paths that exist
                         if host_part.startswith("/"):
-                            if not Path(host_part).exists():
+                            if not Path(host_part).exists() and not _skip_ignored(Path(host_part)):
                                 result.add(
                                     IssueSeverity.WARNING, "compose",
                                     f"Service '{svc_name}' volume host path missing: {host_part}",
@@ -370,7 +378,7 @@ class _ComposeChecker(_Checker):
                                 )
                         elif host_part != "." and "/" in host_part:
                             hp = base_dir / host_part
-                            if not hp.exists():
+                            if not hp.exists() and not _skip_ignored(hp):
                                 result.add(
                                     IssueSeverity.WARNING, "compose",
                                     f"Service '{svc_name}' relative volume path missing: {hp}",
@@ -687,9 +695,11 @@ class SpecAnalyzer:
     ]
 
     def __init__(self, base_dir: Path | None = None,
-                 checkers: list[_Checker] | None = None):
+                 checkers: list[_Checker] | None = None,
+                 auto_create_redeployignore: bool = True):
         self.base_dir = base_dir or Path.cwd()
         self.checkers = checkers or list(self.DEFAULT_CHECKERS)
+        self.auto_create_redeployignore = auto_create_redeployignore
 
     def analyze(self, spec: MigrationSpec,
                 document: MarkpactDocument | None = None) -> AnalysisResult:
@@ -703,6 +713,10 @@ class SpecAnalyzer:
         from ..markpact.parser import parse_markpact_file
         from ..markpact.compiler import compile_markpact_document, MarkpactCompileError
         from ..models.spec import MigrationSpec as MS
+
+        # Ensure .redeployignore exists with sensible defaults
+        if self.auto_create_redeployignore:
+            ensure_redeployignore(self.base_dir)
 
         document = None
         spec = None
