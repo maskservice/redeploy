@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import click
@@ -235,6 +236,18 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
     "-o", "--output", default=None, type=click.Path(), help="Save apply results to file"
 )
 @click.option(
+    "--report/--no-report", default=False, show_default=True,
+    help="Write Markdown execution report next to the spec file."
+)
+@click.option(
+    "--report-file", default=None, type=click.Path(),
+    help="Override Markdown report output path."
+)
+@click.option(
+    "--sync-project/--no-sync-project", default=True, show_default=True,
+    help="Before apply, sync full local project tree to target.remote_dir (respects .gitignore/.redeployignore)."
+)
+@click.option(
     "--env", "env_name", default="",
     help="Named environment from redeploy.yaml (e.g. prod, dev, rpi5)"
 )
@@ -289,6 +302,7 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
 )
 @click.pass_context
 def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
+    report, report_file, sync_project,
         env_name, progress_yaml, resume, from_step, state_file, no_state,
         heal, fix_hint, max_heal_retries, lint,
         preflight, preflight_schema_out, preflight_remote, strict_preflight):
@@ -365,6 +379,10 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
     console.print(f"\n[bold]plan[/bold]")
     migration = planner.run()
 
+    # Keep remote app tree synchronized on every deployment run.
+    if sync_project:
+        _inject_project_sync_step(migration, spec, Path.cwd(), console)
+
     if plan_out:
         planner.save(migration, Path(plan_out))
         console.print(f"  [dim]plan saved → {plan_out}[/dim]")
@@ -406,6 +424,7 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
 
     # Apply
     load_user_plugins()
+    started_at = datetime.now(timezone.utc)
 
     # Self-healing mode
     if heal and not dry_run:
@@ -439,6 +458,16 @@ def run(ctx, spec_file, dry_run, plan_only, do_detect, plan_out, output,
             state_file=state_file,
             no_state=no_state,
             spec_path=str(resolved_spec)
+        )
+
+    if report:
+        _write_markdown_report(
+            console=console,
+            migration=migration,
+            spec_path=Path(resolved_spec),
+            started_at=started_at,
+            ok=ok,
+            report_file=Path(report_file) if report_file else None,
         )
 
     if not ok:
@@ -599,8 +628,8 @@ def _ensure_redeployignore(project_root: Path, console) -> None:
         ".git/",
         ".venv/",
         "venv/",
-        ".env",
-        ".env.*",
+        "# NOTE: .env is intentionally not excluded by default",
+        "# so deployment workflows can choose to sync it.",
         "",
         "# Python / Node caches",
         "__pycache__/",
@@ -639,3 +668,165 @@ def _ensure_redeployignore(project_root: Path, console) -> None:
 
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
     console.print(f"[dim]generated {target.name} (first run)[/dim]")
+
+
+def _inject_project_sync_step(migration, spec, project_root: Path, console) -> None:
+    """Inject a full-project rsync step unless already present.
+
+    This keeps remote tree aligned with local sources and catches missing files.
+    """
+    from ...models import MigrationStep, StepAction
+
+    if any(s.id == "sync_project_tree" for s in migration.steps):
+        return
+
+    host = (migration.host or "").strip().lower()
+    if host in {"", "local", "localhost", "127.0.0.1"}:
+        return
+
+    remote_dir = (getattr(spec.target, "remote_dir", "") or "").strip()
+    if not remote_dir:
+        return
+
+    sync_step = MigrationStep(
+        id="sync_project_tree",
+        action=StepAction.RSYNC,
+        description="Sync full project tree to remote_dir (respect .gitignore/.redeployignore)",
+        src=f"{project_root.as_posix().rstrip('/')}/",
+        dst=f"{remote_dir.rstrip('/')}/",
+        excludes=[
+            ".git/",
+            ".redeploy/state/",
+            ".redeploy/logs/",
+        ],
+    )
+
+    insert_at = 0
+    for idx, step in enumerate(migration.steps):
+        if step.id == "sync_env":
+            insert_at = idx + 1
+            break
+    migration.steps.insert(insert_at, sync_step)
+    console.print("[dim]plan: injected sync_project_tree (full rsync before apply)[/dim]")
+
+
+def _default_report_path(spec_path: Path) -> Path:
+    return spec_path.parent / f".{spec_path.stem}.md"
+
+
+def _resolve_audit_entry(migration, started_at: datetime, ok: bool):
+    from ...observe import AuditEntry, DeployAuditLog
+
+    log = DeployAuditLog()
+    entries = log.filter(host=migration.host, app=migration.app, since=started_at)
+    if entries:
+        return entries[-1]
+
+    # Fallback if audit record is unavailable for any reason.
+    data = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "host": migration.host,
+        "app": migration.app,
+        "from_strategy": migration.from_strategy.value,
+        "to_strategy": migration.to_strategy.value,
+        "ok": ok,
+        "dry_run": False,
+        "elapsed_s": 0.0,
+        "steps_total": len(migration.steps),
+        "steps_ok": sum(1 for s in migration.steps if str(s.status).endswith("DONE")),
+        "steps_failed": sum(1 for s in migration.steps if str(s.status).endswith("FAILED")),
+        "steps": [
+            {
+                "id": s.id,
+                "action": s.action.value,
+                "status": str(s.status).split(".")[-1].lower(),
+                "result": s.result,
+                "error": s.error,
+            }
+            for s in migration.steps
+        ],
+    }
+    return AuditEntry(data)
+
+
+def _step_command_block(step) -> str:
+    if step.command:
+        return step.command.strip()
+    if step.command_ref:
+        return f"command_ref: {step.command_ref}"
+    if step.action.value == "rsync":
+        parts = [f"rsync {step.src or ''} -> {step.dst or ''}"]
+        if step.excludes:
+            parts.append("excludes:")
+            parts.extend(f"- {x}" for x in step.excludes)
+        return "\n".join(parts)
+    if step.action.value == "scp":
+        return f"scp {step.src or ''} -> {step.dst or ''}"
+    if step.action.value in {"http_check", "version_check"}:
+        return f"url: {step.url or ''}\nexpect: {step.expect or ''}".strip()
+    return f"action: {step.action.value}"
+
+
+def _render_markdown_report(entry, migration, spec_path: Path) -> str:
+    by_id = {s.id: s for s in migration.steps}
+    lines: list[str] = [
+        f"# Redeploy Execution Report - {spec_path.name}",
+        "",
+        f"- Timestamp: {entry.ts}",
+        f"- Spec: {spec_path}",
+        f"- Host: {entry.host}",
+        f"- App: {entry.app}",
+        f"- Strategy: {entry.from_strategy} -> {entry.to_strategy}",
+        f"- Result: {'SUCCESS' if entry.ok else 'FAILED'}",
+        f"- Steps: {entry.steps_ok}/{entry.steps_total} ok",
+        f"- Elapsed: {entry.elapsed_s:.1f}s",
+        "",
+        "## Step Logs",
+        "",
+    ]
+
+    for i, step_row in enumerate(entry.steps, 1):
+        sid = step_row.get("id", "")
+        status = (step_row.get("status") or "").upper()
+        action = step_row.get("action", "")
+        model_step = by_id.get(sid)
+        desc = model_step.description if model_step else ""
+        cmd = _step_command_block(model_step) if model_step else f"action: {action}"
+        result = (step_row.get("result") or "").strip()
+        error = (step_row.get("error") or "").strip()
+        log_text = error or result or "(no output captured)"
+
+        lines += [
+            f"### {i}. {sid} [{status}]",
+            "",
+            f"- Action: {action}",
+            f"- Description: {desc}",
+            "",
+            "#### Executed",
+            "```bash",
+            cmd,
+            "```",
+            "",
+            "#### Output",
+            "```text",
+            log_text,
+            "```",
+            "",
+        ]
+
+    return "\n".join(lines)
+
+
+def _write_markdown_report(
+    console,
+    migration,
+    spec_path: Path,
+    started_at: datetime,
+    ok: bool,
+    report_file: Path | None = None,
+) -> None:
+    entry = _resolve_audit_entry(migration, started_at=started_at, ok=ok)
+    out_path = report_file or _default_report_path(spec_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(_render_markdown_report(entry, migration, spec_path), encoding="utf-8")
+    console.print(f"[bold]report[/bold]  [dim]saved → {out_path}[/dim]")

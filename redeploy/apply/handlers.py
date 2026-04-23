@@ -21,6 +21,20 @@ if TYPE_CHECKING:
     from .progress import ProgressEmitter
 
 
+def _format_step_output(stdout: str, stderr: str, max_chars: int = 8000) -> str:
+    out = (stdout or "").strip()
+    err = (stderr or "").strip()
+    chunks: list[str] = []
+    if out:
+        chunks.append("stdout:\n" + out)
+    if err:
+        chunks.append("stderr:\n" + err)
+    if not chunks:
+        return "ok"
+    joined = "\n\n".join(chunks)
+    return joined[:max_chars]
+
+
 def run_ssh(step: MigrationStep, probe: RemoteProbe) -> None:
     """Execute SSH command on remote host."""
     cmd = step.command
@@ -28,9 +42,9 @@ def run_ssh(step: MigrationStep, probe: RemoteProbe) -> None:
         raise StepError(step, "No command specified")
     timeout = step.timeout or 300
     r = probe.run(cmd, timeout=timeout)
-    step.result = r.out[:500]
+    step.result = _format_step_output(r.out, r.stderr)
     if not r.ok:
-        raise StepError(step, f"exit={r.exit_code}: {r.stderr[:200]}")
+        raise StepError(step, f"exit={r.exit_code}: {_format_step_output(r.out, r.stderr, 400)}")
     step.status = StepStatus.DONE
 
 
@@ -51,9 +65,9 @@ def run_scp(step: MigrationStep, probe: RemoteProbe, plan: MigrationPlan) -> Non
                step.src, f"{plan.host}:{step.dst}"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     if result.returncode != 0:
-        raise StepError(step, f"scp failed: {result.stderr[:200]}")
+        raise StepError(step, f"scp failed: {_format_step_output(result.stdout, result.stderr, 400)}")
     step.status = StepStatus.DONE
-    step.result = "ok"
+    step.result = _format_step_output(result.stdout, result.stderr)
 
 
 def run_rsync(step: MigrationStep, probe: RemoteProbe, plan: MigrationPlan) -> None:
@@ -80,9 +94,9 @@ def run_rsync(step: MigrationStep, probe: RemoteProbe, plan: MigrationPlan) -> N
     cmd += [step.src, dst]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
     if result.returncode != 0:
-        raise StepError(step, f"rsync failed: {result.stderr[:200]}")
+        raise StepError(step, f"rsync failed: {_format_step_output(result.stdout, result.stderr, 400)}")
     step.status = StepStatus.DONE
-    step.result = "ok"
+    step.result = _format_step_output(result.stdout, result.stderr)
 
 
 def _ensure_remote_parent_dir(probe: RemoteProbe, remote_dst: str) -> None:
