@@ -66,7 +66,15 @@ def run_rsync(step: MigrationStep, probe: RemoteProbe, plan: MigrationPlan) -> N
     else:
         _ensure_remote_parent_dir(probe, step.dst)
         dst = f"{plan.host}:{step.dst}"
-    cmd = ["rsync", "-az", "--delete"]
+    cmd = [
+        "rsync",
+        "-az",
+        "--delete",
+        "--filter",
+        ":- .gitignore",
+        "--filter",
+        ":- .redeployignore",
+    ]
     for exc in step.excludes:
         cmd += ["--exclude", exc]
     cmd += [step.src, dst]
