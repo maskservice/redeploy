@@ -45,6 +45,7 @@ from .commands.probe import probe
 from .commands.target import target
 from .commands.version import version_cmd
 from .commands.workflow import workflow_cmd
+from .commands.gh_workflow import gh_workflow_cmd
 from .commands.exec_ import exec_cmd, exec_multi_cmd
 from .commands.plan_apply import plan, apply, migrate, run
 from .commands.state import state_cmd
@@ -91,6 +92,7 @@ cli.add_command(status)
 cli.add_command(target)
 cli.add_command(version_cmd)
 cli.add_command(workflow_cmd)
+cli.add_command(gh_workflow_cmd)
 cli.add_command(bump_cmd, name="bump")
 cli.add_command(fix_cmd, name="fix")
 cli.add_command(prompt_cmd, name="prompt")

@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.69-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-36.1h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.70-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-36.8h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $7.5000 (90 commits)
-- 👤 **Human dev:** ~$3606 (36.1h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $7.5000 (91 commits)
+- 👤 **Human dev:** ~$3684 (36.8h @ $100/h, 30min dedup)
 
 Generated on 2026-04-23 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.69-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.70-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -28,6 +28,7 @@ redeploy prompt   →  NLP → command via LLM  (natural language interface)
 redeploy mcp      →  start MCP server       (Claude Desktop / VS Code / remote API)
 redeploy scan     →  find devices on LAN    (device registry)
 redeploy target   →  deploy to named device (fleet)
+redeploy gh-workflow → analyze/run GitHub Actions workflows on demand
 ```
 
 ## Install
@@ -217,6 +218,44 @@ redeploy run --env prod             # use prod env from redeploy.yaml
 redeploy run --env rpi5 --detect    # deploy to rpi5 with live probe
 redeploy run --dry-run              # uses .env DEPLOY_* vars if no redeploy.yaml
 ```
+
+### `redeploy gh-workflow [list|analyze|run]`
+
+Analyze and trigger GitHub Actions workflows from your repo on demand.
+
+Prerequisites:
+- GitHub CLI installed: `gh`
+- Authenticated session: `gh auth login`
+- Workflow must define `workflow_dispatch` under `on:` to be runnable manually
+
+Common usage:
+
+```bash
+# List all workflow files and dispatch readiness
+redeploy gh-workflow list
+
+# Analyze one workflow (triggers/jobs + hint if not dispatchable)
+redeploy gh-workflow analyze version-drift
+
+# Analyze all workflows in a custom repo path
+redeploy gh-workflow analyze --repo-root /path/to/repo
+
+# Trigger workflow_dispatch run on demand
+redeploy gh-workflow run version-drift --ref main
+
+# Pass workflow inputs (repeat --field)
+redeploy gh-workflow run release --field env=prod --field force=true
+
+# Trigger and wait for completion (non-zero exit when workflow fails)
+redeploy gh-workflow run version-drift --watch
+
+# Preview gh command without executing
+redeploy gh-workflow run version-drift --dry-run
+```
+
+Notes:
+- `redeploy workflow ...` is for workflows from `redeploy.css`.
+- `redeploy gh-workflow ...` is for GitHub Actions in `.github/workflows/`.
 
 ### Generic pipeline hooks (recommended)
 
