@@ -523,7 +523,7 @@ class _CommandRefChecker(_Checker):
     """Validate command_ref references for nested markdown/script dependencies."""
 
     def check(self, spec, document, base_dir, result):
-        from ..markpact.parser import extract_script_by_ref, extract_script_from_markdown
+        from ..markpact.parser import resolve_script_ref
 
         in_doc_refs: set[str] = set()
         if document:
@@ -551,10 +551,7 @@ class _CommandRefChecker(_Checker):
                         )
                         continue
                     text = file_path.read_text(encoding="utf-8", errors="replace")
-                    if not (
-                        extract_script_by_ref(text, ref_id, language="bash")
-                        or extract_script_from_markdown(text, ref_id, language="bash")
-                    ):
+                    if resolve_script_ref(text, ref_id, language="bash") is None:
                         result.add(
                             IssueSeverity.ERROR,
                             "command_ref",

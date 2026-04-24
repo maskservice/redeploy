@@ -34,7 +34,6 @@ def exec_cmd(ctx, ref, host, markdown_file, dry_run, timeout):
         redeploy exec '#install-deps' --host root@server.com --file deploy.md --dry-run
         redeploy exec 'kiosk-browser-configuration-script' --host pi@192.168.188.108 --file migration.md
     """
-    from ...markpact.parser import extract_script_by_ref
     from ...apply.executor import Executor, MigrationPlan, MigrationStep, StepAction
 
     console = Console()
@@ -65,15 +64,14 @@ def exec_cmd(ctx, ref, host, markdown_file, dry_run, timeout):
     console.print(f"[dim]Reading {md_path}...[/dim]")
     md_content = md_path.read_text(encoding="utf-8")
 
-    script = extract_script_by_ref(md_content, ref_id, language="bash")
-    lookup_method = "markpact:ref"
-
-    if script is None:
+    result = _extract_script_for_ref(md_content, ref_id)
+    if result is None:
         console.print(f"[red]✗ Could not find bash script with ref '#{ref_id}'[/red]")
         console.print("[dim]  Make sure there's either:[/dim]")
         console.print("[dim]    - A codeblock: ```bash markpact:ref {ref_id}[/dim]")
         console.print("[dim]    - Or a ## section heading and ```bash codeblock[/dim]")
         sys.exit(1)
+    script, lookup_method = result
 
     console.print(f"[green]✓[/green] Found script ({len(script)} chars) via {lookup_method} '#{ref_id}'")
 
@@ -183,8 +181,6 @@ def exec_multi_cmd(ctx, refs, host, markdown_file, dry_run, timeout, parallel):
 
 def _extract_all_scripts(md_path, ref_list, console) -> list[tuple[str, str, str]]:
     """Extract all scripts from markdown by ref list."""
-    from ...markpact.parser import extract_script_from_markdown, extract_script_by_ref
-
     md_content = md_path.read_text(encoding="utf-8")
     scripts: list[tuple[str, str, str]] = []
 

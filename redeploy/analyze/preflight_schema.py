@@ -124,7 +124,7 @@ def save_preflight_schema(schema: dict[str, Any], output_path: Path) -> None:
 
 
 def _resolve_command_refs(spec, spec_path: Path, blockers: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    from ..markpact.parser import extract_script_by_ref, extract_script_from_markdown
+    from ..markpact.parser import resolve_script_ref
 
     out: list[dict[str, Any]] = []
     for step in spec.extra_steps:
@@ -156,14 +156,11 @@ def _resolve_command_refs(spec, spec_path: Path, blockers: list[dict[str, Any]])
                 })
                 continue
             text = ref_file.read_text(encoding="utf-8", errors="replace")
-            by_ref = extract_script_by_ref(text, ref_id, language="bash")
-            by_heading = extract_script_from_markdown(text, ref_id, language="bash")
-            if by_ref is not None:
+            result = resolve_script_ref(text, ref_id, language="bash")
+            if result is not None:
                 entry["resolved"] = True
-                entry["mode"] = "markpact_ref"
-            elif by_heading is not None:
-                entry["resolved"] = True
-                entry["mode"] = "heading"
+                _, lookup_method = result
+                entry["mode"] = "markpact_ref" if lookup_method == "markpact:ref" else "heading"
             else:
                 blockers.append({
                     "type": "missing_command_ref",
@@ -178,14 +175,11 @@ def _resolve_command_refs(spec, spec_path: Path, blockers: list[dict[str, Any]])
         entry["file"] = str(ref_file)
         entry["ref"] = cref
         text = ref_file.read_text(encoding="utf-8", errors="replace") if ref_file.exists() else ""
-        by_ref = extract_script_by_ref(text, cref, language="bash")
-        by_heading = extract_script_from_markdown(text, cref, language="bash")
-        if by_ref is not None:
+        result = resolve_script_ref(text, cref, language="bash")
+        if result is not None:
             entry["resolved"] = True
-            entry["mode"] = "markpact_ref"
-        elif by_heading is not None:
-            entry["resolved"] = True
-            entry["mode"] = "heading"
+            _, lookup_method = result
+            entry["mode"] = "markpact_ref" if lookup_method == "markpact:ref" else "heading"
         else:
             blockers.append({
                 "type": "missing_command_ref",
