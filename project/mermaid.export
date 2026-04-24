@@ -222,66 +222,104 @@ flowchart TD
         examples__redeploy_iac_parsers__helm_ansible__AnsiblePlaybookParser__parse("parse CC=11")
     end
     subgraph project__map
-        project__map__toon___is_gitops_command["_is_gitops_command"]
-        project__map__toon___extract_images_from_container_spec["_extract_images_from_container_spec"]
-        project__map__toon__run_ssh["run_ssh"]
-        project__map__toon__run_scp["run_scp"]
-        project__map__toon__run_rsync["run_rsync"]
-        project__map__toon__run_docker_build["run_docker_build"]
-        project__map__toon__run_podman_build["run_podman_build"]
-        project__map__toon__run_docker_health_wait["run_docker_health_wait"]
-        project__map__toon___parse_container_statuses["_parse_container_statuses"]
-        project__map__toon___all_containers_healthy["_all_containers_healthy"]
-        project__map__toon__run_container_log_tail["run_container_log_tail"]
-        project__map__toon__run_http_check["run_http_check"]
-        project__map__toon__run_version_check["run_version_check"]
-        project__map__toon__run_plugin["run_plugin"]
-        project__map__toon__run_wait["run_wait"]
-        project__map__toon__run_inline_script["run_inline_script"]
-        project__map__toon___resolve_command_ref["_resolve_command_ref"]
-        project__map__toon__run_ensure_config_line["run_ensure_config_line"]
-        project__map__toon__run_raspi_config["run_raspi_config"]
-        project__map__toon__run_ensure_kanshi_profile["run_ensure_kanshi_profile"]
-        project__map__toon__run_ensure_autostart_entry["run_ensure_autostart_entry"]
-        project__map__toon__run_ensure_browser_kiosk_script["run_ensure_browser_kiosk_script"]
-        project__map__toon__rollback_steps["rollback_steps"]
-        project__map__toon___now_iso["_now_iso"]
-        project__map__toon___slug["_slug"]
-        project__map__toon__state_key["state_key"]
-        project__map__toon__default_state_path["default_state_path"]
-        project__map__toon__filter_resumable["filter_resumable"]
-        project__map__toon___update_kanshi["_update_kanshi"]
-        project__map__toon__detect_handler["detect_handler"]
-        project__map__toon__apply_state["apply_state"]
-        project__map__toon__run_container_build["run_container_build"]
-        project__map__toon___extract_port["_extract_port"]
-        project__map__toon___normalize_path["_normalize_path"]
-        project__map__toon___strip_remote_dir["_strip_remote_dir"]
-        project__map__toon__audit_spec["audit_spec"]
-        project__map__toon__extract_blueprint["extract_blueprint"]
-        project__map__toon__generate_twin["generate_twin"]
-        project__map__toon___build_service["_build_service"]
-        project__map__toon__generate_migration["generate_migration"]
-        project__map__toon__merge_compose_files["merge_compose_files"]
-        project__map__toon___merge_compose["_merge_compose"]
-        project__map__toon___parse_compose_ports["_parse_compose_ports"]
-        project__map__toon___parse_compose_volumes["_parse_compose_volumes"]
-        project__map__toon___parse_compose_env["_parse_compose_env"]
-        project__map__toon___parse_compose_healthcheck["_parse_compose_healthcheck"]
-        project__map__toon__build_hw_requirements["build_hw_requirements"]
-        project__map__toon__extract_services_from_infra["extract_services_from_infra"]
-        project__map__toon__infer_app_url["infer_app_url"]
-        project__map__toon__parse_migration_meta["parse_migration_meta"]
-        project__map__toon___setup_logging["_setup_logging"]
-        project__map__toon__cli["cli"]
-        project__map__toon___resolve_device["_resolve_device"]
-        project__map__toon__audit["audit"]
-        project__map__toon__blueprint_cmd["blueprint_cmd"]
-        project__map__toon__capture["capture"]
-        project__map__toon___execute_query_blueprint["_execute_query_blueprint"]
-        project__map__toon__twin["twin"]
-        project__map__toon__deploy["deploy"]
-        project__map__toon__show["show"]
+        project__map__toon__plan["plan"]
+        project__map__toon__apply["apply"]
+        project__map__toon__migrate["migrate"]
+        project__map__toon__run["run"]
+        project__map__toon___apply_manifest_to_spec["_apply_manifest_to_spec"]
+        project__map__toon___print_spec_summary["_print_spec_summary"]
+        project__map__toon___perform_live_detect["_perform_live_detect"]
+        project__map__toon___run_apply["_run_apply"]
+        project__map__toon___load_dotenv["_load_dotenv"]
+        project__map__toon___detect_project_version["_detect_project_version"]
+        project__map__toon___print_heal_banner["_print_heal_banner"]
+        project__map__toon___ensure_redeployignore["_ensure_redeployignore"]
+        project__map__toon___inject_project_sync_step["_inject_project_sync_step"]
+        project__map__toon___default_report_path["_default_report_path"]
+        project__map__toon___resolve_audit_entry["_resolve_audit_entry"]
+        project__map__toon___step_command_block["_step_command_block"]
+        project__map__toon___build_checksum_verification["_build_checksum_verification"]
+        project__map__toon___render_markdown_report["_render_markdown_report"]
+        project__map__toon___write_markdown_report["_write_markdown_report"]
+        project__map__toon__ensure_redeployignore["ensure_redeployignore"]
+        project__map__toon__probe["probe"]
+        project__map__toon__version_cmd["version_cmd"]
+        project__map__toon__version_current["version_current"]
+        project__map__toon__version_list["version_list"]
+        project__map__toon__version_verify["version_verify"]
+        project__map__toon__version_bump["version_bump"]
+        project__map__toon__version_set["version_set"]
+        project__map__toon__version_init["version_init"]
+        project__map__toon__version_diff["version_diff"]
+        project__map__toon__parse_json_file["parse_json_file"]
+        project__map__toon___resolve_monorepo_targets["_resolve_monorepo_targets"]
+        project__map__toon___build_package_version_manifest["_build_package_version_manifest"]
+        project__map__toon___resolve_package_release_git_config["_resolve_package_release_git_config"]
+        project__map__toon___resolve_package_release_changelog_config["_resolve_package_release_changelog_"]
+        project__map__toon___print_verify_result["_print_verify_result"]
+        project__map__toon___print_source_drift_status["_print_source_drift_status"]
+        project__map__toon___load_spec_version_diff["_load_spec_version_diff"]
+        project__map__toon___load_live_version_diff["_load_live_version_diff"]
+        project__map__toon___run_version_diff_for_manifest["_run_version_diff_for_manifest"]
+        project__map__toon___bump_single["_bump_single"]
+        project__map__toon___build_condition["_build_condition"]
+        project__map__toon__load_css["load_css"]
+        project__map__toon__load_css_text["load_css_text"]
+        project__map__toon___build_from_nodes["_build_from_nodes"]
+        project__map__toon___build_manifest["_build_manifest"]
+        project__map__toon___build_templates["_build_templates"]
+        project__map__toon___build_workflows["_build_workflows"]
+        project__map__toon__manifest_to_css["manifest_to_css"]
+        project__map__toon___condition_key["_condition_key"]
+        project__map__toon__templates_to_css["templates_to_css"]
+        project__map__toon___resolve_var["_resolve_var"]
+        project__map__toon___parse_port["_parse_port"]
+        project__map__toon___parse_volume["_parse_volume"]
+        project__map__toon___env_dict["_env_dict"]
+        project__map__toon___deep_merge["_deep_merge"]
+        project__map__toon__devices["devices"]
+        project__map__toon__scan["scan"]
+        project__map__toon__device_add["device_add"]
+        project__map__toon__device_rm["device_rm"]
+        project__map__toon__import_cmd["import_cmd"]
+    end
+    subgraph redeploy__analyze
+        redeploy__analyze__spec_analyzer__AnalysisResult__add["add"]
+        redeploy__analyze__spec_analyzer__AnalysisResult__errors["errors"]
+        redeploy__analyze__spec_analyzer__AnalysisResult__warnings["warnings"]
+        redeploy__analyze__spec_analyzer__ensure_redeployignore["ensure_redeployignore"]
+        redeploy__analyze__spec_analyzer___IgnoreList____init__["__init__"]
+        redeploy__analyze__spec_analyzer___IgnoreList___load["_load"]
+        redeploy__analyze__spec_analyzer___IgnoreList__is_ignored("is_ignored CC=10")
+        redeploy__analyze__spec_analyzer___Checker__check["check"]
+        redeploy__analyze__spec_analyzer___PathChecker__check["check"]
+        redeploy__analyze__spec_analyzer___PathChecker___check_field("_check_field CC=9")
+        redeploy__analyze__spec_analyzer___PathChecker___check_env_file["_check_env_file"]
+        redeploy__analyze__spec_analyzer___PathChecker___resolve["_resolve"]
+        redeploy__analyze__spec_analyzer___CommandPathChecker__check("check CC=9")
+        redeploy__analyze__spec_analyzer___CommandPathChecker___resolve["_resolve"]
+        redeploy__analyze__spec_analyzer___CommandPathChecker___is_inside["_is_inside"]
+        redeploy__analyze__spec_analyzer___ReferenceChecker__check("check CC=12")
+        redeploy__analyze__spec_analyzer___ComposeChecker__check["check"]
+        redeploy__analyze__spec_analyzer___ComposeChecker___scan_compose{{_scan_compose CC=26}}
+        redeploy__analyze__spec_analyzer___DockerBuildChecker__check{{check CC=31}}
+        redeploy__analyze__spec_analyzer___DockerBuildChecker___match_local_src["_match_local_src"]
+        redeploy__analyze__spec_analyzer___DockerBuildChecker___resolve_local_dockerfile["_resolve_local_dockerfile"]
+        redeploy__analyze__spec_analyzer___CommandRefChecker__check{{check CC=15}}
+        redeploy__analyze__spec_analyzer___CommandRefChecker___resolve["_resolve"]
+        redeploy__analyze__spec_analyzer___EnvFileChecker__check["check"]
+        redeploy__analyze__spec_analyzer___BinaryChecker__check["check"]
+        redeploy__analyze__spec_analyzer___BinaryChecker___extract_binaries("_extract_binaries CC=14")
+        redeploy__analyze__spec_analyzer___BinaryChecker___which["_which"]
+        redeploy__analyze__spec_analyzer__SpecAnalyzer____init__["__init__"]
+        redeploy__analyze__spec_analyzer__SpecAnalyzer__analyze["analyze"]
+        redeploy__analyze__spec_analyzer__SpecAnalyzer__analyze_file["analyze_file"]
+        redeploy__analyze__preflight_schema__generate_preflight_schema("generate_preflight_schema CC=14")
+        redeploy__analyze__preflight_schema__save_preflight_schema["save_preflight_schema"]
+        redeploy__analyze__preflight_schema___resolve_command_refs("_resolve_command_refs CC=11")
+        redeploy__analyze__preflight_schema___collect_local_artifacts["_collect_local_artifacts"]
+        redeploy__analyze__preflight_schema___collect_remote_checks("_collect_remote_checks CC=8")
+        redeploy__analyze__preflight_schema___resolve_local_path["_resolve_local_path"]
     end
     subgraph redeploy__apply
         redeploy__apply__progress__ProgressEmitter____init__["__init__"]
@@ -318,9 +356,11 @@ flowchart TD
         redeploy__apply__state_apply__InfraStateHandler__apply["apply"]
         redeploy__apply__state_apply__detect_handler["detect_handler"]
         redeploy__apply__state_apply__apply_state["apply_state"]
+        redeploy__apply__handlers___format_step_output["_format_step_output"]
         redeploy__apply__handlers__run_ssh["run_ssh"]
         redeploy__apply__handlers__run_scp["run_scp"]
         redeploy__apply__handlers__run_rsync["run_rsync"]
+        redeploy__apply__handlers___ensure_remote_parent_dir["_ensure_remote_parent_dir"]
         redeploy__apply__handlers__run_docker_build["run_docker_build"]
         redeploy__apply__handlers__run_podman_build["run_podman_build"]
         redeploy__apply__handlers__run_docker_health_wait("run_docker_health_wait CC=10")
@@ -342,8 +382,6 @@ flowchart TD
         redeploy__apply__executor__Executor__run["run"]
         redeploy__apply__executor__Executor___execute_steps_loop["_execute_steps_loop"]
         redeploy__apply__executor__Executor___skip_step["_skip_step"]
-        redeploy__apply__executor__Executor___handle_step_failure["_handle_step_failure"]
-        redeploy__apply__executor__Executor___handle_completion["_handle_completion"]
     end
     subgraph redeploy__audit
         redeploy__audit__AuditReport__add["add"]
@@ -462,6 +500,8 @@ flowchart TD
         redeploy__config_apply__applier__apply_config_dict["apply_config_dict"]
         redeploy__config_apply__applier__apply_config_file["apply_config_file"]
         redeploy__config_apply__loader__load_config_file["load_config_file"]
+        redeploy__config_apply__handlers__display___validate_display_inputs["_validate_display_inputs"]
+        redeploy__config_apply__handlers__display__apply_display_transform["apply_display_transform"]
     end
     subgraph redeploy__data_sync
         redeploy__data_sync__collect_sqlite_counts["collect_sqlite_counts"]
@@ -670,8 +710,11 @@ flowchart TD
         redeploy__heal__decider__format_decision_message["format_decision_message"]
         redeploy__heal__hint_provider___ssh["_ssh"]
         redeploy__heal__hint_provider__collect_diagnostics["collect_diagnostics"]
-        redeploy__heal__hint_provider__ask_llm("ask_llm CC=8")
-        redeploy__heal__hint_provider__apply_fix_to_spec["apply_fix_to_spec"]
+        redeploy__heal__hint_provider__ask_llm("ask_llm CC=12")
+        redeploy__heal__hint_provider___write_llm_log["_write_llm_log"]
+        redeploy__heal__hint_provider__apply_fix_to_spec{{apply_fix_to_spec CC=16}}
+        redeploy__heal__hint_provider___extract_step_block["_extract_step_block"]
+        redeploy__heal__hint_provider___parse_step_block["_parse_step_block"]
         redeploy__heal__hint_provider__parse_failed_step("parse_failed_step CC=8")
         redeploy__heal__loop_detector__HealAbort____init__["__init__"]
         redeploy__heal__loop_detector__HealLoopDetector__observe["observe"]
@@ -680,8 +723,8 @@ flowchart TD
         redeploy__heal__runner__HealRunner____init__["__init__"]
         redeploy__heal__runner__HealRunner___make_executor["_make_executor"]
         redeploy__heal__runner__HealRunner___reload_migration["_reload_migration"]
-        redeploy__heal__runner__HealRunner___heal_step("_heal_step CC=13")
-        redeploy__heal__runner__HealRunner__run["run"]
+        redeploy__heal__runner__HealRunner___heal_step("_heal_step CC=14")
+        redeploy__heal__runner__HealRunner__run("run CC=10")
         redeploy__heal__log_writer__write_repair_log["write_repair_log"]
     end
     subgraph redeploy__iac
@@ -694,7 +737,19 @@ flowchart TD
         redeploy__iac__docker_compose__DockerComposeParser___load_merged["_load_merged"]
         redeploy__iac__docker_compose__DockerComposeParser___find_override["_find_override"]
         redeploy__iac__docker_compose__DockerComposeParser___load_dotenv["_load_dotenv"]
-        redeploy__iac__docker_compose__DockerComposeParser___parse_service{{_parse_service CC=37}}
+        redeploy__iac__docker_compose__DockerComposeParser___resolve_image_and_build["_resolve_image_and_build"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_ports["_parse_service_ports"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_volumes["_parse_service_volumes"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_env["_parse_service_env"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_env_files["_parse_service_env_files"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_networks["_parse_service_networks"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_depends_on["_parse_service_depends_on"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_healthcheck["_parse_service_healthcheck"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_replicas["_parse_service_replicas"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_labels["_parse_service_labels"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service_command["_parse_service_command"]
+        redeploy__iac__docker_compose__DockerComposeParser___build_service_info["_build_service_info"]
+        redeploy__iac__docker_compose__DockerComposeParser___parse_service["_parse_service"]
         redeploy__iac__docker_compose___deep_merge["_deep_merge"]
         redeploy__iac__base__PortInfo____str__["__str__"]
         redeploy__iac__base__ConversionWarning____str__["__str__"]
@@ -729,18 +784,10 @@ flowchart TD
         redeploy__iac__config_hints__ConfigHintsParser___parse_jenkinsfile["_parse_jenkinsfile"]
         redeploy__iac__config_hints__parse_json_file["parse_json_file"]
         redeploy__iac__parsers__compose__DockerComposeParser__can_parse["can_parse"]
-        redeploy__iac__parsers__compose__DockerComposeParser__parse{{parse CC=19}}
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_service{{_parse_service CC=21}}
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_build["_parse_build"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_command["_parse_command"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_ports["_parse_ports"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_port_entry["_parse_port_entry"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_volumes["_parse_volumes"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_volume_entry["_parse_volume_entry"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_env("_parse_env CC=8")
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_depends_on["_parse_depends_on"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_labels["_parse_labels"]
-        redeploy__iac__parsers__compose__DockerComposeParser___parse_healthcheck["_parse_healthcheck"]
+        redeploy__iac__parsers__compose__DockerComposeParser__parse{{parse CC=18}}
+        redeploy__iac__parsers__compose__DockerComposeParser___collect_service_secrets["_collect_service_secrets"]
+        redeploy__iac__parsers__compose__DockerComposeParser___merge_service_env_files("_merge_service_env_files CC=8")
+        redeploy__iac__parsers__compose__DockerComposeParser___collect_service_image["_collect_service_image"]
     end
     subgraph redeploy__integrations
         redeploy__integrations__op3_bridge__make_op3_context_from_ssh_client["make_op3_context_from_ssh_client"]
@@ -759,6 +806,7 @@ flowchart TD
         redeploy__markpact__parser___normalize_section_id["_normalize_section_id"]
         redeploy__markpact__parser___check_heading["_check_heading"]
         redeploy__markpact__parser___handle_fence_line["_handle_fence_line"]
+        redeploy__markpact__parser__resolve_script_ref["resolve_script_ref"]
         redeploy__markpact__compiler__compile_markpact_document["compile_markpact_document"]
         redeploy__markpact__compiler__compile_markpact_document_to_data["compile_markpact_document_to_data"]
         redeploy__markpact__compiler___load_block_payload("_load_block_payload CC=8")
@@ -769,6 +817,7 @@ flowchart TD
     subgraph redeploy__mcp_server
         redeploy__mcp_server___redeploy_bin["_redeploy_bin"]
         redeploy__mcp_server___run["_run"]
+        redeploy__mcp_server___validate_exec_ssh_inputs["_validate_exec_ssh_inputs"]
         redeploy__mcp_server__schema["schema"]
         redeploy__mcp_server__plan_spec["plan_spec"]
         redeploy__mcp_server__run_spec["run_spec"]
@@ -783,36 +832,36 @@ flowchart TD
         redeploy__mcp_server__serve["serve"]
     end
     subgraph redeploy__models
-        redeploy__models__PersistedModel__to_yaml["to_yaml"]
-        redeploy__models__PersistedModel__load["load"]
-        redeploy__models__TargetConfig___accept_strategy_aliases["_accept_strategy_aliases"]
-        redeploy__models___migrate_legacy_post_deploy["_migrate_legacy_post_deploy"]
-        redeploy__models__MigrationSpec__from_file["from_file"]
-        redeploy__models__MigrationSpec__resolve_versions["resolve_versions"]
-        redeploy__models__MigrationSpec__to_infra_state["to_infra_state"]
-        redeploy__models__MigrationSpec__to_target_config["to_target_config"]
-        redeploy__models__ProjectManifest__find_and_load["find_and_load"]
-        redeploy__models__ProjectManifest__find_css["find_css"]
-        redeploy__models__ProjectManifest__env["env"]
-        redeploy__models__ProjectManifest__resolve_env("resolve_env CC=9")
-        redeploy__models__ProjectManifest__from_dotenv("from_dotenv CC=12")
-        redeploy__models__ProjectManifest__apply_to_spec{{apply_to_spec CC=19}}
-        redeploy__models__KnownDevice__record_deploy["record_deploy"]
-        redeploy__models__DeviceMap__save["save"]
-        redeploy__models__DeviceMap__load_for["load_for"]
-        redeploy__models__DeviceMap__list_saved["list_saved"]
-        redeploy__models__DeviceBlueprint__service["service"]
-        redeploy__models__DeviceBlueprint__save["save"]
-        redeploy__models__DeviceBlueprint__list_saved["list_saved"]
-        redeploy__models__DeviceRegistry__get["get"]
-        redeploy__models__DeviceRegistry__upsert["upsert"]
-        redeploy__models__DeviceRegistry__remove["remove"]
-        redeploy__models__DeviceRegistry__by_tag["by_tag"]
-        redeploy__models__DeviceRegistry__by_strategy["by_strategy"]
-        redeploy__models__DeviceRegistry__reachable["reachable"]
-        redeploy__models__DeviceRegistry__default_path["default_path"]
-        redeploy__models__DeviceRegistry__load["load"]
-        redeploy__models__DeviceRegistry__save["save"]
+        redeploy__models__devices__KnownDevice__record_deploy["record_deploy"]
+        redeploy__models__devices__DeviceMap__save["save"]
+        redeploy__models__devices__DeviceMap__load_for["load_for"]
+        redeploy__models__devices__DeviceMap__list_saved["list_saved"]
+        redeploy__models__devices__DeviceRegistry__get["get"]
+        redeploy__models__devices__DeviceRegistry__upsert["upsert"]
+        redeploy__models__devices__DeviceRegistry__remove["remove"]
+        redeploy__models__devices__DeviceRegistry__by_tag["by_tag"]
+        redeploy__models__devices__DeviceRegistry__by_strategy["by_strategy"]
+        redeploy__models__devices__DeviceRegistry__reachable["reachable"]
+        redeploy__models__devices__DeviceRegistry__default_path["default_path"]
+        redeploy__models__devices__DeviceRegistry__load["load"]
+        redeploy__models__devices__DeviceRegistry__save["save"]
+        redeploy__models__persisted__PersistedModel__to_yaml["to_yaml"]
+        redeploy__models__persisted__PersistedModel__load["load"]
+        redeploy__models__blueprint__DeviceBlueprint__service["service"]
+        redeploy__models__blueprint__DeviceBlueprint__save["save"]
+        redeploy__models__blueprint__DeviceBlueprint__list_saved["list_saved"]
+        redeploy__models__manifest__ProjectManifest__find_and_load["find_and_load"]
+        redeploy__models__manifest__ProjectManifest__find_css["find_css"]
+        redeploy__models__manifest__ProjectManifest__env["env"]
+        redeploy__models__manifest__ProjectManifest__resolve_env("resolve_env CC=9")
+        redeploy__models__manifest__ProjectManifest__from_dotenv("from_dotenv CC=12")
+        redeploy__models__manifest__ProjectManifest__apply_to_spec{{apply_to_spec CC=20}}
+        redeploy__models__spec__TargetConfig___accept_strategy_aliases["_accept_strategy_aliases"]
+        redeploy__models__spec___migrate_legacy_post_deploy["_migrate_legacy_post_deploy"]
+        redeploy__models__spec__MigrationSpec__from_file["from_file"]
+        redeploy__models__spec__MigrationSpec__resolve_versions["resolve_versions"]
+        redeploy__models__spec__MigrationSpec__to_infra_state["to_infra_state"]
+        redeploy__models__spec__MigrationSpec__to_target_config["to_target_config"]
     end
     subgraph redeploy__observe
         redeploy__observe__AuditEntry____init__["__init__"]
@@ -947,11 +996,18 @@ flowchart TD
         redeploy__ssh__RemoteExecutor____init__["__init__"]
     end
     subgraph redeploy__steps
-        redeploy__steps__builtins___step["_step"]
+        redeploy__steps__process___step["_step"]
+        redeploy__steps__docker___step["_step"]
         redeploy__steps__StepLibrary__get["get"]
         redeploy__steps__StepLibrary__list["list"]
         redeploy__steps__StepLibrary__all["all"]
         redeploy__steps__StepLibrary__resolve_from_spec["resolve_from_spec"]
+        redeploy__steps__scm___step["_step"]
+        redeploy__steps__hardware___step["_step"]
+        redeploy__steps__k3s___step["_step"]
+        redeploy__steps__podman___step["_step"]
+        redeploy__steps__transfer___step["_step"]
+        redeploy__steps__generic___step["_step"]
     end
     subgraph redeploy__verify
         redeploy__verify__VerifyContext__check("check CC=8")
@@ -1031,13 +1087,13 @@ flowchart TD
     redeploy__observe__DeployAuditLog__record --> redeploy__steps__StepLibrary__list
     redeploy__heal__collect_diagnostics --> redeploy__heal___ssh
     redeploy__heal__HealLoopDetector__observe --> redeploy__steps__StepLibrary__all
-    redeploy__heal__HealRunner___reload_migration --> docs__markpact_implementation_plan__load_migration_spec
-    redeploy__heal__HealRunner___collect_diag_with_hint --> redeploy__heal__collect_diagnostics
-    redeploy__heal__HealRunner___ask_and_apply_fix --> redeploy__heal__ask_llm
-    redeploy__heal__HealRunner___ask_and_apply_fix --> redeploy__heal__apply_fix_to_spec
-    redeploy__heal__HealRunner___record_repair --> redeploy__heal__write_repair_log
-    redeploy__heal__HealRunner__run --> redeploy__heal__write_repair_log
-    redeploy__heal__HealRunner__run --> redeploy__heal__parse_failed_step
+    redeploy__heal__HealRunner___reload_migration --> SUMD__load_migration_spec
+    redeploy__heal__HealRunner___collect_diag_with_hint --> SUMD__collect_diagnostics
+    redeploy__heal__HealRunner___ask_and_apply_fix --> SUMD__ask_llm
+    redeploy__heal__HealRunner___ask_and_apply_fix --> SUMD__apply_fix_to_spec
+    redeploy__heal__HealRunner___record_repair --> SUMD__write_repair_log
+    redeploy__heal__HealRunner__run --> SUMD__write_repair_log
+    redeploy__heal__HealRunner__run --> SUMD__parse_failed_step
     redeploy__parse__parse_diagnostics --> redeploy__parse___parse_section_line
     redeploy__parse___parse_section_line --> redeploy__parse___apply_system_line
     redeploy__parse___parse_section_line --> redeploy__parse__parse_container_line
@@ -1047,17 +1103,11 @@ flowchart TD
     redeploy__fleet__Fleet____init__ --> redeploy__steps__StepLibrary__list
     redeploy__fleet__Fleet__from_registry --> redeploy__steps__StepLibrary__list
     redeploy__fleet__Fleet__merge --> redeploy__steps__StepLibrary__list
-    redeploy__models___migrate_legacy_post_deploy --> redeploy__steps__StepLibrary__list
-    redeploy__models__MigrationSpec__from_file --> redeploy__models___migrate_legacy_post_deploy
-    redeploy__models__MigrationSpec__to_target_config --> redeploy__steps__StepLibrary__list
-    redeploy__models__ProjectManifest__find_and_load --> redeploy__steps__StepLibrary__list
-    redeploy__models__ProjectManifest__find_and_load --> redeploy__dsl__loader__load_css
-    redeploy__models__ProjectManifest__find_css --> redeploy__steps__StepLibrary__list
-    redeploy__spec_loader__load_migration_spec --> redeploy__markpact__compiler__compile_markpact_document
-    redeploy__spec_loader__load_migration_spec --> redeploy__markpact__parser__parse_markpact_file
-    redeploy__patterns__BlueGreenPattern__expand --> redeploy__patterns___step
-    redeploy__patterns__CanaryPattern__expand --> redeploy__patterns___step
-    redeploy__patterns__RollbackOnFailurePattern__expand --> redeploy__patterns___step
+    redeploy__spec_loader__load_migration_spec --> SUMD__compile_markpact_document
+    redeploy__spec_loader__load_migration_spec --> SUMD__parse_markpact_file
+    redeploy__patterns__BlueGreenPattern__expand --> SUMD___step
+    redeploy__patterns__CanaryPattern__expand --> SUMD___step
+    redeploy__patterns__RollbackOnFailurePattern__expand --> SUMD___step
     redeploy__patterns__list_patterns --> redeploy__steps__StepLibrary__list
     redeploy__discovery___scan_arp_cache --> redeploy__discovery___run
     redeploy__discovery___scan_mdns --> redeploy__discovery___run
@@ -1082,88 +1132,111 @@ flowchart TD
     redeploy__discovery__auto_probe --> redeploy__discovery___collect_ssh_keys
     redeploy__discovery__auto_probe --> redeploy__discovery___try_ssh_credentials
     redeploy__discovery__auto_probe --> redeploy__discovery___detect_strategy_remote
-    redeploy__audit___Extractor___from_target --> redeploy__audit___extract_port
-    redeploy__audit___Extractor___from_target --> redeploy__audit___normalize_path
-    redeploy__audit___Extractor___from_step --> redeploy__audit___extract_port
-    redeploy__audit__audit_spec --> docs__markpact_implementation_plan__load_migration_spec
+    redeploy__audit___Extractor___from_target --> SUMR___extract_port
+    redeploy__audit___Extractor___from_target --> SUMR___normalize_path
+    redeploy__audit___Extractor___from_step --> SUMR___extract_port
+    redeploy__audit__audit_spec --> SUMD__load_migration_spec
     redeploy__mcp_server___run --> redeploy__mcp_server___redeploy_bin
-    redeploy__mcp_server__schema --> redeploy__schema__build_schema
+    redeploy__mcp_server__schema --> SUMD__build_schema
     redeploy__mcp_server__plan_spec --> redeploy__mcp_server___run
     redeploy__mcp_server__run_spec --> redeploy__mcp_server___run
     redeploy__mcp_server__fix_spec --> redeploy__mcp_server___run
     redeploy__mcp_server__bump_version --> redeploy__mcp_server___run
     redeploy__mcp_server__diagnose --> redeploy__mcp_server___run
-    redeploy__mcp_server__list_specs --> redeploy__schema__build_schema
+    redeploy__mcp_server__list_specs --> SUMD__build_schema
+    redeploy__mcp_server__exec_ssh --> redeploy__mcp_server___validate_exec_ssh_inputs
     redeploy__mcp_server__nlp_command --> redeploy__mcp_server___run
-    redeploy__mcp_server__get_workspace --> redeploy__schema__build_schema
-    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_runtime
-    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_ports
-    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_iptables_dnat
-    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_systemd_services
-    redeploy__detect__detector__Detector__run --> redeploy__detect__probes__probe_health
+    redeploy__mcp_server__get_workspace --> SUMD__build_schema
+    redeploy__detect__detector__Detector__run --> SUMD__probe_runtime
+    redeploy__detect__detector__Detector__run --> SUMD__probe_ports
+    redeploy__detect__detector__Detector__run --> SUMD__probe_iptables_dnat
+    redeploy__detect__detector__Detector__run --> SUMD__probe_systemd_services
+    redeploy__detect__detector__Detector__run --> SUMD__probe_health
     redeploy__detect__hardware__probe_hardware --> redeploy__detect__hardware___wrap_remote_probe
-    redeploy__detect__hardware__probe_hardware --> redeploy__integrations__op3_bridge__snapshot_to_hardware_info
+    redeploy__detect__hardware__probe_hardware --> SUMD__snapshot_to_hardware_info
     redeploy__detect__hardware__probe_hardware --> redeploy__steps__StepLibrary__list
     redeploy__detect__hardware_rules__analyze --> redeploy__detect__hardware_rules___hw_info_to_dict
     redeploy__detect__hardware_rules__analyze --> redeploy__detect__hardware_rules___op3_diag_to_hw_diag
     redeploy__detect__templates___build_templates --> redeploy__detect__templates___load_templates_from_yaml
-    redeploy__detect__templates__TemplateEngine__detect --> redeploy__detect__templates__build_context
+    redeploy__detect__templates__TemplateEngine__detect --> SUMD__build_context
     redeploy__detect__workflow__DetectionWorkflow___collect_hosts --> redeploy__steps__StepLibrary__list
-    redeploy__detect__workflow__DetectionWorkflow___collect_hosts --> redeploy__discovery__discover
-    redeploy__detect__workflow__DetectionWorkflow___probe_ssh --> redeploy__discovery__auto_probe
+    redeploy__detect__workflow__DetectionWorkflow___collect_hosts --> SUMR__discover
+    redeploy__detect__workflow__DetectionWorkflow___probe_ssh --> SUMR__auto_probe
     redeploy__detect__probes__detect_conflicts --> redeploy__steps__StepLibrary__list
     redeploy__heal__hint_provider__collect_diagnostics --> redeploy__heal__hint_provider___ssh
+    redeploy__heal__hint_provider__ask_llm --> redeploy__heal__hint_provider___extract_step_block
+    redeploy__heal__hint_provider__ask_llm --> redeploy__heal__hint_provider___write_llm_log
+    redeploy__heal__hint_provider__apply_fix_to_spec --> redeploy__heal__hint_provider___parse_step_block
     redeploy__heal__loop_detector__HealLoopDetector__observe --> redeploy__steps__StepLibrary__all
-    redeploy__heal__runner__HealRunner___reload_migration --> docs__markpact_implementation_plan__load_migration_spec
-    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__parse_failed_step
-    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__collect_diagnostics
-    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__ask_llm
-    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__write_repair_log
-    redeploy__heal__runner__HealRunner___heal_step --> redeploy__heal__decider__decide_after_failure
-    redeploy__heal__runner__HealRunner__run --> redeploy__heal__write_repair_log
+    redeploy__heal__runner__HealRunner___reload_migration --> SUMD__load_migration_spec
+    redeploy__heal__runner__HealRunner___heal_step --> SUMD__parse_failed_step
+    redeploy__heal__runner__HealRunner___heal_step --> SUMD__collect_diagnostics
+    redeploy__heal__runner__HealRunner___heal_step --> SUMD__ask_llm
+    redeploy__heal__runner__HealRunner___heal_step --> SUMD__write_repair_log
+    redeploy__heal__runner__HealRunner___heal_step --> SUMD__decide_after_failure
+    redeploy__heal__runner__HealRunner__run --> SUMD__write_repair_log
+    redeploy__analyze__spec_analyzer___ComposeChecker__check --> redeploy__steps__StepLibrary__list
+    redeploy__analyze__spec_analyzer___CommandRefChecker__check --> redeploy__markpact__parser__resolve_script_ref
+    redeploy__analyze__spec_analyzer__SpecAnalyzer____init__ --> redeploy__steps__StepLibrary__list
+    redeploy__analyze__spec_analyzer__SpecAnalyzer__analyze_file --> redeploy__analyze__spec_analyzer__ensure_redeployignore
+    redeploy__analyze__spec_analyzer__SpecAnalyzer__analyze_file --> SUMD__parse_markpact_file
+    redeploy__analyze__spec_analyzer__SpecAnalyzer__analyze_file --> SUMD__compile_markpact_document
+    redeploy__analyze__preflight_schema__generate_preflight_schema --> redeploy__analyze__preflight_schema___resolve_command_refs
+    redeploy__analyze__preflight_schema__generate_preflight_schema --> redeploy__analyze__preflight_schema___collect_local_artifacts
+    redeploy__analyze__preflight_schema__generate_preflight_schema --> redeploy__analyze__preflight_schema___collect_remote_checks
+    redeploy__analyze__preflight_schema___resolve_command_refs --> redeploy__markpact__parser__resolve_script_ref
+    redeploy__analyze__preflight_schema___collect_local_artifacts --> SUMR__add
+    redeploy__analyze__preflight_schema___collect_local_artifacts --> redeploy__analyze__preflight_schema___resolve_local_path
     redeploy__config_apply__applier__apply_config_dict --> redeploy__config_apply__applier___normalize_hardware
-    redeploy__config_apply__applier__apply_config_dict --> redeploy__apply__state_apply__apply_state
-    redeploy__config_apply__applier__apply_config_file --> redeploy__config_apply__loader__load_config_file
+    redeploy__config_apply__applier__apply_config_dict --> SUMD__apply_state
+    redeploy__config_apply__applier__apply_config_file --> SUMD__load_config_file
     redeploy__config_apply__applier__apply_config_file --> redeploy__config_apply__applier__apply_config_dict
+    redeploy__config_apply__handlers__display__apply_display_transform --> redeploy__config_apply__handlers__display___validate_display_inputs
+    redeploy__models__manifest__ProjectManifest__find_and_load --> redeploy__steps__StepLibrary__list
+    redeploy__models__manifest__ProjectManifest__find_and_load --> SUMD__load_css
+    redeploy__models__manifest__ProjectManifest__find_css --> redeploy__steps__StepLibrary__list
+    redeploy__models__spec___migrate_legacy_post_deploy --> redeploy__steps__StepLibrary__list
+    redeploy__models__spec__MigrationSpec__from_file --> SUMR___migrate_legacy_post_deploy
+    redeploy__models__spec__MigrationSpec__to_target_config --> redeploy__steps__StepLibrary__list
     redeploy__cli__display__print_inspect_workflows --> redeploy__cli__display___get_plugin_hint
     redeploy__cli__display__print_inspect_workflows --> redeploy__cli__display___format_workflow_header
     redeploy__cli__display__print_inspect_workflows --> redeploy__cli__display___print_workflow_step
     redeploy__cli__display__print_workflow_host_details --> redeploy__cli__display___print_host_header
     redeploy__cli__display__print_workflow_host_details --> redeploy__cli__display___print_template_match
     redeploy__cli__display__print_workflow_host_details --> redeploy__cli__display___print_alternatives
-    redeploy__cli__display__generate_workflow_output_css --> redeploy__dsl__loader__manifest_to_css
-    redeploy__cli__display__generate_workflow_output_css --> redeploy__dsl__loader__templates_to_css
+    redeploy__cli__display__generate_workflow_output_css --> SUMD__manifest_to_css
+    redeploy__cli__display__generate_workflow_output_css --> SUMD__templates_to_css
     redeploy__cli__display__print_import_spec --> redeploy__cli__display___get_status_color
     redeploy__cli__display__print_import_spec --> redeploy__cli__display___print_spec_metadata
     redeploy__cli__display__print_import_spec --> redeploy__cli__display___print_services_table
     redeploy__cli__cli --> redeploy__cli___setup_logging
-    redeploy__cli___resolve_device --> redeploy__discovery__auto_probe
-    redeploy__cli__core__load_spec_or_exit --> docs__markpact_implementation_plan__load_migration_spec
+    redeploy__cli___resolve_device --> SUMR__auto_probe
+    redeploy__cli__core__load_spec_or_exit --> SUMD__load_migration_spec
     redeploy__cli__core__find_manifest_path --> redeploy__steps__StepLibrary__list
-    redeploy__cli__core__resolve_device --> redeploy__discovery__auto_probe
+    redeploy__cli__core__resolve_device --> SUMR__auto_probe
     redeploy__cli__core__load_spec_with_manifest --> redeploy__cli__core__load_spec_or_exit
-    redeploy__cli__core__run_detect_workflow --> redeploy__cli__display__print_workflow_summary_table
-    redeploy__cli__core__run_detect_workflow --> redeploy__cli__display__print_workflow_host_details
-    redeploy__cli__core__run_detect_workflow --> redeploy__cli__display__generate_workflow_output_css
-    redeploy__cli__core__run_detect_workflow --> redeploy__cli__display__generate_workflow_output_yaml
-    redeploy__cli__commands__target__target --> redeploy__cli__core__resolve_device
-    redeploy__cli__commands__target__target --> redeploy__cli__core__load_spec_with_manifest
-    redeploy__cli__commands__target__target --> redeploy__cli__core__run_detect_for_spec
-    redeploy__cli__commands__target__target --> redeploy__cli__display__print_plan_table
-    redeploy__cli__commands__devices__scan --> redeploy__discovery__discover
-    redeploy__cli__commands__state___get_state_path --> redeploy__cli__core__load_spec_or_exit
-    redeploy__cli__commands__state___get_state_path --> redeploy__apply__state__default_state_path
+    redeploy__cli__core__run_detect_workflow --> SUMD__print_workflow_summary_table
+    redeploy__cli__core__run_detect_workflow --> SUMD__print_workflow_host_details
+    redeploy__cli__core__run_detect_workflow --> SUMD__generate_workflow_output_css
+    redeploy__cli__core__run_detect_workflow --> SUMD__generate_workflow_output_yaml
+    redeploy__cli__commands__target__target --> SUMD__resolve_device
+    redeploy__cli__commands__target__target --> SUMD__load_spec_with_manifest
+    redeploy__cli__commands__target__target --> SUMD__run_detect_for_spec
+    redeploy__cli__commands__target__target --> SUMD__print_plan_table
+    redeploy__cli__commands__devices__scan --> SUMR__discover
+    redeploy__cli__commands__state___get_state_path --> SUMD__load_spec_or_exit
+    redeploy__cli__commands__state___get_state_path --> SUMD__default_state_path
     redeploy__cli__commands__state__state_cmd --> redeploy__cli__commands__state___get_state_path
     redeploy__cli__commands__state__state_cmd --> redeploy__cli__commands__state___show_checkpoint
     redeploy__cli__commands__state__state_cmd --> redeploy__cli__commands__state___list_checkpoints
     redeploy__cli__commands__inspect__inspect --> redeploy__cli__commands__inspect___find_css_path
-    redeploy__cli__commands__inspect__inspect --> redeploy__dsl__loader__load_css
-    redeploy__cli__commands__inspect__inspect --> redeploy__cli__display__print_inspect_app_metadata
-    redeploy__cli__commands__inspect__inspect --> redeploy__cli__display__print_inspect_environments
-    redeploy__cli__commands__inspect__inspect --> redeploy__cli__display__print_inspect_templates
-    redeploy__cli__commands__inspect__inspect --> redeploy__cli__display__print_inspect_workflows
-    redeploy__cli__commands__inspect__inspect --> redeploy__cli__display__print_inspect_devices
-    redeploy__cli__commands__inspect__inspect --> redeploy__cli__display__print_inspect_raw_nodes_summary
+    redeploy__cli__commands__inspect__inspect --> SUMD__load_css
+    redeploy__cli__commands__inspect__inspect --> SUMD__print_inspect_app_metadata
+    redeploy__cli__commands__inspect__inspect --> SUMD__print_inspect_environments
+    redeploy__cli__commands__inspect__inspect --> SUMD__print_inspect_templates
+    redeploy__cli__commands__inspect__inspect --> SUMD__print_inspect_workflows
+    redeploy__cli__commands__inspect__inspect --> SUMD__print_inspect_devices
+    redeploy__cli__commands__inspect__inspect --> SUMD__print_inspect_raw_nodes_summary
     redeploy__cli__commands__device_map_renderers__render_rich --> redeploy__cli__commands__device_map_renderers___build_issues_table
     redeploy__cli__commands__device_map_renderers__render_rich --> redeploy__cli__commands__device_map_renderers___build_header_panel
     redeploy__cli__commands__device_map_renderers__render_rich --> redeploy__cli__commands__device_map_renderers___build_drm_table
@@ -1176,90 +1249,115 @@ flowchart TD
     redeploy__cli__commands__bump_fix__bump_cmd --> redeploy__cli__commands__bump_fix___update_migration_header
     redeploy__cli__commands__bump_fix__fix_cmd --> redeploy__cli__commands__bump_fix___load_dotenv
     redeploy__cli__commands__bump_fix__fix_cmd --> redeploy__cli__commands__bump_fix___find_spec
-    redeploy__cli__commands__bump_fix__fix_cmd --> redeploy__cli__core__load_spec_or_exit
+    redeploy__cli__commands__bump_fix__fix_cmd --> SUMD__load_spec_or_exit
     redeploy__cli__commands__bump_fix___detect_version --> redeploy__cli__commands__bump_fix___find_version_file
-    redeploy__cli__commands__exec___exec_cmd --> redeploy__markpact__parser__extract_script_by_ref
+    redeploy__cli__commands__exec___exec_cmd --> redeploy__cli__commands__exec____extract_script_for_ref
     redeploy__cli__commands__exec___exec_multi_cmd --> redeploy__cli__commands__exec____extract_all_scripts
     redeploy__cli__commands__exec___exec_multi_cmd --> redeploy__cli__commands__exec____print_execution_results
     redeploy__cli__commands__exec____extract_all_scripts --> redeploy__cli__commands__exec____extract_script_for_ref
-    redeploy__cli__commands__exec____extract_script_for_ref --> redeploy__markpact__parser__extract_script_by_ref
-    redeploy__cli__commands__exec____extract_script_for_ref --> redeploy__markpact__parser__extract_script_from_markdown
-    redeploy__cli__commands__blueprint___execute_query_blueprint --> redeploy__cli__query__execute_query
-    redeploy__cli__commands__blueprint__twin --> redeploy__blueprint__generators__docker_compose__generate_twin
-    redeploy__cli__commands__blueprint__show --> redeploy__config_apply__applier__apply_config_file
+    redeploy__cli__commands__exec____extract_script_for_ref --> redeploy__markpact__parser__resolve_script_ref
+    redeploy__cli__commands__blueprint___execute_query_blueprint --> SUMD__execute_query
+    redeploy__cli__commands__blueprint__twin --> SUMD__generate_twin
+    redeploy__cli__commands__blueprint__show --> redeploy__cli__commands__blueprint___execute_query_blueprint
+    redeploy__cli__commands__blueprint__show --> SUMD__apply_config_file
     redeploy__cli__commands__export__export_cmd --> redeploy__cli__commands__export___find_export_source
     redeploy__cli__commands__export__export_cmd --> redeploy__cli__commands__export___load_manifest_from_css
     redeploy__cli__commands__export__export_cmd --> redeploy__cli__commands__export___load_manifest_from_yaml
     redeploy__cli__commands__export__export_cmd --> redeploy__cli__commands__export___export_to_css
     redeploy__cli__commands__export__export_cmd --> redeploy__cli__commands__export___export_to_yaml
     redeploy__cli__commands__export___find_export_source --> redeploy__steps__StepLibrary__list
-    redeploy__cli__commands__export___load_manifest_from_css --> redeploy__dsl__loader__load_css
-    redeploy__cli__commands__export___export_to_css --> redeploy__dsl__loader__manifest_to_css
-    redeploy__cli__commands__export___export_to_css --> redeploy__dsl__loader__templates_to_css
-    redeploy__cli__commands__status__status --> redeploy__cli__core__load_spec_or_exit
+    redeploy__cli__commands__export___load_manifest_from_css --> SUMD__load_css
+    redeploy__cli__commands__export___export_to_css --> SUMD__manifest_to_css
+    redeploy__cli__commands__export___export_to_css --> SUMD__templates_to_css
+    redeploy__cli__commands__status__status --> SUMD__load_spec_or_exit
     redeploy__cli__commands__probe__probe --> redeploy__steps__StepLibrary__list
-    redeploy__cli__commands__probe__probe --> redeploy__discovery__discover
-    redeploy__cli__commands__mcp_cmd__mcp_cmd --> redeploy__mcp_server__serve
-    redeploy__cli__commands__plugin__plugin_cmd --> redeploy__plugins__load_user_plugins
+    redeploy__cli__commands__probe__probe --> SUMR__discover
+    redeploy__cli__commands__mcp_cmd__mcp_cmd --> SUMD__serve
+    redeploy__cli__commands__plugin__plugin_cmd --> SUMD__load_user_plugins
     redeploy__cli__commands__import___import_cmd --> redeploy__cli__commands__import____print_plugin_templates
     redeploy__cli__commands__import____print_plugin_templates --> redeploy__cli__commands__import____plugin_templates
     redeploy__cli__commands__import____copy_plugin_template --> redeploy__cli__commands__import____plugin_templates
     redeploy__cli__commands__import____copy_plugin_template --> redeploy__cli__commands__import____examples_plugin_dir
-    redeploy__cli__commands__plan_apply___apply_manifest_to_spec --> redeploy__cli__core__find_manifest_path
-    redeploy__cli__commands__detect__detect --> redeploy__cli__display__print_infrastructure_summary
-    redeploy__cli__commands__detect__detect --> redeploy__cli__display__print_docker_services
-    redeploy__cli__commands__device_map___execute_query_device_map --> redeploy__cli__query__execute_query
-    redeploy__cli__commands__device_map___render --> redeploy__cli__commands__device_map_renderers__render_yaml
-    redeploy__cli__commands__device_map___render --> redeploy__cli__commands__device_map_renderers__render_json
-    redeploy__cli__commands__device_map___render --> redeploy__cli__commands__device_map_renderers__render_rich
-    redeploy__cli__commands__hardware___probe_hardware --> redeploy__detect__detector__Detector__probe_hardware
-    redeploy__cli__commands__hardware___execute_query --> redeploy__cli__query__execute_query
-    redeploy__cli__commands__hardware___apply_fix --> redeploy__hardware__fixes__generate_fix_plan
-    redeploy__cli__commands__hardware___apply_fix --> redeploy__fleet__Fleet__get
-    redeploy__cli__commands__hardware___apply_fix --> redeploy__apply__handlers__run_ssh
-    redeploy__cli__commands__hardware___apply_fix --> redeploy__apply__handlers__run_ensure_config_line
-    redeploy__cli__commands__hardware___apply_fix --> redeploy__apply__handlers__run_raspi_config
-    redeploy__cli__commands__hardware___apply_fix --> redeploy__apply__handlers__run_wait
+    redeploy__cli__commands__plan_apply___apply_manifest_to_spec --> SUMD__find_manifest_path
+    redeploy__cli__commands__plan_apply___render_markdown_report --> redeploy__cli__commands__plan_apply___step_command_block
+    redeploy__cli__commands__plan_apply___write_markdown_report --> redeploy__cli__commands__plan_apply___resolve_audit_entry
+    redeploy__cli__commands__plan_apply___write_markdown_report --> redeploy__cli__commands__plan_apply___build_checksum_verification
+    redeploy__cli__commands__plan_apply___write_markdown_report --> redeploy__cli__commands__plan_apply___default_report_path
+    redeploy__cli__commands__plan_apply___write_markdown_report --> redeploy__cli__commands__plan_apply___render_markdown_report
+    redeploy__cli__commands__detect__detect --> SUMD__print_infrastructure_summary
+    redeploy__cli__commands__detect__detect --> SUMD__print_docker_services
+    redeploy__cli__commands__gh_workflow___resolve_repo_root --> redeploy__cli__commands__gh_workflow___find_repo_root
+    redeploy__cli__commands__gh_workflow___collect_workflow_meta --> redeploy__cli__commands__gh_workflow___load_yaml
+    redeploy__cli__commands__gh_workflow___collect_workflow_meta --> redeploy__cli__commands__gh_workflow___on_section
+    redeploy__cli__commands__gh_workflow___collect_workflow_meta --> redeploy__steps__StepLibrary__list
+    redeploy__cli__commands__gh_workflow___collect_workflow_meta --> redeploy__cli__commands__gh_workflow___trigger_list
+    redeploy__cli__commands__gh_workflow___collect_workflow_meta --> redeploy__cli__commands__gh_workflow___has_workflow_dispatch
+    redeploy__cli__commands__gh_workflow___resolve_workflow_identifier --> redeploy__cli__commands__gh_workflow___collect_workflow_meta
+    redeploy__cli__commands__gh_workflow__gh_workflow_list --> redeploy__cli__commands__gh_workflow___resolve_repo_root
+    redeploy__cli__commands__gh_workflow__gh_workflow_list --> redeploy__cli__commands__gh_workflow___workflows_dir
+    redeploy__cli__commands__gh_workflow__gh_workflow_analyze --> redeploy__cli__commands__gh_workflow___resolve_repo_root
+    redeploy__cli__commands__gh_workflow__gh_workflow_analyze --> redeploy__cli__commands__gh_workflow___workflows_dir
+    redeploy__cli__commands__gh_workflow__gh_workflow_analyze --> redeploy__cli__commands__gh_workflow___collect_workflow_meta
+    redeploy__cli__commands__gh_workflow__gh_workflow_analyze --> redeploy__cli__commands__gh_workflow___resolve_workflow_identifier
+    redeploy__cli__commands__gh_workflow__gh_workflow_run --> redeploy__cli__commands__gh_workflow___resolve_repo_root
+    redeploy__cli__commands__gh_workflow__gh_workflow_run --> redeploy__cli__commands__gh_workflow___workflows_dir
+    redeploy__cli__commands__gh_workflow__gh_workflow_run --> redeploy__cli__commands__gh_workflow___resolve_workflow_identifier
+    redeploy__cli__commands__gh_workflow__gh_workflow_run --> redeploy__cli__commands__gh_workflow___collect_workflow_meta
+    redeploy__cli__commands__gh_workflow__gh_workflow_run --> redeploy__cli__commands__gh_workflow___parse_fields
+    redeploy__cli__commands__device_map___execute_query_device_map --> SUMD__execute_query
+    redeploy__cli__commands__device_map___render --> SUMD__render_yaml
+    redeploy__cli__commands__device_map___render --> SUMD__render_json
+    redeploy__cli__commands__device_map___render --> SUMD__render_rich
+    redeploy__cli__commands__hardware___probe_hardware --> SUMD__probe_hardware
+    redeploy__cli__commands__hardware___apply_transform --> redeploy__config_apply__handlers__display__apply_display_transform
+    redeploy__cli__commands__hardware___execute_query --> SUMD__execute_query
+    redeploy__cli__commands__hardware___apply_fix --> SUMD__generate_fix_plan
+    redeploy__cli__commands__hardware___apply_fix --> SUMR__get
+    redeploy__cli__commands__hardware___apply_fix --> SUMD__run_ssh
+    redeploy__cli__commands__hardware___apply_fix --> SUMD__run_ensure_config_line
+    redeploy__cli__commands__hardware___apply_fix --> SUMD__run_raspi_config
+    redeploy__cli__commands__hardware___apply_fix --> SUMD__run_wait
     redeploy__cli__commands__hardware__hardware --> redeploy__cli__commands__hardware___probe_hardware
-    redeploy__cli__commands__prompt_cmd__prompt_cmd --> redeploy__schema__build_schema
-    redeploy__cli__commands__workflow__workflow_cmd --> redeploy__dsl__loader__load_css
+    redeploy__cli__commands__lint__lint --> SUMD__load_spec_or_exit
+    redeploy__cli__commands__prompt_cmd__prompt_cmd --> SUMD__build_schema
+    redeploy__cli__commands__workflow__workflow_cmd --> SUMD__load_css
     redeploy__cli__commands__workflow__workflow_cmd --> redeploy__cli__commands__workflow___execute_workflow
     redeploy__cli__commands__workflow__workflow_cmd --> redeploy__cli__commands__workflow___list_workflows
-    redeploy__cli__commands__push__push --> redeploy__apply__state_apply__apply_state
-    redeploy__cli__commands__diagnose__diagnose --> redeploy__audit__audit_spec
+    redeploy__cli__commands__push__push --> SUMD__apply_state
+    redeploy__cli__commands__diagnose__diagnose --> SUMR__audit_spec
     redeploy__cli__commands__version__monorepo___set_monorepo_version --> redeploy__cli__commands__version__monorepo___create_version_set_git
     redeploy__cli__commands__version__monorepo___set_monorepo_version --> redeploy__cli__commands__version__monorepo___print_monorepo_set_dry_run
     redeploy__cli__commands__version__monorepo___set_monorepo_version --> redeploy__cli__commands__version__monorepo___create_version_set_taggers
-    redeploy__cli__commands__version__monorepo___set_monorepo_version --> redeploy__version__bump__bump_package
+    redeploy__cli__commands__version__monorepo___set_monorepo_version --> SUMD__bump_package
     redeploy__cli__commands__version__monorepo___set_monorepo_version --> redeploy__cli__commands__version__monorepo___finalize_monorepo_version_set
-    redeploy__cli__commands__version__monorepo___set_monorepo_version --> redeploy__cli__commands__version__release___update_monorepo_release_changelogs
-    redeploy__cli__commands__version__monorepo___create_version_set_git --> redeploy__cli__commands__version__helpers___resolve_package_release_git_config
-    redeploy__cli__commands__version__monorepo___create_version_set_taggers --> redeploy__cli__commands__version__helpers___resolve_package_release_git_config
-    redeploy__cli__commands__version__monorepo___finalize_monorepo_version_set --> redeploy__cli__commands__version__release___create_release_tags
-    redeploy__cli__commands__version__commands__version_current --> redeploy__cli__commands__version__helpers___resolve_monorepo_targets
-    redeploy__cli__commands__version__commands__version_list --> redeploy__cli__commands__version__helpers___resolve_monorepo_targets
-    redeploy__cli__commands__version__commands__version_list --> redeploy__version__bump__verify_sources
-    redeploy__cli__commands__version__commands__version_verify --> redeploy__cli__commands__version__helpers___resolve_monorepo_targets
-    redeploy__cli__commands__version__commands__version_verify --> redeploy__version__bump__verify_sources
-    redeploy__cli__commands__version__commands__version_verify --> redeploy__cli__commands__version__helpers___print_verify_result
-    redeploy__cli__commands__version__commands__version_verify --> redeploy__cli__commands__version__helpers___build_package_version_manifest
-    redeploy__cli__commands__version__commands__version_init --> redeploy__cli__commands__version__scanner___normalize_scan_exclusions
-    redeploy__cli__commands__version__commands__version_diff --> redeploy__cli__commands__version__helpers___resolve_monorepo_targets
+    redeploy__cli__commands__version__monorepo___set_monorepo_version --> SUMD___update_monorepo_release_changelogs
+    redeploy__cli__commands__version__monorepo___create_version_set_git --> SUMD___resolve_package_release_git_config
+    redeploy__cli__commands__version__monorepo___create_version_set_taggers --> SUMD___resolve_package_release_git_config
+    redeploy__cli__commands__version__monorepo___finalize_monorepo_version_set --> SUMD___create_release_tags
+    redeploy__cli__commands__version__commands__version_current --> SUMD___resolve_monorepo_targets
+    redeploy__cli__commands__version__commands__version_list --> SUMD___resolve_monorepo_targets
+    redeploy__cli__commands__version__commands__version_list --> SUMD__verify_sources
+    redeploy__cli__commands__version__commands__version_verify --> SUMD___resolve_monorepo_targets
+    redeploy__cli__commands__version__commands__version_verify --> SUMD__verify_sources
+    redeploy__cli__commands__version__commands__version_verify --> SUMD___print_verify_result
+    redeploy__cli__commands__version__commands__version_verify --> SUMD___build_package_version_manifest
+    redeploy__cli__commands__version__commands__version_init --> SUMD___normalize_scan_exclusions
+    redeploy__cli__commands__version__commands__version_diff --> SUMD___resolve_monorepo_targets
     redeploy__cli__commands__version__helpers___build_package_version_manifest --> redeploy__cli__commands__version__helpers___resolve_package_release_git_config
     redeploy__cli__commands__version__helpers___build_package_version_manifest --> redeploy__cli__commands__version__helpers___resolve_package_release_changelog_config
-    redeploy__cli__commands__version__helpers___load_spec_version_diff --> redeploy__version__diff__diff_manifest_vs_spec
-    redeploy__cli__commands__version__helpers___load_live_version_diff --> redeploy__version__read_remote_version
-    redeploy__cli__commands__version__helpers___load_live_version_diff --> redeploy__version__diff__diff_manifest_vs_live
-    redeploy__cli__commands__version__helpers___run_version_diff_for_manifest --> redeploy__version__bump__verify_sources
+    redeploy__cli__commands__version__helpers___load_spec_version_diff --> SUMD__diff_manifest_vs_spec
+    redeploy__cli__commands__version__helpers___load_live_version_diff --> SUMD__read_remote_version
+    redeploy__cli__commands__version__helpers___load_live_version_diff --> SUMD__diff_manifest_vs_live
+    redeploy__cli__commands__version__helpers___run_version_diff_for_manifest --> SUMD__verify_sources
     redeploy__cli__commands__version__helpers___run_version_diff_for_manifest --> redeploy__cli__commands__version__helpers___print_source_drift_status
     redeploy__cli__commands__version__helpers___run_version_diff_for_manifest --> redeploy__cli__commands__version__helpers___load_spec_version_diff
     redeploy__cli__commands__version__helpers___run_version_diff_for_manifest --> redeploy__cli__commands__version__helpers___load_live_version_diff
     redeploy__cli__commands__version__helpers___run_version_diff_for_manifest --> redeploy__steps__StepLibrary__all
-    redeploy__cli__commands__version__helpers___run_version_diff_for_manifest --> redeploy__version__diff__format_diff_report
-    redeploy__cli__commands__version__helpers___bump_single --> redeploy__version__commits__analyze_commits
-    redeploy__cli__commands__version__helpers___bump_single --> redeploy__version__bump___calculate_bump
-    redeploy__cli__commands__version__helpers___bump_single --> redeploy__version__commits__format_analysis_report
-    redeploy__cli__commands__version__release___update_release_changelog --> redeploy__version__changelog__get_commits_since_tag
+    redeploy__cli__commands__version__helpers___run_version_diff_for_manifest --> SUMD__format_diff_report
+    redeploy__cli__commands__version__helpers___bump_single --> SUMD__analyze_commits
+    redeploy__cli__commands__version__helpers___bump_single --> SUMD___calculate_bump
+    redeploy__cli__commands__version__helpers___bump_single --> SUMD__format_analysis_report
+    redeploy__cli__commands__version__release___update_release_changelog --> SUMD__get_commits_since_tag
     redeploy__cli__commands__version__release___create_release_tags --> redeploy__cli__commands__version__release___format_release_tag
     redeploy__cli__commands__version__release___update_monorepo_release_changelogs --> redeploy__cli__commands__version__release___update_release_changelog
     redeploy__cli__commands__version__release___update_monorepo_release_changelogs --> redeploy__cli__commands__version__release___format_release_tag
@@ -1269,7 +1367,7 @@ flowchart TD
     redeploy__cli__commands__version__scanner___detect_version_sources_in_dir --> redeploy__cli__commands__version__scanner___regex_version_scan_specs
     redeploy__cli__commands__version__scanner___detect_version_sources_in_dir --> redeploy__cli__commands__version__scanner___is_scannable_version_path
     redeploy__cli__commands__version__scanner___detect_source_version --> redeploy__cli__commands__version__scanner___read_detected_source_versions
-    redeploy__cli__commands__version__scanner___read_detected_source_versions --> redeploy__version__sources__get_adapter
+    redeploy__cli__commands__version__scanner___read_detected_source_versions --> SUMD__get_adapter
     redeploy__cli__commands__version__scanner___report_version_scan_conflict --> redeploy__cli__commands__version__scanner___read_detected_source_versions
     redeploy__cli__commands__version__scanner___print_version_scan_review --> redeploy__cli__commands__version__scanner___print_version_scan_group
     redeploy__cli__commands__version__scanner___summarize_version_scan_group --> redeploy__cli__commands__version__scanner___read_detected_source_versions
@@ -1285,8 +1383,8 @@ flowchart TD
     redeploy__cli__commands__version__scanner___scan_package_version_manifests --> redeploy__cli__commands__version__scanner___is_scannable_version_path
     redeploy__cli__commands__version__scanner___scan_package_version_manifests --> redeploy__cli__commands__version__scanner___detect_source_version
     redeploy__plugins__PluginRegistry__names --> redeploy__steps__StepLibrary__list
-    redeploy__plugins__PluginRegistry___ensure_builtins --> redeploy__plugins___load_builtin_plugins
-    redeploy__plugins__builtin__notify__notify --> redeploy__plugins__register_plugin
+    redeploy__plugins__PluginRegistry___ensure_builtins --> SUMD___load_builtin_plugins
+    redeploy__plugins__builtin__notify__notify --> SUMD__register_plugin
     redeploy__plugins__builtin__notify__notify --> redeploy__plugins__builtin__notify___notify_slack
     redeploy__plugins__builtin__notify__notify --> redeploy__plugins__builtin__notify___notify_webhook
     redeploy__plugins__builtin__notify___notify_slack --> redeploy__plugins__builtin__notify___resolve_env
@@ -1296,12 +1394,12 @@ flowchart TD
     redeploy__plugins__builtin__notify___notify_webhook --> redeploy__plugins__builtin__notify___fmt
     redeploy__plugins__builtin__notify___notify_webhook --> redeploy__plugins__builtin__notify___http_post
     redeploy__plugins__builtin__notify___notify_webhook --> redeploy__plugins__builtin__notify___http_get
-    redeploy__plugins__builtin__process_control__process_control --> redeploy__plugins__register_plugin
+    redeploy__plugins__builtin__process_control__process_control --> SUMD__register_plugin
     redeploy__plugins__builtin__process_control__process_control --> redeploy__plugins__builtin__process_control___find_pid_on_port
     redeploy__plugins__builtin__process_control__process_control --> redeploy__plugins__builtin__process_control___kill_process
-    redeploy__plugins__builtin__browser_reload__browser_reload --> redeploy__plugins__register_plugin
+    redeploy__plugins__builtin__browser_reload__browser_reload --> SUMD__register_plugin
     redeploy__plugins__builtin__browser_reload__browser_reload --> redeploy__plugins__builtin__browser_reload___cdp_reload_script
-    redeploy__plugins__builtin__systemd_reload__systemd_reload --> redeploy__plugins__register_plugin
+    redeploy__plugins__builtin__systemd_reload__systemd_reload --> SUMD__register_plugin
     redeploy__plugins__builtin__hardware_diagnostic___detect_platform --> redeploy__plugins__builtin__hardware_diagnostic___run_command
     redeploy__plugins__builtin__hardware_diagnostic___get_cpu_info --> redeploy__plugins__builtin__hardware_diagnostic___run_command
     redeploy__plugins__builtin__hardware_diagnostic___get_memory_mb --> redeploy__plugins__builtin__hardware_diagnostic___run_command
@@ -1317,13 +1415,13 @@ flowchart TD
     redeploy__plugins__builtin__hardware_diagnostic___analyze_hardware --> redeploy__plugins__builtin__hardware_diagnostic___get_audio_devices
     redeploy__plugins__builtin__hardware_diagnostic___analyze_hardware --> redeploy__plugins__builtin__hardware_diagnostic___get_network_interfaces
     redeploy__plugins__builtin__hardware_diagnostic___analyze_hardware --> redeploy__plugins__builtin__hardware_diagnostic___detect_platform
-    redeploy__plugins__builtin__hardware_diagnostic__hardware_diagnostic --> redeploy__plugins__register_plugin
+    redeploy__plugins__builtin__hardware_diagnostic__hardware_diagnostic --> SUMD__register_plugin
     redeploy__plugins__builtin__hardware_diagnostic__hardware_diagnostic --> redeploy__plugins__builtin__hardware_diagnostic___analyze_hardware
     redeploy__dsl_python__steps__ssh_available --> DOQL_INTEGRATION__print
     redeploy__dsl_python__steps__wait --> DOQL_INTEGRATION__print
     redeploy__dsl_python__steps__version_check --> redeploy__dsl_python__steps__ssh
     redeploy__dsl_python__runner__PythonMigrationRunner__run_file --> DOQL_INTEGRATION__print
-    redeploy__dsl_python__runner__PythonMigrationRunner__run_file --> redeploy__cli__commands__target__target
+    redeploy__dsl_python__runner__PythonMigrationRunner__run_file --> SUMD__target
     redeploy__dsl_python__runner__PythonMigrationRunner__list_migrations --> redeploy__steps__StepLibrary__list
     redeploy__dsl_python__runner__main --> DOQL_INTEGRATION__print
     redeploy__dsl_python__docker_steps__DockerDSL__wait_healthy --> DOQL_INTEGRATION__print
@@ -1332,7 +1430,7 @@ flowchart TD
     redeploy__dsl_python__decorators__StepManager__end --> DOQL_INTEGRATION__print
     redeploy__hardware__config_txt__ensure_lines --> redeploy__hardware__config_txt__ensure_line
     redeploy__hardware__fixes__fix_dsi_not_enabled --> redeploy__hardware__fixes___detect_port
-    redeploy__hardware__fixes__fix_dsi_not_enabled --> redeploy__hardware__panels__infer_from_hardware
+    redeploy__hardware__fixes__fix_dsi_not_enabled --> SUMD__infer_from_hardware
     redeploy__hardware__fixes__fix_dsi_not_enabled --> redeploy__hardware__fixes___step
     redeploy__hardware__fixes__fix_enable_i2c --> redeploy__hardware__fixes___step
     redeploy__hardware__fixes__fix_enable_spi --> redeploy__hardware__fixes___step
@@ -1345,52 +1443,58 @@ flowchart TD
     redeploy__markpact__parser__extract_script_from_markdown --> redeploy__markpact__parser___normalize_section_id
     redeploy__markpact__parser__extract_script_from_markdown --> redeploy__markpact__parser___check_heading
     redeploy__markpact__parser__extract_script_from_markdown --> redeploy__markpact__parser___handle_fence_line
+    redeploy__markpact__parser__resolve_script_ref --> redeploy__markpact__parser__extract_script_by_ref
+    redeploy__markpact__parser__resolve_script_ref --> redeploy__markpact__parser__extract_script_from_markdown
     redeploy__markpact__compiler__compile_markpact_document --> redeploy__markpact__compiler__compile_markpact_document_to_data
-    redeploy__markpact__compiler__compile_markpact_document --> redeploy__models___migrate_legacy_post_deploy
+    redeploy__markpact__compiler__compile_markpact_document --> SUMR___migrate_legacy_post_deploy
     redeploy__markpact__compiler__compile_markpact_document_to_data --> redeploy__markpact__compiler___load_block_payload
     redeploy__markpact__compiler__compile_markpact_document_to_data --> redeploy__markpact__compiler___extract_steps
     redeploy__markpact__compiler__compile_markpact_document_to_data --> redeploy__markpact__compiler___normalize_config_payload
     redeploy__markpact__compiler__compile_markpact_document_to_data --> redeploy__markpact__compiler___deep_merge
-    redeploy__markpact__compiler___normalize_config_payload --> redeploy__models___migrate_legacy_post_deploy
+    redeploy__markpact__compiler___normalize_config_payload --> SUMR___migrate_legacy_post_deploy
     redeploy__apply__state__state_key --> redeploy__apply__state___slug
     redeploy__apply__state__default_state_path --> redeploy__apply__state__state_key
-    redeploy__apply__state__ResumeState__save --> redeploy__apply__state___now_iso
-    redeploy__apply__state__ResumeState__reset --> redeploy__apply__state___now_iso
-    redeploy__apply__state_apply__HardwareStateHandler__apply --> redeploy__apply__state_apply___update_kanshi
+    redeploy__apply__state__ResumeState__save --> SUMD___now_iso
+    redeploy__apply__state__ResumeState__reset --> SUMD___now_iso
+    redeploy__apply__state_apply__HardwareStateHandler__apply --> SUMD___update_kanshi
     redeploy__apply__state_apply__apply_state --> redeploy__apply__state_apply__detect_handler
+    redeploy__apply__handlers__run_ssh --> redeploy__apply__handlers___format_step_output
+    redeploy__apply__handlers__run_scp --> redeploy__apply__handlers___format_step_output
+    redeploy__apply__handlers__run_scp --> redeploy__apply__handlers___ensure_remote_parent_dir
+    redeploy__apply__handlers__run_rsync --> redeploy__apply__handlers___format_step_output
+    redeploy__apply__handlers__run_rsync --> redeploy__apply__handlers___ensure_remote_parent_dir
     redeploy__apply__handlers__run_docker_build --> SUMD__run_container_build
     redeploy__apply__handlers__run_podman_build --> SUMD__run_container_build
     redeploy__apply__handlers__run_docker_health_wait --> redeploy__apply__handlers___parse_container_statuses
     redeploy__apply__handlers__run_docker_health_wait --> redeploy__apply__handlers___all_containers_healthy
     redeploy__apply__handlers__run_inline_script --> redeploy__apply__handlers___resolve_command_ref
-    redeploy__apply__handlers___resolve_command_ref --> redeploy__markpact__parser__extract_script_by_ref
-    redeploy__apply__handlers___resolve_command_ref --> redeploy__markpact__parser__extract_script_from_markdown
-    redeploy__apply__handlers__run_ensure_config_line --> redeploy__hardware__config_txt__ensure_line
-    redeploy__apply__handlers__run_raspi_config --> redeploy__hardware__raspi_config__build_raspi_config_command
-    redeploy__apply__handlers__run_ensure_autostart_entry --> redeploy__hardware__kiosk__autostart__ensure_autostart_entry
-    redeploy__apply__executor__Executor____init__ --> redeploy__apply__state__default_state_path
-    redeploy__apply__executor__Executor___execute_step --> redeploy__apply__handlers__run_ssh
-    redeploy__apply__executor__Executor___execute_step --> redeploy__apply__handlers__run_docker_build
-    redeploy__apply__executor__Executor___execute_step --> redeploy__apply__handlers__run_docker_health_wait
-    redeploy__apply__executor__Executor___execute_step --> redeploy__apply__handlers__run_container_log_tail
-    redeploy__apply__executor__Executor___execute_step --> redeploy__apply__handlers__run_podman_build
-    redeploy__apply__executor__Executor___rollback --> redeploy__apply__rollback__rollback_steps
+    redeploy__apply__handlers___resolve_command_ref --> redeploy__markpact__parser__resolve_script_ref
+    redeploy__apply__handlers__run_ensure_config_line --> SUMD__ensure_line
+    redeploy__apply__handlers__run_raspi_config --> SUMD__build_raspi_config_command
+    redeploy__apply__handlers__run_ensure_autostart_entry --> SUMD__ensure_autostart_entry
+    redeploy__apply__executor__Executor____init__ --> SUMD__default_state_path
+    redeploy__apply__executor__Executor___execute_step --> SUMD__run_ssh
+    redeploy__apply__executor__Executor___execute_step --> SUMD__run_docker_build
+    redeploy__apply__executor__Executor___execute_step --> SUMD__run_docker_health_wait
+    redeploy__apply__executor__Executor___execute_step --> SUMD__run_container_log_tail
+    redeploy__apply__executor__Executor___execute_step --> SUMD__run_podman_build
+    redeploy__apply__executor__Executor___rollback --> SUMD__rollback_steps
     redeploy__version__bump__bump_version --> redeploy__version__bump___calculate_bump
-    redeploy__version__bump__verify_sources --> redeploy__version__sources__get_adapter
+    redeploy__version__bump__verify_sources --> SUMD__get_adapter
     redeploy__version__bump__bump_version_with_git --> redeploy__version__bump___calculate_bump
     redeploy__version__bump__bump_package --> redeploy__version__bump___calculate_bump
     redeploy__version__bump__bump_all_packages --> redeploy__version__bump__bump_package
-    redeploy__version__transaction__VersionBumpTransaction___stage_one --> redeploy__version__sources__get_adapter
-    redeploy__version__changelog__ChangelogManager___categorize_commits --> redeploy__version__commits__parse_conventional
+    redeploy__version__transaction__VersionBumpTransaction___stage_one --> SUMD__get_adapter
+    redeploy__version__changelog__ChangelogManager___categorize_commits --> SUMD__parse_conventional
     redeploy__version__manifest__VersionManifest__list_packages --> redeploy__steps__StepLibrary__list
     redeploy__version__commits__analyze_commits --> redeploy__version__commits__parse_conventional
     redeploy__plan__planner__Planner__run --> redeploy__steps__StepLibrary__list
-    redeploy__plan__planner__Planner___plan_pattern --> redeploy__patterns__get_pattern
-    redeploy__blueprint__extractor__extract_blueprint --> redeploy__blueprint__sources__compose__merge_compose_files
-    redeploy__blueprint__extractor__extract_blueprint --> redeploy__blueprint__sources__hardware__build_hw_requirements
-    redeploy__blueprint__extractor__extract_blueprint --> redeploy__blueprint__sources__infra__infer_app_url
+    redeploy__plan__planner__Planner___plan_pattern --> SUMD__get_pattern
+    redeploy__blueprint__extractor__extract_blueprint --> SUMD__merge_compose_files
+    redeploy__blueprint__extractor__extract_blueprint --> SUMD__build_hw_requirements
+    redeploy__blueprint__extractor__extract_blueprint --> SUMD__infer_app_url
     redeploy__blueprint__extractor__extract_blueprint --> redeploy__steps__StepLibrary__list
-    redeploy__blueprint__extractor__extract_blueprint --> redeploy__blueprint__sources__migration__parse_migration_meta
+    redeploy__blueprint__extractor__extract_blueprint --> SUMD__parse_migration_meta
     redeploy__blueprint__sources__compose__merge_compose_files --> redeploy__blueprint__sources__compose___merge_compose
     redeploy__blueprint__sources__compose___merge_compose --> redeploy__blueprint__sources__compose___parse_compose_ports
     redeploy__blueprint__sources__compose___merge_compose --> redeploy__blueprint__sources__compose___parse_compose_volumes
@@ -1407,20 +1511,27 @@ flowchart TD
     redeploy__dsl__loader___build_from_nodes --> redeploy__dsl__loader___build_workflows
     redeploy__dsl__loader__templates_to_css --> redeploy__dsl__loader___condition_key
     redeploy__dsl__parser__DSLNode____repr__ --> redeploy__steps__StepLibrary__list
-    redeploy__dsl__parser__RedeployDSLParser__parse --> redeploy__dsl__parser___strip_comments
-    redeploy__iac__docker_compose__DockerComposeParser___load_merged --> redeploy__markpact__compiler___deep_merge
-    redeploy__iac__docker_compose__DockerComposeParser___parse_service --> redeploy__iac__docker_compose___env_dict
+    redeploy__dsl__parser__RedeployDSLParser__parse --> SUMD___strip_comments
+    redeploy__iac__docker_compose__DockerComposeParser___load_merged --> SUMD___deep_merge
+    redeploy__iac__docker_compose__DockerComposeParser___resolve_image_and_build --> SUMD___resolve_var
+    redeploy__iac__docker_compose__DockerComposeParser___parse_service_ports --> SUMD___parse_port
+    redeploy__iac__docker_compose__DockerComposeParser___parse_service_ports --> SUMD___resolve_var
+    redeploy__iac__docker_compose__DockerComposeParser___parse_service_volumes --> SUMD___parse_volume
+    redeploy__iac__docker_compose__DockerComposeParser___parse_service_env --> SUMD___env_dict
+    redeploy__iac__docker_compose__DockerComposeParser___parse_service_env --> SUMD___resolve_var
+    redeploy__iac__docker_compose__DockerComposeParser___parse_service_networks --> redeploy__steps__StepLibrary__list
+    redeploy__iac__docker_compose__DockerComposeParser___parse_service_depends_on --> redeploy__steps__StepLibrary__list
     redeploy__iac__registry___load_local_parsers --> redeploy__steps__StepLibrary__list
     redeploy__iac__config_hints__ConfigHintsParser___parse_k8s_yaml --> redeploy__steps__StepLibrary__list
-    redeploy__iac__parsers__compose__DockerComposeParser___parse_service --> redeploy__steps__StepLibrary__list
+    redeploy__iac__parsers__compose__DockerComposeParser___parse_service_networks --> redeploy__steps__StepLibrary__list
     redeploy__iac__parsers__compose__DockerComposeParser___parse_depends_on --> redeploy__steps__StepLibrary__list
     examples__redeploy_iac_parsers__helm_kustomize__HelmTemplatesParser__parse --> redeploy__steps__StepLibrary__list
-    examples__redeploy_iac_parsers__helm_kustomize__HelmTemplatesParser__parse --> examples__redeploy_iac_parsers__helm_kustomize___extract_images_from_container_spec
-    examples__redeploy_iac_parsers__gitops_ci__GitHubActionsGitOpsParser__can_parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
-    examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__can_parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
-    examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__parse --> examples__redeploy_iac_parsers__gitops_ci___is_gitops_command
+    examples__redeploy_iac_parsers__helm_kustomize__HelmTemplatesParser__parse --> SUMD___extract_images_from_container_spec
+    examples__redeploy_iac_parsers__gitops_ci__GitHubActionsGitOpsParser__can_parse --> SUMD___is_gitops_command
+    examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__can_parse --> SUMD___is_gitops_command
+    examples__redeploy_iac_parsers__gitops_ci__GitLabCIGitOpsParser__parse --> SUMD___is_gitops_command
 
     classDef highCC fill:#ff6b6b,stroke:#c92a2a,color:#fff
     classDef medCC fill:#ffd43b,stroke:#f08c00,color:#000
-    class redeploy__fleet__FleetDevice__verify_expectations,redeploy__models__ProjectManifest__apply_to_spec,redeploy__discovery__update_registry,redeploy__discovery___parse_probe_output,redeploy__detect__workflow__DetectionWorkflow___collect_hosts,redeploy__cli__commands__devices__devices,redeploy__cli__commands__device_map_renderers__render_rich,redeploy__cli__commands__bump_fix___find_spec,redeploy__cli__commands__bump_fix__fix_cmd,redeploy__cli__commands__blueprint___print_blueprint,redeploy__cli__commands__probe__probe,redeploy__cli__commands__import___import_cmd,redeploy__cli__commands__import____print_import_spec,redeploy__cli__commands__import____spec_to_migration_yaml,redeploy__cli__commands__device_map__device_map_cmd,redeploy__cli__commands__prompt_cmd__prompt_cmd,redeploy__cli__commands__push__push,redeploy__cli__commands__audit__audit,redeploy__cli__commands__version__commands__version_init,redeploy__cli__commands__version__helpers___bump_single,redeploy__plugins__builtin__browser_reload__browser_reload,redeploy__dsl_python__runner__PythonMigrationRunner__run_file,redeploy__apply__state_apply__HardwareStateHandler__apply,redeploy__apply__handlers__run_ensure_autostart_entry,redeploy__version__commits__analyze_commits,redeploy__blueprint__extractor__extract_blueprint,redeploy__blueprint__sources__compose___merge_compose,redeploy__blueprint__generators__docker_compose___build_service,redeploy__blueprint__generators__migration__generate_migration,redeploy__dsl__loader___build_manifest highCC
-    class redeploy__schema___discover_specs,redeploy__observe__DeployAuditLog__record,redeploy__observe__DeployAuditLog__filter,redeploy__observe__DeployReport__text,redeploy__heal__ask_llm,redeploy__heal__parse_failed_step,redeploy__heal__HealRunner__run,redeploy__parse__parse_docker_ps,redeploy__parse__parse_system_info,redeploy__parse___apply_system_line,redeploy__fleet__FleetConfig__from_file,redeploy__models__ProjectManifest__resolve_env,redeploy__models__ProjectManifest__from_dotenv,redeploy__verify__VerifyContext__check,redeploy__discovery___scan_known_hosts,redeploy__discovery___scan_arp_cache,redeploy__discovery___detect_local_subnet,redeploy__discovery___merge,redeploy__discovery__discover,redeploy__discovery___collect_ssh_keys,redeploy__discovery___try_ssh_credentials,redeploy__discovery___infer_strategy,redeploy__audit___Extractor___from_step,redeploy__audit___Extractor___from_command,redeploy__audit__Auditor___probe_one,redeploy__detect__detector__Detector__run,redeploy__detect__templates___load_templates_from_yaml,redeploy__detect__workflow__WorkflowResult__generated_redeploy_yaml,redeploy__detect__workflow__WorkflowResult__generated_migration_yaml,redeploy__detect__workflow__DetectionWorkflow__run medCC
+    class redeploy__fleet__FleetDevice__verify_expectations,redeploy__discovery__update_registry,redeploy__discovery___parse_probe_output,redeploy__detect__workflow__DetectionWorkflow___collect_hosts,redeploy__heal__hint_provider__apply_fix_to_spec,redeploy__analyze__spec_analyzer___ComposeChecker___scan_compose,redeploy__analyze__spec_analyzer___DockerBuildChecker__check,redeploy__analyze__spec_analyzer___CommandRefChecker__check,redeploy__models__manifest__ProjectManifest__apply_to_spec,redeploy__cli__commands__devices__devices,redeploy__cli__commands__device_map_renderers__render_rich,redeploy__cli__commands__bump_fix___find_spec,redeploy__cli__commands__bump_fix__fix_cmd,redeploy__cli__commands__blueprint___print_blueprint,redeploy__cli__commands__probe__probe,redeploy__cli__commands__import___import_cmd,redeploy__cli__commands__import____print_import_spec,redeploy__cli__commands__import____spec_to_migration_yaml,redeploy__cli__commands__plan_apply__run,redeploy__cli__commands__plan_apply___build_checksum_verification,redeploy__cli__commands__plan_apply___render_markdown_report,redeploy__cli__commands__gh_workflow__gh_workflow_run,redeploy__cli__commands__device_map__device_map_cmd,redeploy__cli__commands__lint__lint,redeploy__cli__commands__prompt_cmd__prompt_cmd,redeploy__cli__commands__push__push,redeploy__cli__commands__audit__audit,redeploy__cli__commands__version__commands__version_init,redeploy__cli__commands__version__helpers___bump_single,redeploy__plugins__builtin__browser_reload__browser_reload highCC
+    class redeploy__schema___discover_specs,redeploy__observe__DeployAuditLog__record,redeploy__observe__DeployAuditLog__filter,redeploy__observe__DeployReport__text,redeploy__heal__ask_llm,redeploy__heal__parse_failed_step,redeploy__heal__HealRunner__run,redeploy__parse__parse_docker_ps,redeploy__parse__parse_system_info,redeploy__parse___apply_system_line,redeploy__fleet__FleetConfig__from_file,redeploy__verify__VerifyContext__check,redeploy__discovery___scan_known_hosts,redeploy__discovery___scan_arp_cache,redeploy__discovery___detect_local_subnet,redeploy__discovery___merge,redeploy__discovery__discover,redeploy__discovery___collect_ssh_keys,redeploy__discovery___try_ssh_credentials,redeploy__discovery___infer_strategy,redeploy__audit___Extractor___from_step,redeploy__audit___Extractor___from_command,redeploy__audit__Auditor___probe_one,redeploy__detect__detector__Detector__run,redeploy__detect__templates___load_templates_from_yaml,redeploy__detect__workflow__WorkflowResult__generated_redeploy_yaml,redeploy__detect__workflow__WorkflowResult__generated_migration_yaml,redeploy__detect__workflow__DetectionWorkflow__run,redeploy__detect__probes__probe_docker_services,redeploy__detect__probes__probe_systemd_services medCC

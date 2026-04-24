@@ -1,0 +1,22 @@
+# SCENARIO: Auto-generated from Python Tests
+# TYPE: integration
+# GENERATED: true
+
+LOG[158]{message}:
+  "Test: TestParseComposeHealthcheck_test_string_test"
+  "Test: test_string_test"
+  "Test: TestDockerComposeParserBasic_test_healthcheck"
+  "Test: TestDockerComposeParserBasic_test_labels_dict"
+  "Test: test_healthcheck"
+  "Test: test_labels_dict"
+  "Test: test_parse_nginx_conf_ports"
+  "Test: test_argocd_application_parser"
+  "Test: TestInferAppUrl_test_port_80"
+  "Test: TestInferAppUrl_test_port_443"
+
+INCLUDE[14]{file}:
+  "/home/tom/github/maskservice/redeploy/redeploy/tests/test_version_cli.py"
+  "/home/tom/github/maskservice/redeploy/redeploy/tests/test_version_cli.py"
+  "/home/tom/github/maskservice/redeploy/redeploy/tests/test_analyze.py"
+  "/home/tom/github/maskservice/redeploy/redeploy/tests/test_analyze.py"
+  "/home/tom/github/maskservice/redeploy/redeploy/tests/test_patterns.py"

@@ -3,17 +3,17 @@
 
 ## AI Cost Tracking
 
-![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.72-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-38.5h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
+![PyPI](https://img.shields.io/badge/pypi-costs-blue) ![Version](https://img.shields.io/badge/version-0.2.73-blue) ![Python](https://img.shields.io/badge/python-3.9+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![AI Cost](https://img.shields.io/badge/AI%20Cost-$7.50-orange) ![Human Time](https://img.shields.io/badge/Human%20Time-39.5h-blue) ![Model](https://img.shields.io/badge/Model-openrouter%2Fqwen%2Fqwen3--coder--next-lightgrey)
 
-- 🤖 **LLM usage:** $7.5000 (93 commits)
-- 👤 **Human dev:** ~$3848 (38.5h @ $100/h, 30min dedup)
+- 🤖 **LLM usage:** $7.5000 (94 commits)
+- 👤 **Human dev:** ~$3948 (39.5h @ $100/h, 30min dedup)
 
 Generated on 2026-04-24 using [openrouter/qwen/qwen3-coder-next](https://openrouter.ai/qwen/qwen3-coder-next)
 
 ---
 
-![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.72-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![PyPI](https://img.shields.io/badge/pypi-redeploy-blue) ![Version](https://img.shields.io/badge/version-0.2.73-blue) ![Python](https://img.shields.io/badge/python-3.10+-blue) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
 Infrastructure migration and device deploy toolkit — VPS, Raspberry Pi kiosk, Podman Quadlet, k3s.
 
@@ -1079,6 +1079,38 @@ redeploy blueprint capture pi@192.168.188.109 > blueprint.yaml
 redeploy blueprint show blueprint.yaml --apply-config blueprint.yaml
 redeploy blueprint show blueprint.yaml --query "hardware.drm_outputs[0].transform"
 ```
+
+## Dependencies
+
+Core runtime dependencies:
+
+| Package | Purpose |
+|---------|---------|
+| `pydantic>=2.0` | Data validation and settings |
+| `pyyaml>=6.0` | YAML parsing/serialization |
+| `markdown-it-py>=3.0` | Markdown parsing (markpact specs) |
+| `click>=8.0` | CLI framework |
+| `loguru>=0.7` | Structured logging |
+| `paramiko>=3.0` | SSH client |
+| `httpx>=0.25` | HTTP client |
+| `rich>=13.0` | Terminal UI |
+| `jmespath>=1.0` | JSON/YAML query expressions |
+| `goal>=2.1.0` | Goal tracking |
+| `costs>=0.1.20` | AI cost tracking |
+| `pfix>=0.1.60` | Self-healing Python |
+
+Optional dependencies:
+
+| Package | Purpose |
+|---------|---------|
+| `op3>=0.1.8` | OP3 support |
+| `mcp>=1.0` | MCP server mode |
+
+### Internal Modules
+
+- **`markpact`** — Markdown-native deployment spec format (markpact:config, markpact:steps)
+- **`goal`** — Migration goal tracking and validation
+- **`costs`** — AI cost tracking and reporting
 
 ## License
 

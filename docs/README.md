@@ -1,7 +1,7 @@
 <!-- code2docs:start --># redeploy
 
-![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2774-green)
-> **2774** functions | **275** classes | **332** files | CC̄ = 5.0
+![version](https://img.shields.io/badge/version-0.1.0-blue) ![python](https://img.shields.io/badge/python-%3E%3D3.11-blue) ![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey) ![functions](https://img.shields.io/badge/functions-2902-green)
+> **2902** functions | **290** classes | **298** files | CC̄ = 5.1
 
 > Auto-generated project documentation from source code analysis.
 
@@ -88,6 +88,7 @@ redeploy/
 ├── TODO
 ├── CHANGELOG
 ├── project
+├── README
     ├── patterns
     ├── markpact-implementation-plan
     ├── fleet
@@ -109,7 +110,6 @@ redeploy/
 ├── redeploy/
     ├── parse
     ├── fleet
-    ├── models
     ├── verify
     ├── spec_loader
     ├── ssh
@@ -133,12 +133,36 @@ redeploy/
         ├── loop_detector
         ├── runner
         ├── log_writer
-        ├── builtins
+        ├── process
+        ├── docker
         ├── kiosk
     ├── steps/
+        ├── scm
+        ├── hardware
+        ├── k3s
+        ├── podman
+        ├── transfer
+        ├── generic
+    ├── analyze/
+        ├── spec_analyzer
+        ├── preflight_schema
+        ├── checkers/
         ├── applier
         ├── loader
     ├── config_apply/
+            ├── display
+        ├── handlers/
+        ├── devices
+        ├── persisted
+        ├── plan
+        ├── blueprint
+        ├── manifest
+    ├── models/
+        ├── hardware
+        ├── pipeline
+        ├── infra
+        ├── enums
+        ├── spec
         ├── display
         ├── query
         ├── core
@@ -160,8 +184,10 @@ redeploy/
             ├── plan_apply
         ├── commands/
             ├── detect
+            ├── gh_workflow
             ├── device_map
             ├── hardware
+            ├── lint
             ├── prompt_cmd
             ├── diff
             ├── workflow
@@ -175,6 +201,9 @@ redeploy/
             ├── version/
                 ├── release
                 ├── scanner
+                ├── utils/
+                    ├── git_config
+                    ├── changelog_config
     ├── plugins/
             ├── notify
         ├── builtin/
@@ -248,6 +277,7 @@ redeploy/
         ├── loader
     ├── dsl/
         ├── parser
+        ├── docker_compose
         ├── base
         ├── registry
     ├── iac/
@@ -317,66 +347,6 @@ redeploy/
             ├── fleet
             ├── migration
             ├── README
-        ├── version
-            ├── test-local-63f620b6
-            ├── test-local-68ae2b20
-            ├── test-local-be94eb0c
-            ├── migration-local-e4114daa
-            ├── test-local-6bb4cec7
-            ├── test-local-c05a99a2
-            ├── test-local-ec3c5638
-            ├── test-local-1862711e
-            ├── test-local-bcb75e42
-            ├── test-local-ec6ccce4
-            ├── test-local-eac354f9
-            ├── migration-local-92efc860
-            ├── test-local-ed7da478
-            ├── test-local-46c5e2ce
-            ├── test-local-abe8802f
-            ├── test-local-831fd1ab
-            ├── test-local-0e863125
-            ├── test-local-2859ad55
-            ├── test-local-e1009318
-            ├── test-local-563ceb24
-            ├── test-local-036bc2a0
-            ├── test-local-35782b9c
-            ├── test-local-4d4cf12b
-            ├── test-local-f868d117
-            ├── test-local-09b68243
-            ├── test-local-ab92e6d9
-            ├── test-local-ee51c059
-            ├── test-local-c1ec6b35
-            ├── test-local-ea908429
-            ├── test-local-5e8acada
-            ├── test-local-c89d7b36
-            ├── test-local-7f5ddd97
-            ├── test-local-179edfed
-            ├── test-local-e3a0f31a
-            ├── test-local-6279ef2c
-            ├── test-local-24cd498c
-            ├── test-local-efd3d620
-            ├── test-local-e322f022
-            ├── test-local-3ad44506
-            ├── test-local-9cc88960
-            ├── test-local-50622a24
-            ├── test-local-df0d6ff6
-            ├── test-local-c9849e24
-            ├── test-local-56cb0635
-            ├── test-local-d3c0fad8
-            ├── test-local-891787e9
-            ├── test-local-0a0a5446
-            ├── test-local-9c9d5826
-            ├── test-local-da199855
-            ├── test-local-db469906
-            ├── test-local-a70e54ce
-            ├── test-local-ad30ec23
-            ├── test-local-a929f336
-            ├── test-local-4cea1066
-            ├── test-local-cba6eec3
-            ├── test-local-5a1d7483
-            ├── test-local-e069dd9f
-            ├── test-local-36935faf
-            ├── test-local-1d287d51
     ├── quality_gate
     ├── hardware-108
     ├── hardware-109
@@ -385,19 +355,15 @@ redeploy/
         ├── context
         ├── README
             ├── toon
-            ├── test-local-8545df8e
-            ├── infra-local-9dd2f59b
     ├── prompt
+        ├── toon
+        ├── toon
+        ├── toon
     ├── context
-├── README
-        ├── toon
-        ├── toon
-        ├── toon
     ├── README
         ├── toon
     ├── calls
         ├── toon
-        ├── docker_compose
 ```
 
 ## API Overview
@@ -520,40 +486,6 @@ redeploy/
 - **`FleetDevice`** — Generic device descriptor — superset of ``deploy``'s DeviceConfig.
 - **`FleetConfig`** — Top-level fleet manifest — list of devices with stage / tag organisation.
 - **`Fleet`** — Unified first-class fleet — wraps FleetConfig and/or DeviceRegistry.
-- **`ConflictSeverity`** — —
-- **`StepAction`** — —
-- **`StepStatus`** — —
-- **`DeployStrategy`** — —
-- **`PersistedModel`** — Mixin for models that can be persisted to/from YAML files.
-- **`ServiceInfo`** — —
-- **`PortInfo`** — —
-- **`ConflictInfo`** — —
-- **`RuntimeInfo`** — —
-- **`AppHealthInfo`** — —
-- **`DrmOutput`** — One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1).
-- **`BacklightInfo`** — Sysfs backlight device.
-- **`I2CBusInfo`** — —
-- **`HardwareDiagnostic`** — Problem found during hardware probe.
-- **`HardwareInfo`** — Hardware state produced by hardware probe.
-- **`InfraState`** — Full detected state of infrastructure — output of `detect`.
-- **`Hook`** — Generyczny hook w pipeline: faza + akcja (reuse StepAction) + opcjonalny warunek.
-- **`TargetConfig`** — Desired infrastructure state — input to `plan`.
-- **`MigrationStep`** — —
-- **`InfraSpec`** — Declarative description of one infrastructure state (from OR to).
-- **`MigrationSpec`** — Single YAML file describing full migration: from-state → to-state.
-- **`MigrationPlan`** — Full migration plan — output of `plan`, input to `apply`.
-- **`EnvironmentConfig`** — One named environment (prod / dev / rpi5 / staging …) in redeploy.yaml.
-- **`ProjectManifest`** — Per-project redeploy.yaml — replaces repetitive Makefile variables.
-- **`DeployRecord`** — Single deployment event recorded for a device.
-- **`KnownDevice`** — Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml.
-- **`DeviceMap`** — Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
-- **`ServicePort`** — A single port mapping for a container service.
-- **`VolumeMount`** — —
-- **`ServiceSpec`** — Complete specification of a single containerised service.
-- **`HardwareRequirements`** — Hardware capabilities required to run the blueprint.
-- **`BlueprintSource`** — Where the blueprint was extracted from — audit trail.
-- **`DeviceBlueprint`** — Self-contained, portable deployment recipe.
-- **`DeviceRegistry`** — Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
 - **`VerifyContext`** — Accumulates check results during verification.
 - **`SpecLoaderError`** — Base error raised when a deployment spec cannot be loaded.
 - **`UnsupportedSpecFormatError`** — Raised when the spec file uses an unsupported format.
@@ -586,6 +518,45 @@ redeploy/
 - **`HealLoopDetector`** — Detect repeated non-converging heal hints for a given step.
 - **`HealRunner`** — Wraps :class:`Executor` with a self-healing loop.
 - **`StepLibrary`** — Registry of pre-defined named MigrationSteps.
+- **`IssueSeverity`** — —
+- **`Issue`** — —
+- **`AnalysisResult`** — —
+- **`SpecAnalyzer`** — Run static checks against a compiled MigrationSpec (and optional raw MarkpactDocument).
+- **`PreflightResult`** — —
+- **`DeployRecord`** — Single deployment event recorded for a device.
+- **`KnownDevice`** — Device known to redeploy — persisted in ~/.config/redeploy/devices.yaml.
+- **`DeviceMap`** — Full, persisted snapshot of a device: identity + InfraState + HardwareInfo.
+- **`DeviceRegistry`** — Persistent device registry — stored at ~/.config/redeploy/devices.yaml.
+- **`PersistedModel`** — Mixin for models that can be persisted to/from YAML files.
+- **`MigrationStep`** — —
+- **`MigrationPlan`** — Full migration plan — output of `plan`, input to `apply`.
+- **`ServicePort`** — —
+- **`VolumeMount`** — —
+- **`ServiceSpec`** — —
+- **`HardwareRequirements`** — —
+- **`BlueprintSource`** — —
+- **`DeviceBlueprint`** — Self-contained, portable deployment recipe.
+- **`EnvironmentConfig`** — One named environment in redeploy.yaml.
+- **`ProjectManifest`** — Per-project redeploy.yaml — replaces repetitive Makefile variables.
+- **`DrmOutput`** — One DRM connector (e.g. card1-DSI-2, card2-HDMI-A-1).
+- **`BacklightInfo`** — Sysfs backlight device.
+- **`I2CBusInfo`** — —
+- **`HardwareDiagnostic`** — Problem found during hardware probe.
+- **`HardwareInfo`** — Hardware state produced by hardware probe.
+- **`Hook`** — Generyczny hook w pipeline: faza + akcja + opcjonalny warunek.
+- **`ServiceInfo`** — —
+- **`PortInfo`** — —
+- **`ConflictInfo`** — —
+- **`RuntimeInfo`** — —
+- **`AppHealthInfo`** — —
+- **`InfraState`** — Full detected state of infrastructure — output of `detect`.
+- **`ConflictSeverity`** — —
+- **`StepAction`** — —
+- **`StepStatus`** — —
+- **`DeployStrategy`** — —
+- **`TargetConfig`** — Desired infrastructure state — input to `plan`.
+- **`InfraSpec`** — Declarative description of one infrastructure state (from OR to).
+- **`MigrationSpec`** — Single YAML file describing full migration: from-state → to-state.
 - **`PluginContext`** — Passed to every plugin handler.
 - **`PluginRegistry`** — Central registry mapping plugin_type strings to handler callables.
 - **`HardwareInfo`** — Hardware diagnostic information.
@@ -652,6 +623,7 @@ redeploy/
 - **`LoadResult`** — Full result of loading a ``redeploy.css`` file.
 - **`DSLNode`** — One parsed block from the CSS-like file.
 - **`RedeployDSLParser`** — Parse a ``redeploy.css`` or ``redeploy.less`` file into a list of DSLNode objects.
+- **`DockerComposeParser`** — Parser for docker-compose.yml / compose.yaml files.
 - **`PortInfo`** — A published / exposed port mapping.
 - **`VolumeInfo`** — A volume or bind-mount.
 - **`ServiceInfo`** — One logical service / container / pod / deployment.
@@ -669,7 +641,6 @@ redeploy/
 - **`GitLabCIGitOpsParser`** — —
 - **`HelmChartParser`** — —
 - **`AnsiblePlaybookParser`** — —
-- **`DockerComposeParser`** — Parser for docker-compose.yml / compose.yaml files.
 
 ### Functions
 
@@ -1005,6 +976,7 @@ redeploy/
 - `test_warning_str_with_location()` — —
 - `test_warning_str_no_location()` — —
 - `test_compose_parse_contract_golden()` — —
+- `test_docker_compose_parser_service_contract()` — —
 - `test_compile_markpact_document_yaml_subset_to_spec()` — —
 - `test_compile_markpact_document_supports_toml_config_and_steps()` — —
 - `test_compile_markpact_document_rejects_unsupported_block_kind()` — —
@@ -1355,6 +1327,7 @@ redeploy/
 - `list_saved()` — —
 - `snapshot_command()` — —
 - `cmd()` — —
+- `notify_slack()` — —
 - `notify_slack()` — —
 - `print()` — —
 - `list_patterns()` — —
@@ -1429,9 +1402,13 @@ redeploy/
 - `apply_fix_to_spec(spec_path, failed_step, llm_response)` — Extract YAML block from LLM response and patch it into the spec file.
 - `parse_failed_step(executor_summary, executor)` — Extract (step_id, step_output) from executor state or summary string.
 - `write_repair_log(spec_path, version, repairs)` — Append an entry to *REPAIR_LOG.md* adjacent to the spec file.
+- `ensure_redeployignore(base_dir)` — Create .redeployignore with sensible defaults if it doesn't exist.
+- `generate_preflight_schema()` — —
+- `save_preflight_schema(schema, output_path)` — —
 - `apply_config_dict(data, probe, console)` — Apply *data* to the host behind *probe*.
 - `apply_config_file(path)` — Load *path* and apply its hardware/infra settings to the remote host.
 - `load_config_file(path)` — Read *path* and return a dict (YAML or JSON auto-detected).
+- `apply_display_transform(console, probe, output_name, transform)` — Apply *transform* to *output_name* via wlr-randr and persist in kanshi config.
 - `print_plan_table(console, migration)` — Print migration plan as a table.
 - `print_infrastructure_summary(console, state, host)` — Print infrastructure summary from detection state.
 - `print_docker_services(console, state)` — Print Docker container status.
@@ -1489,8 +1466,13 @@ redeploy/
 - `migrate(ctx, host, app, domain)` — Full pipeline: detect → plan → apply.
 - `run(ctx, spec_file, dry_run, plan_only)` — Execute migration from a single YAML spec (source + target in one file).
 - `detect(ctx, host, app, domain)` — Probe infrastructure and produce infra.yaml.
+- `gh_workflow_cmd()` — Inspect and run GitHub Actions workflows on demand.
+- `gh_workflow_list(repo_root)` — List workflow files and whether they are dispatchable.
+- `gh_workflow_analyze(workflow, repo_root)` — Analyze one workflow (or all workflows) for triggers/jobs/dispatch readiness.
+- `gh_workflow_run(workflow, repo_root, ref, fields)` — Trigger a GitHub Actions workflow_dispatch run on demand via gh CLI.
 - `device_map_cmd(host, name, tags, save)` — Generate a full standardized device snapshot (hardware + infra + diagnostics).
 - `hardware(host, output_fmt, show_fix, apply_fix_component)` — Probe and diagnose hardware on a remote host.
+- `lint(ctx, spec_file, env_name, as_json)` — Static analysis of a migration spec (YAML or markpact .md).
 - `prompt_cmd(instruction, schema_only, dry_run, yes)` — Natural-language → redeploy command via LLM.
 - `diff(ci_file, host, from_src, to_src)` — Compare IaC file vs live host (drift detection).  [Phase 3 — coming soon]
 - `workflow_cmd(ctx, name, css_file, dry_run)` — Run a named workflow from redeploy.css.
@@ -1506,6 +1488,8 @@ redeploy/
 - `version_set(version, manifest_path_str, package_name, all_packages)` — Set an explicit version across all manifest sources.
 - `version_init(scan, review, interactive, excluded_paths)` — Initialize .redeploy/version.yaml manifest.
 - `version_diff(manifest, package_name, all_packages, spec)` — Compare manifest version vs spec vs live.
+- `resolve_package_release_git_config(manifest_model, package_name)` — Return the git config for *package_name* with optional root fallback.
+- `resolve_package_release_changelog_config(manifest_model, package_name)` — Return the changelog config for *package_name* with optional root fallback.
 - `register_plugin(name)` — Decorator shortcut: @register_plugin('browser_reload').
 - `load_user_plugins()` — Load user plugins from project-local and user-global directories.
 - `notify(ctx)` — —
@@ -1541,6 +1525,7 @@ redeploy/
 - `parse_markpact_file_with_refs(path)` — Parse markpact file and extract all referenced scripts.
 - `extract_script_by_ref(text, ref_id, language)` — Extract script from codeblock marked with markpact:ref <ref_id>.
 - `extract_script_from_markdown(text, section_id, language)` — Extract script content from a markdown code block by section heading.
+- `resolve_script_ref(md_content, ref_id, language)` — Resolve a script reference in markdown, trying markpact:ref then section heading.
 - `compile_markpact_document(document)` — —
 - `compile_markpact_document_to_data(document)` — —
 - `state_key(spec_path, host)` — Stable, filesystem-safe identifier for one (spec, host) checkpoint.
@@ -1611,7 +1596,11 @@ redeploy/
 - `verify_all_services()` — —
 - `print()` — —
 - `exit()` — —
-- `notify_slack()` — —
+- `plan()` — —
+- `apply()` — —
+- `migrate()` — —
+- `run()` — —
+- `ensure_redeployignore()` — —
 - `probe()` — —
 - `version_cmd()` — —
 - `version_current()` — —
@@ -1644,6 +1633,11 @@ redeploy/
 - `list_blueprints()` — —
 - `device_map_cmd()` — —
 - `generate_twin()` — —
+- `gh_workflow_cmd()` — —
+- `gh_workflow_list()` — —
+- `gh_workflow_analyze()` — —
+- `gh_workflow_run()` — —
+- `lint()` — —
 - `generate_migration()` — —
 - `audit()` — —
 - `detect_handler()` — —
@@ -1656,6 +1650,10 @@ redeploy/
 - `auto_probe()` — —
 - `bump_cmd()` — —
 - `fix_cmd()` — —
+- `collect_diagnostics()` — —
+- `ask_llm()` — —
+- `apply_fix_to_spec()` — —
+- `parse_failed_step()` — —
 - `browser_reload()` — —
 - `run_ssh()` — —
 - `run_scp()` — —
@@ -1679,6 +1677,8 @@ redeploy/
 - `main()` — —
 - `build_schema()` — —
 - `audit_spec()` — —
+- `generate_preflight_schema()` — —
+- `save_preflight_schema()` — —
 - `hardware_diagnostic()` — —
 - `ensure_line()` — —
 - `ensure_lines()` — —
@@ -1687,6 +1687,7 @@ redeploy/
 - `parse_markpact_file_with_refs()` — —
 - `extract_script_by_ref()` — —
 - `extract_script_from_markdown()` — —
+- `resolve_script_ref()` — —
 - `parse_file()` — —
 - `parse_dir()` — —
 - `probe_runtime()` — —
@@ -1699,10 +1700,6 @@ redeploy/
 - `detect_conflicts()` — —
 - `detect_strategy()` — —
 - `plugin_cmd()` — —
-- `plan()` — —
-- `apply()` — —
-- `migrate()` — —
-- `run()` — —
 - `hardware()` — —
 - `bump_version()` — —
 - `verify_sources()` — —
@@ -1762,10 +1759,6 @@ redeploy/
 - `check_version()` — —
 - `check_version_http()` — —
 - `verify_data_integrity()` — —
-- `collect_diagnostics()` — —
-- `ask_llm()` — —
-- `apply_fix_to_spec()` — —
-- `parse_failed_step()` — —
 - `patterns()` — —
 - `rollback_steps()` — —
 - `diff_manifest_vs_spec()` — —
@@ -1777,6 +1770,7 @@ redeploy/
 - `rsync_timeout_for_path()` — —
 - `decide_after_failure()` — —
 - `format_decision_message()` — —
+- `apply_display_transform()` — —
 - `state_cmd()` — —
 - `register_plugin()` — —
 - `load_user_plugins()` — —
@@ -1811,6 +1805,8 @@ redeploy/
 - `get_workspace()` — —
 - `serve()` — —
 - `execute_query()` — —
+- `resolve_package_release_git_config()` — —
+- `resolve_package_release_changelog_config()` — —
 - `dsi_only_profile()` — —
 - `state_key()` — —
 - `default_state_path()` — —
@@ -1832,39 +1828,8 @@ redeploy/
 - `register_adapter()` — —
 - `mcp_cmd()` — —
 - `diff()` — —
-- `by_tag()` — —
-- `by_stage()` — —
-- `by_strategy()` — —
-- `reachable()` — —
-- `from_file()` — —
-- `from_registry()` — —
-- `merge()` — —
-- `expand()` — —
-- `print()` — —
-- `cmd_deploy()` — —
-- `hardware_cmd()` — —
-- `render()` — —
-- `apply_query()` — —
 - `to_yaml()` — —
 - `load()` — —
-- `query()` — —
-- `apply_config()` — —
-- `list_saved()` — —
-- `snapshot_command()` — —
-- `cmd()` — —
-- `notify_slack()` — —
-- `my_migration()` — —
-- `restart_service()` — —
-- `deploy_docker_compose()` — —
-- `test_deployment()` — —
-- `test_real_deployment()` — —
-- `can_parse()` — —
-- `parse()` — —
-- `verify_deployment()` — —
-- `check_prerequisites()` — —
-- `verify_all_services()` — —
-- `exit()` — —
-- `generate_readme()` — —
 - `has_dsi()` — —
 - `kms_enabled()` — —
 - `dsi_connected()` — —
@@ -1873,6 +1838,7 @@ redeploy/
 - `backlight_on()` — —
 - `errors()` — —
 - `warnings()` — —
+- `from_file()` — —
 - `resolve_versions()` — —
 - `to_infra_state()` — —
 - `to_target_config()` — —
@@ -1889,9 +1855,13 @@ redeploy/
 - `display_summary()` — —
 - `save()` — —
 - `load_for()` — —
+- `list_saved()` — —
 - `service()` — —
 - `upsert()` — —
 - `remove()` — —
+- `by_tag()` — —
+- `by_strategy()` — —
+- `reachable()` — —
 - `default_path()` — —
 - `ok()` — —
 - `add()` — —
@@ -1939,10 +1909,15 @@ redeploy/
 - `has_expectation()` — —
 - `verify_expectations()` — —
 - `get_device()` — —
+- `by_stage()` — —
 - `prod_devices()` — —
+- `from_registry()` — —
 - `from_config()` — —
 - `prod()` — —
+- `merge()` — —
+- `expand()` — —
 - `run_container_build()` — —
+- `parse()` — —
 - `test_nodes_of_type()` — —
 - `test_manifest_to_css_roundtrip()` — —
 - `test_templates_to_css()` — —
@@ -1969,6 +1944,7 @@ redeploy/
 - `test_warning_str_with_location()` — —
 - `test_warning_str_no_location()` — —
 - `test_compose_parse_contract_golden()` — —
+- `test_docker_compose_parser_service_contract()` — —
 - `test_compile_markpact_document_yaml_subset_to_spec()` — —
 - `test_compile_markpact_document_supports_toml_config_and_steps()` — —
 - `test_compile_markpact_document_rejects_unsupported_block_kind()` — —
@@ -2201,79 +2177,38 @@ redeploy/
 - `test_parse_llm_response_preserves_newlines()` — —
 - `test_placeholder()` — —
 - `test_import()` — —
+- `print()` — —
+- `cmd_deploy()` — —
+- `hardware_cmd()` — —
+- `render()` — —
+- `apply_query()` — —
+- `query()` — —
+- `apply_config()` — —
+- `snapshot_command()` — —
+- `cmd()` — —
+- `notify_slack()` — —
+- `my_migration()` — —
+- `restart_service()` — —
+- `deploy_docker_compose()` — —
+- `test_deployment()` — —
+- `test_real_deployment()` — —
+- `generate_readme()` — —
+- `can_parse()` — —
+- `verify_deployment()` — —
+- `check_prerequisites()` — —
+- `verify_all_services()` — —
+- `exit()` — —
 
 
 ## Project Structure
 
-📄 `.redeploy.state.infra-local-9dd2f59b`
-📄 `.redeploy.state.migration-local-92efc860`
-📄 `.redeploy.state.migration-local-e4114daa`
-📄 `.redeploy.state.test-local-036bc2a0`
-📄 `.redeploy.state.test-local-09b68243`
-📄 `.redeploy.state.test-local-0a0a5446`
-📄 `.redeploy.state.test-local-0e863125`
-📄 `.redeploy.state.test-local-179edfed`
-📄 `.redeploy.state.test-local-1862711e`
-📄 `.redeploy.state.test-local-1d287d51`
-📄 `.redeploy.state.test-local-24cd498c`
-📄 `.redeploy.state.test-local-2859ad55`
-📄 `.redeploy.state.test-local-35782b9c`
-📄 `.redeploy.state.test-local-36935faf`
-📄 `.redeploy.state.test-local-3ad44506`
-📄 `.redeploy.state.test-local-46c5e2ce`
-📄 `.redeploy.state.test-local-4cea1066`
-📄 `.redeploy.state.test-local-4d4cf12b`
-📄 `.redeploy.state.test-local-50622a24`
-📄 `.redeploy.state.test-local-563ceb24`
-📄 `.redeploy.state.test-local-56cb0635`
-📄 `.redeploy.state.test-local-5a1d7483`
-📄 `.redeploy.state.test-local-5e8acada`
-📄 `.redeploy.state.test-local-6279ef2c`
-📄 `.redeploy.state.test-local-63f620b6`
-📄 `.redeploy.state.test-local-68ae2b20`
-📄 `.redeploy.state.test-local-6bb4cec7`
-📄 `.redeploy.state.test-local-7f5ddd97`
-📄 `.redeploy.state.test-local-831fd1ab`
-📄 `.redeploy.state.test-local-8545df8e`
-📄 `.redeploy.state.test-local-891787e9`
-📄 `.redeploy.state.test-local-9c9d5826`
-📄 `.redeploy.state.test-local-9cc88960`
-📄 `.redeploy.state.test-local-a70e54ce`
-📄 `.redeploy.state.test-local-a929f336`
-📄 `.redeploy.state.test-local-ab92e6d9`
-📄 `.redeploy.state.test-local-abe8802f`
-📄 `.redeploy.state.test-local-ad30ec23`
-📄 `.redeploy.state.test-local-bcb75e42`
-📄 `.redeploy.state.test-local-be94eb0c`
-📄 `.redeploy.state.test-local-c05a99a2`
-📄 `.redeploy.state.test-local-c1ec6b35`
-📄 `.redeploy.state.test-local-c89d7b36`
-📄 `.redeploy.state.test-local-c9849e24`
-📄 `.redeploy.state.test-local-cba6eec3`
-📄 `.redeploy.state.test-local-d3c0fad8`
-📄 `.redeploy.state.test-local-da199855`
-📄 `.redeploy.state.test-local-db469906`
-📄 `.redeploy.state.test-local-df0d6ff6`
-📄 `.redeploy.state.test-local-e069dd9f`
-📄 `.redeploy.state.test-local-e1009318`
-📄 `.redeploy.state.test-local-e322f022`
-📄 `.redeploy.state.test-local-e3a0f31a`
-📄 `.redeploy.state.test-local-ea908429`
-📄 `.redeploy.state.test-local-eac354f9`
-📄 `.redeploy.state.test-local-ec3c5638`
-📄 `.redeploy.state.test-local-ec6ccce4`
-📄 `.redeploy.state.test-local-ed7da478`
-📄 `.redeploy.state.test-local-ee51c059`
-📄 `.redeploy.state.test-local-efd3d620`
-📄 `.redeploy.state.test-local-f868d117`
-📄 `.redeploy.version`
 📄 `CHANGELOG` (1 functions)
 📄 `DOQL-INTEGRATION` (3 functions)
 📄 `Makefile`
 📄 `README` (1 functions)
 📄 `REFACTORING` (9 functions, 6 classes)
 📄 `REPAIR_LOG`
-📄 `SUMD` (930 functions, 51 classes)
+📄 `SUMD` (931 functions, 51 classes)
 📄 `SUMR` (164 functions, 51 classes)
 📄 `TODO` (11 functions, 1 classes)
 📄 `code2llm_output.README`
@@ -2363,17 +2298,21 @@ redeploy/
 📄 `project.context`
 📄 `project.duplication.toon`
 📄 `project.evolution.toon`
-📄 `project.map.toon` (2393 functions)
+📄 `project.map.toon` (4121 functions)
 📄 `project.project.toon`
 📄 `project.prompt`
 📄 `project.validation.toon`
 📄 `pyproject`
 📄 `pyqual`
 📦 `redeploy`
+📦 `redeploy.analyze`
+📦 `redeploy.analyze.checkers`
+📄 `redeploy.analyze.preflight_schema` (6 functions, 1 classes)
+📄 `redeploy.analyze.spec_analyzer` (30 functions, 14 classes)
 📦 `redeploy.apply`
 📄 `redeploy.apply.exceptions` (1 functions, 1 classes)
 📄 `redeploy.apply.executor` (17 functions, 1 classes)
-📄 `redeploy.apply.handlers` (20 functions)
+📄 `redeploy.apply.handlers` (22 functions)
 📄 `redeploy.apply.progress` (11 functions, 1 classes)
 📄 `redeploy.apply.rollback` (1 functions)
 📄 `redeploy.apply.state` (13 functions, 1 classes)
@@ -2403,13 +2342,15 @@ redeploy/
 📄 `redeploy.cli.commands.diff` (1 functions)
 📄 `redeploy.cli.commands.exec_` (6 functions)
 📄 `redeploy.cli.commands.export` (6 functions)
+📄 `redeploy.cli.commands.gh_workflow` (15 functions)
 📄 `redeploy.cli.commands.hardware` (11 functions)
 📄 `redeploy.cli.commands.import_` (8 functions)
 📄 `redeploy.cli.commands.init` (1 functions)
 📄 `redeploy.cli.commands.inspect` (2 functions)
+📄 `redeploy.cli.commands.lint` (1 functions)
 📄 `redeploy.cli.commands.mcp_cmd` (1 functions)
 📄 `redeploy.cli.commands.patterns` (1 functions)
-📄 `redeploy.cli.commands.plan_apply` (11 functions)
+📄 `redeploy.cli.commands.plan_apply` (19 functions)
 📄 `redeploy.cli.commands.plugin` (1 functions)
 📄 `redeploy.cli.commands.probe` (1 functions)
 📄 `redeploy.cli.commands.prompt_cmd` (4 functions)
@@ -2423,12 +2364,17 @@ redeploy/
 📄 `redeploy.cli.commands.version.monorepo` (5 functions)
 📄 `redeploy.cli.commands.version.release` (6 functions)
 📄 `redeploy.cli.commands.version.scanner` (18 functions)
+📦 `redeploy.cli.commands.version.utils`
+📄 `redeploy.cli.commands.version.utils.changelog_config` (1 functions)
+📄 `redeploy.cli.commands.version.utils.git_config` (1 functions)
 📄 `redeploy.cli.commands.workflow` (3 functions)
 📄 `redeploy.cli.core` (7 functions)
 📄 `redeploy.cli.display` (25 functions)
 📄 `redeploy.cli.query` (1 functions)
 📦 `redeploy.config_apply`
 📄 `redeploy.config_apply.applier` (3 functions)
+📦 `redeploy.config_apply.handlers`
+📄 `redeploy.config_apply.handlers.display` (2 functions)
 📄 `redeploy.config_apply.loader` (1 functions)
 📄 `redeploy.data_sync` (2 functions)
 📦 `redeploy.detect`
@@ -2469,25 +2415,35 @@ redeploy/
 📄 `redeploy.hardware.raspi_config` (1 functions)
 📦 `redeploy.heal`
 📄 `redeploy.heal.decider` (2 functions, 2 classes)
-📄 `redeploy.heal.hint_provider` (5 functions)
+📄 `redeploy.heal.hint_provider` (8 functions)
 📄 `redeploy.heal.log_writer` (1 functions)
 📄 `redeploy.heal.loop_detector` (4 functions, 2 classes)
 📄 `redeploy.heal.runner` (5 functions, 1 classes)
 📦 `redeploy.iac`
 📄 `redeploy.iac.base` (13 functions, 7 classes)
 📄 `redeploy.iac.config_hints` (15 functions, 1 classes)
-📄 `redeploy.iac.docker_compose` (22 functions, 1 classes)
+📄 `redeploy.iac.docker_compose` (23 functions, 1 classes)
 📦 `redeploy.iac.parsers`
-📄 `redeploy.iac.parsers.compose` (13 functions, 1 classes)
+📄 `redeploy.iac.parsers.compose` (18 functions, 1 classes)
 📄 `redeploy.iac.registry` (4 functions)
 📦 `redeploy.integrations`
 📄 `redeploy.integrations.op3_bridge` (5 functions)
 📦 `redeploy.markpact`
 📄 `redeploy.markpact.compiler` (6 functions, 1 classes)
 📄 `redeploy.markpact.models` (2 classes)
-📄 `redeploy.markpact.parser` (9 functions, 1 classes)
-📄 `redeploy.mcp_server` (14 functions)
-📄 `redeploy.models` (30 functions, 34 classes)
+📄 `redeploy.markpact.parser` (10 functions, 1 classes)
+📄 `redeploy.mcp_server` (15 functions)
+📦 `redeploy.models`
+📄 `redeploy.models.blueprint` (3 functions, 6 classes)
+📄 `redeploy.models.devices` (13 functions, 4 classes)
+📄 `redeploy.models.enums` (4 classes)
+📄 `redeploy.models.hardware` (5 classes)
+📄 `redeploy.models.infra` (6 classes)
+📄 `redeploy.models.manifest` (6 functions, 2 classes)
+📄 `redeploy.models.persisted` (2 functions, 1 classes)
+📄 `redeploy.models.pipeline` (1 classes)
+📄 `redeploy.models.plan` (2 classes)
+📄 `redeploy.models.spec` (6 functions, 3 classes)
 📄 `redeploy.observe` (14 functions, 3 classes)
 📄 `redeploy.parse` (10 functions)
 📄 `redeploy.patterns` (11 functions, 4 classes)
@@ -2504,8 +2460,15 @@ redeploy/
 📄 `redeploy.spec_loader` (1 functions, 2 classes)
 📄 `redeploy.ssh` (17 functions, 4 classes)
 📦 `redeploy.steps` (4 functions, 1 classes)
-📄 `redeploy.steps.builtins` (1 functions)
+📄 `redeploy.steps.docker` (1 functions)
+📄 `redeploy.steps.generic` (1 functions)
+📄 `redeploy.steps.hardware` (1 functions)
+📄 `redeploy.steps.k3s` (1 functions)
 📄 `redeploy.steps.kiosk`
+📄 `redeploy.steps.podman` (1 functions)
+📄 `redeploy.steps.process` (1 functions)
+📄 `redeploy.steps.scm` (1 functions)
+📄 `redeploy.steps.transfer` (1 functions)
 📄 `redeploy.templates.process_control_template`
 📄 `redeploy.verify` (7 functions, 1 classes)
 📦 `redeploy.version` (4 functions)

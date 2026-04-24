@@ -10,13 +10,14 @@ if [ ! -f "$PIP" ]; then
     python3 -m venv "$VENV"
 fi
 
+$PIP install -e .
+
 $PIP install regix --upgrade --quiet
 #$PIP install pyqual --upgrade --quiet
 $PIP install prefact --upgrade --quiet
 $PIP install vallm --upgrade --quiet
 $PIP install redup --upgrade --quiet
 $PIP install glon --upgrade --quiet
-$PIP install goal --upgrade --quiet
 $PIP install code2logic --upgrade --quiet
 $PIP install code2llm --upgrade --quiet
 #$VENV/bin/code2llm ./ -f toon,evolution,code2logic,project-yaml -o ./project --no-chunk
@@ -33,3 +34,9 @@ $VENV/bin/redup scan . --format toon --output ./project
 $PIP install sumd --upgrade --quiet
 $VENV/bin/sumd .
 $VENV/bin/sumr .
+
+
+pip install -U goal
+$PIP install goal --upgrade --quiet
+
+$VENV/bin/goal -a

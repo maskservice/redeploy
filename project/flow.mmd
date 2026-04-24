@@ -19,26 +19,26 @@ flowchart TD
         redeploy__cli__display__print_inspect_devices["print_inspect_devices"]
         redeploy__cli__display__print_inspect_raw_nodes_summary["print_inspect_raw_nodes_summar"]
         redeploy__cli__display__print_workflow_summary_table["print_workflow_summary_table"]
-        ...["+171 more"]
+        ...["+197 more"]
     end
 
     subgraph Core
-        REFACTORING__by_tag["by_tag"]
-        REFACTORING__by_stage["by_stage"]
-        REFACTORING__by_strategy["by_strategy"]
-        REFACTORING__reachable["reachable"]
-        REFACTORING__from_file["from_file"]
-        REFACTORING__from_registry["from_registry"]
-        REFACTORING__merge["merge"]
-        REFACTORING___accept_aliases["_accept_aliases"]
-        REFACTORING__expand["expand"]
-        DOQL_INTEGRATION___gen_migration_spec["_gen_migration_spec"]
-        DOQL_INTEGRATION__cmd_deploy["cmd_deploy"]
-        TODO__hardware_cmd["hardware_cmd"]
-        TODO__render["render"]
-        TODO__apply_query["apply_query"]
-        TODO__capture["capture"]
-        ...["+2168 more"]
+        SUMR__to_yaml["to_yaml"]
+        SUMR__load["load"]
+        SUMR__has_dsi["has_dsi"]
+        SUMR__kms_enabled["kms_enabled"]
+        SUMR__dsi_connected["dsi_connected"]
+        SUMR__dsi_physically_connected["dsi_physically_connected"]
+        SUMR__dsi_enabled["dsi_enabled"]
+        SUMR__backlight_on["backlight_on"]
+        SUMR__errors["errors"]
+        SUMR__warnings["warnings"]
+        SUMR___accept_strategy_aliases["_accept_strategy_aliases"]
+        SUMR__from_file["from_file"]
+        SUMR__resolve_versions["resolve_versions"]
+        SUMR__to_infra_state["to_infra_state"]
+        SUMR__to_target_config["to_target_config"]
+        ...["+2327 more"]
     end
 
     subgraph Exporters
@@ -52,4 +52,4 @@ flowchart TD
         project__map__toon___export_to_yaml["_export_to_yaml"]
     end
 
-    class REFACTORING__by_tag,REFACTORING__by_stage,REFACTORING__by_strategy,REFACTORING__reachable,REFACTORING__from_file,REFACTORING__from_registry,REFACTORING__merge,REFACTORING___accept_aliases,REFACTORING__expand,DOQL_INTEGRATION___gen_migration_spec entry
+    class SUMR__to_yaml,SUMR__load,SUMR__has_dsi,SUMR__kms_enabled,SUMR__dsi_connected,SUMR__dsi_physically_connected,SUMR__dsi_enabled,SUMR__backlight_on,SUMR__errors,SUMR__warnings entry

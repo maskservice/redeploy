@@ -1,62 +1,62 @@
-# redeploy | 2633 func | 146f | 74327L | python | 2026-04-21
+# redeploy | 2902 func | 164f | 80735L | python | 2026-04-24
 
 HEALTH:
-  CC̄=1.7  critical=118 (limit:10)  dup=58  cycles=0
+  CC̄=1.7  critical=133 (limit:10)  dup=58  cycles=0
 
 ALERTS[20]:
-  !!! cc_exceeded      DockerComposeParser._parse_service = 37 (limit:15)
+  !!! high_fan_out     run = 44 (limit:10)
+  !!! cc_exceeded      _build_checksum_verification = 32 (limit:15)
+  !!! cc_exceeded      _DockerBuildChecker.check = 31 (limit:15)
+  !!! cc_exceeded      run = 30 (limit:15)
   !!! high_fan_out     fix_cmd = 30 (limit:10)
+  !!! high_fan_out     HealRunner._heal_step = 29 (limit:10)
   !!! high_fan_out     device_map_cmd = 28 (limit:10)
   !!! high_fan_out     hardware = 28 (limit:10)
-  !!! high_fan_out     HealRunner._heal_step = 27 (limit:10)
-  !!! high_fan_out     run = 27 (limit:10)
-  !!! cc_exceeded      probe = 26 (limit:15)
-  !!! cc_exceeded      version_init = 26 (limit:15)
-  !!! cc_exceeded      ConfigHintsParser._parse_k8s_yaml = 26 (limit:15)
-  !!! high_fan_out     import_cmd = 26 (limit:10)
+  !!! high_fan_out     _DockerBuildChecker.check = 27 (limit:10)
+  !!! cc_exceeded      _ComposeChecker._scan_compose = 26 (limit:15)
 
-MODULES[324] (top by size):
-  M[project/calls.yaml] 6319L C:0 F:0 CC↑0 D:0 (yaml)
-  M[SUMR.md] 2865L C:51 F:140 CC↑0 D:0 (md)
-  M[SUMD.md] 2849L C:51 F:839 CC↑0 D:1 (md)
-  M[docs/README.md] 2543L C:0 F:1 CC↑0 D:0 (md)
-  M[project/map.toon.yaml] 1774L C:0 F:733 CC↑0 D:0 (yaml)
-  M[CHANGELOG.md] 1133L C:0 F:1 CC↑0 D:0 (md)
-  M[redeploy/models.py] 1096L C:34 F:30 CC↑19 D:1 (python)
-  M[README.md] 1046L C:0 F:1 CC↑0 D:0 (md)
-  M[redeploy/discovery.py] 789L C:2 F:26 CC↑17 D:5 (python)
-  M[project/context.md] 728L C:0 F:0 CC↑0 D:0 (md)
+MODULES[291] (top by size):
+  M[project/calls.yaml] 7040L C:0 F:0 CC↑0 D:0 (yaml)
+  M[project/map.toon.yaml] 3523L C:0 F:906 CC↑0 D:0 (yaml)
+  M[SUMR.md] 2869L C:51 F:140 CC↑0 D:11 (md)
+  M[SUMD.md] 2860L C:51 F:840 CC↑0 D:58 (md)
+  M[docs/README.md] 2569L C:0 F:1 CC↑0 D:0 (md)
+  M[CHANGELOG.md] 1416L C:0 F:1 CC↑0 D:0 (md)
+  M[README.md] 1117L C:0 F:1 CC↑0 D:0 (md)
+  M[redeploy/cli/commands/plan_apply.py] 1005L C:0 F:19 CC↑32 D:0 (python)
+  M[redeploy/discovery.py] 789L C:2 F:26 CC↑17 D:0 (python)
+  M[redeploy/analyze/spec_analyzer.py] 742L C:14 F:30 CC↑31 D:0 (python)
   M[code2llm_output/context.md] 722L C:0 F:0 CC↑0 D:0 (md)
+  M[project/context.md] 721L C:0 F:0 CC↑0 D:0 (md)
   M[project/validation.toon.yaml] 683L C:0 F:0 CC↑0 D:0 (yaml)
-  M[redeploy/plan/planner.py] 621L C:1 F:21 CC↑10 D:0 (python)
-  M[redeploy/apply/handlers.py] 616L C:0 F:20 CC↑16 D:2 (python)
-  M[redeploy/audit.py] 609L C:6 F:32 CC↑14 D:1 (python)
-  LANGS: python:159/yaml:106/md:52/shell:2/other:1/yml:1/txt:1/toml:1/json:1
+  M[redeploy/apply/handlers.py] 655L C:0 F:22 CC↑16 D:0 (python)
+  M[redeploy/plan/planner.py] 627L C:1 F:21 CC↑10 D:0 (python)
+  LANGS: python:187/md:52/yaml:45/shell:2/other:1/yml:1/txt:1/toml:1/json:1
 
 HOTSPOTS[10]:
+  ★ run fan=44  // Execute migration from a single YAML spec (source + target in one file).
+
+SPEC d
   ★ fix_cmd fan=30  // Self-healing deploy: bump version, then run with LLM auto-fix on failure.
 
 
 PAT
+  ★ HealRunner._heal_step fan=29  // Single heal iteration: diagnose → LLM → decide.
+
+Returns *(decision, failed_step
   ★ device_map_cmd fan=28  // Generate a full standardized device snapshot (hardware + infra + diagnostics).
 
 
   ★ hardware fan=28  // Probe and diagnose hardware on a remote host.
 
 Checks DSI display, DRM connector
-  ★ HealRunner._heal_step fan=27  // Single heal iteration: diagnose → LLM → decide.
-
-Returns *(decision, failed_step
-  ★ run fan=27  // Execute migration from a single YAML spec (source + target in one file).
-
-SPEC d
 
 REFACTOR[15]:
   [1] H/L Split FleetDevice.verify_expectations (CC=25)
-  [2] H/L Split probe (CC=26)
-  [3] H/L Split version_init (CC=26)
-  [4] H/L Split _bump_single (CC=25)
-  [5] H/L Split _build_manifest (CC=25)
+  [2] H/L Split _ComposeChecker._scan_compose (CC=26)
+  [3] H/L Split _DockerBuildChecker.check (CC=31)
+  [4] H/L Split probe (CC=26)
+  [5] H/L Split run (CC=30)
 
 EVOLUTION:
-  2026-04-21 CC̄=1.7 crit=118 74327L // Automated analysis
+  2026-04-24 CC̄=1.7 crit=133 80735L // Automated analysis

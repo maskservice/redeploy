@@ -1,57 +1,57 @@
-# code2llm/evolution | 2608 func | 139f | 2026-04-21
+# code2llm/evolution | 2877 func | 157f | 2026-04-24
 
 NEXT[10] (ranked by impact):
-  [1] !! SPLIT           redeploy/models.py
-      WHY: 1096L, 34 classes, max CC=19
-      EFFORT: ~4h  IMPACT: 20824
+  [1] !! SPLIT           redeploy/cli/commands/plan_apply.py
+      WHY: 1005L, 0 classes, max CC=32
+      EFFORT: ~4h  IMPACT: 32160
 
-  [2] !! SPLIT           redeploy/discovery.py
+  [2] !! SPLIT           redeploy/analyze/spec_analyzer.py
+      WHY: 742L, 14 classes, max CC=31
+      EFFORT: ~4h  IMPACT: 23002
+
+  [3] !! SPLIT           redeploy/discovery.py
       WHY: 789L, 2 classes, max CC=17
       EFFORT: ~4h  IMPACT: 13413
 
-  [3] !! SPLIT           redeploy/plan/planner.py
-      WHY: 621L, 1 classes, max CC=10
-      EFFORT: ~4h  IMPACT: 6210
+  [4] !! SPLIT-FUNC      run  CC=30  fan=44
+      WHY: CC=30 exceeds 15
+      EFFORT: ~1h  IMPACT: 1320
 
-  [4] !! SPLIT-FUNC      DockerComposeParser._parse_service  CC=37  fan=23
-      WHY: CC=37 exceeds 15
-      EFFORT: ~1h  IMPACT: 851
+  [5] !! SPLIT-FUNC      _DockerBuildChecker.check  CC=31  fan=27
+      WHY: CC=31 exceeds 15
+      EFFORT: ~1h  IMPACT: 837
 
-  [5] !! SPLIT-FUNC      version_init  CC=26  fan=26
+  [6] !! SPLIT-FUNC      version_init  CC=26  fan=26
       WHY: CC=26 exceeds 15
       EFFORT: ~1h  IMPACT: 676
 
-  [6] !! SPLIT-FUNC      DockerComposeParser.parse  CC=25  fan=24
+  [7] !! SPLIT-FUNC      _build_checksum_verification  CC=32  fan=21
+      WHY: CC=32 exceeds 15
+      EFFORT: ~1h  IMPACT: 672
+
+  [8] !! SPLIT-FUNC      _ComposeChecker._scan_compose  CC=26  fan=24
+      WHY: CC=26 exceeds 15
+      EFFORT: ~1h  IMPACT: 624
+
+  [9] !! SPLIT-FUNC      DockerComposeParser.parse  CC=25  fan=24
       WHY: CC=25 exceeds 15
       EFFORT: ~1h  IMPACT: 600
 
-  [7] !  SPLIT-FUNC      device_map_cmd  CC=20  fan=28
+  [10] !  SPLIT-FUNC      device_map_cmd  CC=20  fan=28
       WHY: CC=20 exceeds 15
       EFFORT: ~1h  IMPACT: 560
 
-  [8] !! SPLIT-FUNC      probe  CC=26  fan=21
-      WHY: CC=26 exceeds 15
-      EFFORT: ~1h  IMPACT: 546
-
-  [9] !  SPLIT-FUNC      import_cmd  CC=21  fan=26
-      WHY: CC=21 exceeds 15
-      EFFORT: ~1h  IMPACT: 546
-
-  [10] !! SPLIT-FUNC      ConfigHintsParser._parse_k8s_yaml  CC=26  fan=20
-      WHY: CC=26 exceeds 15
-      EFFORT: ~1h  IMPACT: 520
-
 
 RISKS[3]:
-  ⚠ Splitting redeploy/models.py may break 30 import paths
+  ⚠ Splitting redeploy/cli/commands/plan_apply.py may break 19 import paths
   ⚠ Splitting redeploy/discovery.py may break 26 import paths
-  ⚠ Splitting redeploy/plan/planner.py may break 21 import paths
+  ⚠ Splitting redeploy/analyze/spec_analyzer.py may break 30 import paths
 
 METRICS-TARGET:
-  CC̄:          1.6 → ≤1.1
-  max-CC:      37 → ≤18
+  CC̄:          1.7 → ≤1.2
+  max-CC:      32 → ≤16
   god-modules: 7 → 0
-  high-CC(≥15): 37 → ≤18
+  high-CC(≥15): 44 → ≤22
   hub-types:   0 → ≤0
 
 PATTERNS (language parser shared logic):
@@ -79,4 +79,4 @@ PATTERNS (language parser shared logic):
     - Standardized FunctionInfo/ClassInfo models
 
 HISTORY:
-  prev CC̄=1.6 → now CC̄=1.6
+  prev CC̄=1.8 → now CC̄=1.7
