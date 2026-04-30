@@ -268,8 +268,8 @@ def migrate(ctx, host, app, domain, target, strategy, target_version,
 )
 @click.option("--no-state", is_flag=True, help="Disable checkpoint persistence for this run.")
 @click.option(
-    "--heal/--no-heal", default=True,
-    help="Self-healing: on failure, collect diagnostics and ask LLM to fix the spec, then retry (default: on)."
+    "--heal/--no-heal", default=False,
+    help="Self-healing: on failure, collect diagnostics and ask LLM to fix the spec, then retry (default: off)."
 )
 @click.option(
     "--fix", "fix_hint", default=None, metavar="TEXT",

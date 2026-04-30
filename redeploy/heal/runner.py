@@ -140,6 +140,10 @@ class HealRunner:
         )
         spec_text = self.spec_path.read_text()
         log_dir = self.spec_path.parent / ".redeploy" / "logs"
+        repair_log_path = self.spec_path.parent / "REPAIR_LOG.md"
+        self.console.print(
+            f"  [dim]logs: {repair_log_path} | LLM logs: {log_dir}[/dim]"
+        )
         llm_response = ask_llm(
             failed_step, step_output, diag, spec_text,
             fix_hint=self.fix_hint, log_dir=log_dir,

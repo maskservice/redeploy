@@ -1,7 +1,9 @@
 """Unit tests for redeploy.detect.hardware_rules."""
 import pytest
 from redeploy.models import BacklightInfo, DrmOutput, HardwareInfo, I2CBusInfo
-from redeploy.detect.hardware_rules import analyze
+from redeploy.detect.hardware_rules import analyze, _OP3_AVAILABLE
+
+pytestmark = pytest.mark.skipif(not _OP3_AVAILABLE, reason="op3 not installed")
 
 
 def _hw(**kwargs) -> HardwareInfo:
